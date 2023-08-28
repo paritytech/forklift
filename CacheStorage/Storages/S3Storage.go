@@ -1,4 +1,4 @@
-package CacheStorage
+package Storages
 
 import (
 	"bytes"

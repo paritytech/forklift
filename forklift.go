@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/binary"
 	"fmt"
-	"forklift/CacheStorage"
+	"forklift/CacheStorage/Storages"
 	"forklift/FileManager"
 	"os"
 	"strings"
@@ -27,7 +27,7 @@ func main() {
 	}
 
 	if os.Args[1] == "push" {
-		store := CacheStorage.NewS3Storage()
+		store := Storages.NewS3Storage()
 		var cacheItems = parseCacheRequest()
 
 		for _, item := range cacheItems {
@@ -68,7 +68,7 @@ func main() {
 	}
 
 	if os.Args[1] == "pull" {
-		store2 := CacheStorage.NewS3Storage()
+		store2 := Storages.NewS3Storage()
 		var cacheItems2 = parseCacheRequest()
 
 		for i, item := range cacheItems2 {

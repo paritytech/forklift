@@ -12,9 +12,10 @@ var mode string
 var params map[string]string
 
 var rootCmd = &cobra.Command{
-	Use:   "forklift <command> [flags] [cargo_project_dir]",
-	Short: "Cargo cache management utility",
-	Args:  cobra.MaximumNArgs(1),
+	Use:     "forklift <command> [flags] [cargo_project_dir]",
+	Short:   "Cargo cache management utility",
+	Args:    cobra.MaximumNArgs(1),
+	Version: "0.1.1",
 }
 
 func Execute() {

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/binary"
 	"forklift/Commands"
 )
 
@@ -15,18 +14,4 @@ func main() {
 	Commands.Execute()
 
 	return
-}
-
-func Int64ToByteArray(num uint64) []byte {
-	b := make([]byte, 8)
-	binary.LittleEndian.PutUint64(b, num)
-
-	return b
-}
-
-func Int32ToByteArray(num uint32) []byte {
-	b := make([]byte, 4)
-	binary.LittleEndian.PutUint32(b, num)
-
-	return b
 }

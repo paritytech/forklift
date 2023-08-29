@@ -1,7 +1,8 @@
-## Forklift
-Rust cache solution
+# Forklift
+Rust caching solution
 
-### Usage
+---
+## Usage
 To operate forklift needs `items.cache` file in project root directory 
 
 ```
@@ -20,32 +21,59 @@ rust-simple % ../cargo/target/release/cargo prebuild > items.cache
 ```
 
 then you may use these commands
-- `forklift push` - upload artifacts with hashes from `items.cache` to storage. Will search in `deps`, `build` adn `.fingerptint` folders
-- `forklift pull` - download artifacts
+- `forklift push --storage s3 ... [cargo_project_dir]` - upload artifacts with hashes from `items.cache` to storage.
+Will search in `deps`, `build` and `.fingerptint` folders
+- `forklift pull --storage s3 ... [cargo_project_dir]` - download artifacts
 
-Rignt now forklift pull/push artifacts **only from target/debug folder**
+for more info see `forklift help`
 
-### Storage
+---
+## Storage
 
-Currently forklift uses only S3 as cache storage. You must provide this environment variables:
+You may specify storage with `-s` or `--storage` flag. Additional parameters fo storage could be provided with `-p`
 
-- S3_ACCESS_KEY_ID
-- S3_SECRET_ACCESS_KEY
-- S3_ENDPOINT_URL
-- S3_BUCKET_NAME
+### S3
 
+S3 looks for parameters in params (`-p`), then in environment variables
 
-### Example
+Available parameters:
+ - S3_ACCESS_KEY_ID
+ - S3_SECRET_ACCESS_KEY
+ - S3_USE_SSL (default `true`)
+ - S3_ENDPOINT_URL
+ - S3_BUCKET_NAME (default `forklift`)
+
+example:
+
+`forklift pull -p S3_ACCESS_KEY_ID=<key_id> -p S3_SECRET_ACCESS_KEY=<>secret> -p S3_ENDPOINT_URL=192.168.1.2:9000 -p S3_BUCKET_NAME=forklift ../rust-simple`
+
+---
+## Compression
+
+Specify compression with `-c` or `--compression` flag
+
+**!Important right now you must use the same compression as for push and pull**
+
+Supported options:
+
+- None (`--compression none`) default, do not use compression 
+- LZMA (`--compression xz`) use [ulikunitz/xz go library](https://github.com/ulikunitz/xz)
+
+---
+## Example
 
 ```shell
-parity@Evgenys-MacBook-Pro rust-simple % export S3_ENDPOINT_URL=https://storage.googleapis.com
-parity@Evgenys-MacBook-Pro rust-simple % export S3_BUCKET_NAME=forklift-cache-parity-build-stg
 parity@Evgenys-MacBook-Pro rust-simple % ../cargo/target/release/cargo prebuild > items.cache
 parity@Evgenys-MacBook-Pro rust-simple % cargo build                                         
    Compiling base64 v0.21.2
    Compiling rust-simple v0.1.0 (/Users/parity/sources/repos/rust-simple)
     Finished dev [unoptimized + debuginfo] target(s) in 0.65s
-parity@Evgenys-MacBook-Pro rust-simple % ./forklift push
+parity@Evgenys-MacBook-Pro rust-simple % forklift pull \
+      -p S3_ACCESS_KEY_ID=... \
+      -p S3_SECRET_ACCESS_KEY=... \
+      -p S3_ENDPOINT_URL=192.168.1.2:9000 \
+      -p S3_BUCKET_NAME=forklift \
+      -c xz
 No entries from 'build' for base64 6d04f85381ff6fe7
 No entries from 'build' for rust-simple 1160ba424447b3ee
 Uploaded 19 entries from 'deps' for base64 6d04f85381ff6fe7
@@ -53,7 +81,12 @@ Uploaded 8 entries from 'deps' for rust-simple 1160ba424447b3ee
 Uploaded 1 entries from '.fingerprint' for base64 6d04f85381ff6fe7
 Uploaded 1 entries from '.fingerprint' for rust-simple 1160ba424447b3ee
 parity@Evgenys-MacBook-Pro rust-simple % rm -rf target/debug 
-parity@Evgenys-MacBook-Pro rust-simple % ./forklift pull    
+parity@Evgenys-MacBook-Pro rust-simple % forklift pull \
+      -p S3_ACCESS_KEY_ID=... \
+      -p S3_SECRET_ACCESS_KEY=... \
+      -p S3_ENDPOINT_URL=192.168.1.2:9000 \
+      -p S3_BUCKET_NAME=forklift \
+      -c xz   
 Downloaded artifacts for base64 6d04f85381ff6fe7 1 / 2
 Downloaded artifacts for rust-simple 1160ba424447b3ee 2 / 2
 parity@Evgenys-MacBook-Pro rust-simple % cargo build
@@ -61,9 +94,8 @@ parity@Evgenys-MacBook-Pro rust-simple % cargo build
 parity@Evgenys-MacBook-Pro rust-simple % 
 ```
 
-### TODO
-- compress uploads
+---
+## TODO
 - optimize uploads
-- normal cli
 - internal crates caching
 - logging and exception handling

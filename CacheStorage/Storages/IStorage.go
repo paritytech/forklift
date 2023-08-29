@@ -1,8 +1,10 @@
 package Storages
 
-import "bytes"
+import (
+	"io"
+)
 
 type IStorage interface {
-	Upload(key string, buffer bytes.Buffer)
-	Download(key string) []byte
+	Upload(key string, reader *io.Reader)
+	Download(key string) io.Reader
 }

@@ -29,33 +29,38 @@ func NewS3Storage() *S3Storage {
 	return s3s
 }
 
-func (storage S3Storage) Upload(key string, reader io.Reader) {
+func (storage *S3Storage) Upload(key string, reader *io.Reader) {
 	uploader := s3manager.NewUploader(storage.session)
 
-	var busketName = os.Getenv("S3_BUCKET_NAME")
+	var basketName = os.Getenv("S3_BUCKET_NAME")
 
 	// Upload the file to S3.
 	_, err := uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(busketName),
+		Bucket: aws.String(basketName),
 		Key:    aws.String(key),
-		Body:   reader,
+		Body:   *reader,
 	})
 	if err != nil {
 		var _ = fmt.Errorf("failed to upload file, %v", err)
 	}
 }
 
-func (storage S3Storage) Download(key string) io.Reader {
+func (storage *S3Storage) Download(key string) io.Reader {
 	downloader := s3manager.NewDownloader(storage.session)
 
-	var busketName = os.Getenv("S3_BUCKET_NAME")
+	var basketName = os.Getenv("S3_BUCKET_NAME")
 
 	buf := aws.NewWriteAtBuffer([]byte{})
 
-	downloader.Download(buf, &s3.GetObjectInput{
-		Bucket: aws.String(busketName),
+	n, err := downloader.Download(buf, &s3.GetObjectInput{
+		Bucket: aws.String(basketName),
 		Key:    aws.String(key),
 	})
-
+	if err != nil {
+		var _ = fmt.Errorf("failed to download file, %v", err)
+	}
+	if n == 0 {
+		return nil
+	}
 	return bytes.NewBuffer(buf.Bytes())
 }

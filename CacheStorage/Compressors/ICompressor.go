@@ -1,8 +1,10 @@
 package Compressors
 
-import "bytes"
+import (
+	"io"
+)
 
 type ICompressor interface {
-	Compress(buffer bytes.Buffer) bytes.Buffer
-	Decompress(buffer bytes.Buffer) bytes.Buffer
+	Compress(input *io.Reader) io.Reader
+	Decompress(input *io.Reader) io.Reader
 }

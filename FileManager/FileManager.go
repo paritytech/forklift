@@ -123,6 +123,8 @@ func tarFile(tarWriter *tar.Writer, entryInfo TargetFsEntry) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	f.Close()
 }
 
 func UnTar(path string, reader io.Reader) {
@@ -150,5 +152,7 @@ func UnTar(path string, reader io.Reader) {
 		if _, err := io.Copy(f, tr); err != nil {
 			log.Fatal(err)
 		}
+
+		f.Close()
 	}
 }

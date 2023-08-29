@@ -5,10 +5,10 @@ import (
 	"strings"
 )
 
-func GetStorageDriver(name string) (IStorage, error) {
+func GetStorageDriver(name string, params *map[string]string) (IStorage, error) {
 	switch strings.ToLower(name) {
 	case "s3":
-		var s = NewS3Storage()
+		var s = NewS3Storage(params)
 		return s, nil
 	default:
 		return nil, fmt.Errorf("unsupported driver `%s`", name)

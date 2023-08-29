@@ -19,6 +19,37 @@ type TargetFsEntry struct {
 	info     fs.FileInfo
 }
 
+type CacheItem struct {
+	Name    string
+	Version string
+	HashInt string
+	Hash    string
+}
+
+func ParseCacheRequest() []CacheItem {
+
+	var b, _ = os.ReadFile("./items.cache")
+	str := string(b)
+	var splitStrings = strings.Split(strings.ReplaceAll(str, "\r\n", "\n"), "\n")
+
+	var result []CacheItem
+
+	for i := range splitStrings {
+		var itemParts = strings.Split(splitStrings[i], "|")
+		if len(itemParts) < 4 {
+			continue
+		}
+		result = append(result, CacheItem{
+			Name:    strings.TrimSpace(itemParts[0]),
+			Version: strings.TrimSpace(itemParts[1]),
+			HashInt: strings.TrimSpace(itemParts[2]),
+			Hash:    strings.TrimSpace(itemParts[3]),
+		})
+	}
+
+	return result
+}
+
 // Find ed
 func Find(dir string, key string) []TargetFsEntry {
 	var files []TargetFsEntry

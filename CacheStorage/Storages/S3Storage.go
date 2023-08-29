@@ -41,7 +41,6 @@ func NewS3Storage(params *map[string]string) *S3Storage {
 
 func (storage *S3Storage) Upload(key string, reader *io.Reader, metadata map[string]*string) {
 	uploader := s3manager.NewUploader(storage.session)
-	log.Println(storage.bucket)
 
 	_, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket:   aws.String(storage.bucket),

@@ -20,7 +20,7 @@ var rootCmd = &cobra.Command{
 
 func Execute() {
 
-	rootCmd.PersistentFlags().StringVarP(&storage, "storage", "s", "s3", "Storage driver\nAvailable: s3")
+	rootCmd.PersistentFlags().StringVarP(&storage, "storage", "s", "s3", "Storage driver\nAvailable: s3, fs")
 	rootCmd.PersistentFlags().StringVarP(&compression, "compression", "c", "none", "Compression algorithm to use\nAvailable: none, xz")
 	rootCmd.PersistentFlags().StringToStringVarP(&params, "param", "p", nil, "map of additional parameters\n ex: -p S3_BUCKET_NAME=my_bucket")
 	rootCmd.PersistentFlags().StringVarP(&mode, "mode", "m", "debug", "Available: debug, release")

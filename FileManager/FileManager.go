@@ -175,6 +175,7 @@ func UnTar(path string, reader io.Reader) {
 		os.MkdirAll(filepath.Dir(filePath), 0777)
 
 		f, err := os.Create(filePath)
+		os.Chmod(filePath, 0777)
 
 		if err != nil {
 			log.Fatal(err)

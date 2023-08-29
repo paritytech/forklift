@@ -47,6 +47,15 @@ example:
 
 `forklift pull -p S3_ACCESS_KEY_ID=<key_id> -p S3_SECRET_ACCESS_KEY=<>secret> -p S3_ENDPOINT_URL=192.168.1.2:9000 -p S3_BUCKET_NAME=forklift ../rust-simple`
 
+### File system
+
+Available parameters:
+- FS_DIR absolute path
+
+example:
+
+`forklift push --storage fs -p FS_DIR=/Users/parity/sources/workbench/forklift_storage/cargo-none -c none ../crust-simple`
+
 ---
 ## Compression
 

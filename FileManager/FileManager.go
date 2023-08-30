@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 type TargetFsEntry struct {
@@ -48,6 +49,33 @@ func ParseCacheRequest() []CacheItem {
 	}
 
 	return result
+}
+
+func FindOpt(dir string, key CacheItem) []TargetFsEntry {
+	var files []TargetFsEntry
+
+	dir = filepath.Clean(dir)
+
+	var matches, _ = filepath.Glob(filepath.Join(dir, strings.ReplaceAll(key.Name, "-", "_")+"-"+key.Hash+"*"))
+
+	for _, match := range matches {
+
+		//if strings.Contains(filepath.Base(match), strings.ReplaceAll(key.Name, "-","_")+""+key.Hash) {
+		var info, _ = os.Stat(filepath.Join(dir, match))
+		var relPath, _ = filepath.Rel(dir, match)
+		//var absPath, _ = filepath.Abs(path)
+		targetFile := TargetFsEntry{
+			path:     relPath,
+			basePath: dir,
+			info:     info,
+		}
+		files = append(files, targetFile)
+		//}
+
+		return nil
+	}
+
+	return files
 }
 
 // Find ed
@@ -133,9 +161,10 @@ func tarDirectory(tarWriter *tar.Writer, entryInfo TargetFsEntry) {
 
 func tarFile(tarWriter *tar.Writer, entryInfo TargetFsEntry) {
 	hdr := &tar.Header{
-		Name: entryInfo.path,
-		Mode: 0777,
-		Size: entryInfo.info.Size(),
+		Name:    entryInfo.path,
+		Mode:    int64(entryInfo.info.Mode().Perm()),
+		Size:    entryInfo.info.Size(),
+		ModTime: entryInfo.info.ModTime(),
 	}
 
 	err := tarWriter.WriteHeader(hdr)
@@ -175,7 +204,6 @@ func UnTar(path string, reader io.Reader) {
 		os.MkdirAll(filepath.Dir(filePath), 0777)
 
 		f, err := os.Create(filePath)
-		os.Chmod(filePath, 0777)
 
 		if err != nil {
 			log.Fatal(err)
@@ -186,5 +214,7 @@ func UnTar(path string, reader io.Reader) {
 		}
 
 		f.Close()
+		os.Chmod(filePath, os.FileMode(hdr.Mode))
+		os.Chtimes(filePath, time.Now(), hdr.ModTime)
 	}
 }

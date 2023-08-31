@@ -5,10 +5,12 @@ import (
 	"forklift/CacheStorage/Compressors"
 	"forklift/CacheStorage/Storages"
 	"forklift/FileManager"
+	"forklift/Lib"
 	"github.com/spf13/cobra"
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 )
 
 func init() {
@@ -36,24 +38,51 @@ var pushCmd = &cobra.Command{
 		var cacheItems = FileManager.ParseCacheRequest()
 		var folders = []string{"build", "deps", ".fingerprint"}
 
-		for _, folder := range folders {
-			var path = filepath.Join("target", mode, folder)
+		var cpuCount = runtime.NumCPU()
 
-			for _, item := range cacheItems {
-				var files = FileManager.Find(path, item.Hash)
+		var queue = make(chan struct {
+			item   FileManager.CacheItem
+			path   string
+			folder string
+		})
 
+		go func() {
+			for _, folder := range folders {
+				var path = filepath.Join("target", mode, folder)
+
+				for _, item := range cacheItems {
+					queue <- struct {
+						item   FileManager.CacheItem
+						path   string
+						folder string
+					}{item: item, path: path, folder: folder}
+				}
+			}
+			close(queue)
+		}()
+
+		Lib.Parallel(
+			queue,
+			cpuCount,
+			func(obj struct {
+				item   FileManager.CacheItem
+				path   string
+				folder string
+			}) {
+				var files = FileManager.Find(obj.path, obj.item.Hash)
 				if len(files) > 0 {
+
+					log.Println(fmt.Sprintf("Packing %d entries from `%s` for %s-%s", len(files), obj.folder, obj.item.Name, obj.item.Hash))
 					var reader = FileManager.Tar(files)
 					var compressed = compressor.Compress(&reader)
-					var name = fmt.Sprintf("%s-%s-%s", item.Name, item.Hash, folder)
+					var name = fmt.Sprintf("%s-%s-%s", obj.item.Name, obj.item.Hash, obj.folder)
 
 					store.Upload(name, &compressed, nil)
 
-					log.Println("Uploaded", len(files), "entries from '", folder, "' for", item.Name, item.Hash)
+					log.Println(fmt.Sprintf("Uploaded %d entries from `%s` for %s-%s", len(files), obj.folder, obj.item.Name, obj.item.Hash))
 				} else {
-					log.Println("No entries from '", folder, "' for", item.Name, item.Hash)
+					log.Println(fmt.Sprintf("No entries from `%s` for %s-%s", obj.folder, obj.item.Name, obj.item.Hash))
 				}
-			}
-		}
+			})
 	},
 }

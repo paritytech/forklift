@@ -5,10 +5,12 @@ import (
 	"forklift/CacheStorage/Compressors"
 	"forklift/CacheStorage/Storages"
 	"forklift/FileManager"
+	"forklift/Lib"
 	"github.com/spf13/cobra"
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 )
 
 func init() {
@@ -23,7 +25,7 @@ var pullCmd = &cobra.Command{
 		if len(args) > 0 {
 			err := os.Chdir(args[0])
 			if err != nil {
-				log.Println(err)
+				log.Fatalln(err)
 				return
 			}
 		}
@@ -34,29 +36,44 @@ var pullCmd = &cobra.Command{
 		compressor, _ := Compressors.GetCompressor(compression, &params)
 		var folders = []string{"build", "deps", ".fingerprint"}
 
-		for _, folder := range folders {
-			var path = filepath.Join("target", mode, folder)
+		var cpuCount = runtime.NumCPU()
 
-			for i, item := range cacheItems {
+		var queue = make(chan struct {
+			item   FileManager.CacheItem
+			path   string
+			folder string
+		})
 
-				var name = fmt.Sprintf("%s-%s-%s", item.Name, item.Hash, folder)
+		go func() {
+			for _, folder := range folders {
+				var path = filepath.Join("target", mode, folder)
+
+				for _, item := range cacheItems {
+					queue <- struct {
+						item   FileManager.CacheItem
+						path   string
+						folder string
+					}{item: item, path: path, folder: folder}
+				}
+			}
+			close(queue)
+		}()
+
+		Lib.Parallel(
+			queue,
+			cpuCount,
+			func(obj struct {
+				item   FileManager.CacheItem
+				path   string
+				folder string
+			}) {
+				var name = fmt.Sprintf("%s-%s-%s", obj.item.Name, obj.item.Hash, obj.folder)
 				var f = store.Download(name)
 				if f != nil {
-					FileManager.UnTar(path, compressor.Decompress(&f))
+					FileManager.UnTar(obj.path, compressor.Decompress(&f))
 				}
 
-				/*f = store.Download(item.Hash + "-deps")
-				if f != nil {
-					FileManager.UnTar("./target/debug/deps", compressor.Decompress(&f))
-				}
-
-				f = store.Download(item.Hash + "-fp")
-				if f != nil {
-					FileManager.UnTar("./target/debug/.fingerprint", compressor.Decompress(&f))
-				}*/
-
-				log.Println("Downloaded artifacts for", item.Name, item.Hash, folder, i+1, "/", len(cacheItems))
-			}
-		}
+				log.Println("Downloaded artifacts for", obj.item.Name, obj.item.Hash, obj.folder)
+			})
 	},
 }

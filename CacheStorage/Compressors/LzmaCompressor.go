@@ -20,7 +20,7 @@ func (l *LzmaCompressor) Compress(input *io.Reader) io.Reader {
 
 	var _, err2 = io.Copy(writer, *input)
 	if err2 != nil {
-		log.Fatalf("Copy error %s", err)
+		log.Fatalf("Copy error %s", err2)
 	}
 
 	if err := writer.Close(); err != nil {

@@ -31,7 +31,7 @@ var pullCmd = &cobra.Command{
 		var cacheItems = FileManager.ParseCacheRequest()
 
 		store, _ := Storages.GetStorageDriver(storage, &params)
-		compressor, _ := Compressors.GetCompressor(compression)
+		compressor, _ := Compressors.GetCompressor(compression, &params)
 		var folders = []string{"build", "deps", ".fingerprint"}
 
 		for _, folder := range folders {

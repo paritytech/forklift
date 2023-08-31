@@ -33,7 +33,7 @@ func ExtractParam[T string | int64 | bool](args *map[string]string, key string, 
 	var parsed any
 	var err error
 
-	switch any(s).(type) {
+	switch any(defaultValue).(type) {
 	case string:
 		parsed = s
 	case int64:

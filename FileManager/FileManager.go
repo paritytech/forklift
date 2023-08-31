@@ -132,6 +132,10 @@ func Tar(fsEntries []TargetFsEntry) io.Reader {
 		}
 	}
 
+	if buf.Len() <= 0 {
+		return nil
+	}
+
 	return &buf
 }
 

@@ -76,7 +76,7 @@ var pushCmd = &cobra.Command{
 					var reader, sha = FileManager.Tar(files)
 					var shaLocal = fmt.Sprintf("%x", sha.Sum(nil))
 
-					var name = fmt.Sprintf("%s-%s-%s", obj.item.Name, obj.item.Hash, obj.folder)
+					var name = fmt.Sprintf("%s-%s-%s-%s", obj.item.Name, obj.item.Hash, obj.folder, compressor)
 
 					var meta, exists = store.GetMetadata(name)
 

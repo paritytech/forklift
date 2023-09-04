@@ -44,11 +44,15 @@ Release:
       links:
         - name: "${APPLE_AMD64_BINARY}"
           url: "${PACKAGE_REGISTRY_URL}/$VERSION/${APPLE_AMD64_BINARY}"
+          filepath: "/bin/forklift_apple_amd64"
         - name: "${APPLE_ARM64_BINARY}"
           url: "${PACKAGE_REGISTRY_URL}/$VERSION/${APPLE_ARM64_BINARY}"
+          filepath: "/bin/forklift_apple_arm64"
         - name: "${LINUX_AMD64_BINARY}"
           url: "${PACKAGE_REGISTRY_URL}/$VERSION/${LINUX_AMD64_BINARY}"
+          filepath: "/bin/forklift_linux_amd64"
         - name: "${WINDOWS_AMD64_BINARY}"
           url: "${PACKAGE_REGISTRY_URL}/$VERSION/${WINDOWS_AMD64_BINARY}"
+          filepath: "/bin/forklift_win_amd64"
   tags:
     - kubernetes-parity-build

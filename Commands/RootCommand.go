@@ -6,6 +6,8 @@ import (
 	"os"
 )
 
+var Version = "0.2.0"
+
 var storage string
 var compression string
 var mode string
@@ -15,7 +17,7 @@ var rootCmd = &cobra.Command{
 	Use:     "forklift <command> [flags] [cargo_project_dir]",
 	Short:   "Cargo cache management utility",
 	Args:    cobra.MaximumNArgs(1),
-	Version: "0.2.0",
+	Version: Version,
 }
 
 func Execute() {

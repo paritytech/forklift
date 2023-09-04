@@ -1,4 +1,4 @@
-//go:build !no_lzma2
+//go:build no_lzma2
 
 package Compressors
 
@@ -15,9 +15,6 @@ func GetCompressor(name string, params *map[string]string) (ICompressor, error) 
 		return s, nil
 	case "xz":
 		var s = &LzmaCompressor{}
-		return s, nil
-	case "lzma2":
-		var s = NewLzma2CCompressor(params)
 		return s, nil
 	default:
 		return nil, fmt.Errorf("unsupported compessor `%s`", name)

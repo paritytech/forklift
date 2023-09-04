@@ -44,3 +44,5 @@ Release:
       links:
         - name: "APPLE_AMD64_BINARY"
           url: "${PACKAGE_REGISTRY_URL}/$VERSION/${LINUX_AMD64_BINARY}"
+  tags:
+    - kubernetes-parity-build

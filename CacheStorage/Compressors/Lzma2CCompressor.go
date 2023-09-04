@@ -1,3 +1,5 @@
+//go:build !no_lzma2
+
 package Compressors
 
 import (

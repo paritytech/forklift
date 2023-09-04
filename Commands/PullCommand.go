@@ -68,12 +68,37 @@ var pullCmd = &cobra.Command{
 				folder string
 			}) {
 				var name = fmt.Sprintf("%s-%s-%s", obj.item.Name, obj.item.Hash, obj.folder)
+				var meta, exists = store.GetMetadata(name)
+				var match = false
+
+				if !exists {
+					return
+				}
+
+				if meta != nil {
+					var _, sha = FileManager.Tar(FileManager.FindOpt(obj.path, obj.item.Hash))
+
+					var shaRemote = *meta["Sha-1-Content"]
+					var shaLocal = fmt.Sprintf("%x", sha.Sum(nil))
+
+					if shaRemote == shaLocal {
+						match = true
+					} else {
+						log.Println(name, shaRemote, shaLocal, "checksum mismatch, redownload")
+					}
+				} else {
+					log.Println(name, "no metadata")
+				}
+
+				if match {
+					return
+				}
+
 				var f = store.Download(name)
 				if f != nil {
 					FileManager.UnTar(obj.path, compressor.Decompress(&f))
+					log.Println("Downloaded artifacts for", obj.item.Name, obj.item.Hash, obj.folder)
 				}
-
-				log.Println("Downloaded artifacts for", obj.item.Name, obj.item.Hash, obj.folder)
 			})
 	},
 }

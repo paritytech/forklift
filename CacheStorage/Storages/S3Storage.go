@@ -13,7 +13,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"io"
 	"log"
-	"os"
 )
 
 type S3Storage struct {
@@ -45,7 +44,7 @@ func NewS3Storage(params *map[string]string) *S3Storage {
 	return &s3s
 }
 
-func (storage *S3Storage) GetMetadata(key string) map[string]*string {
+func (storage *S3Storage) GetMetadata(key string) (map[string]*string, bool) {
 
 	var head, err = storage.client.HeadObject(&s3.HeadObjectInput{
 		Key:    &key,
@@ -53,23 +52,22 @@ func (storage *S3Storage) GetMetadata(key string) map[string]*string {
 	})
 
 	if err != nil {
-		var aerr awserr.Error
-		if errors.As(err, &aerr) {
-			switch aerr.Code() {
+		var awsErr awserr.Error
+		if errors.As(err, &awsErr) {
+			switch awsErr.Code() {
 			case "NotFound":
-				log.Println("NotFound", key)
-				return nil
+				return nil, false
 			case s3.ErrCodeNoSuchBucket:
-				log.Println("bucket %s does not exist", os.Args[1])
+				log.Printf("bucket %s does not exist\n", storage.bucket)
 			case s3.ErrCodeNoSuchKey:
-				log.Println("object with key %s does not exist in bucket %s", os.Args[2], os.Args[1])
+				log.Printf("object with key %s does not exist in bucket %s\n", key, storage.bucket)
 			}
 		} else {
 			log.Fatalf("failed to get head for file %s\n%s", key, err)
 		}
 	}
 
-	return head.Metadata
+	return head.Metadata, true
 }
 
 func (storage *S3Storage) Upload(key string, reader *io.Reader, metadata map[string]*string) {

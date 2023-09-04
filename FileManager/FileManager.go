@@ -55,25 +55,19 @@ func ParseCacheRequest() []CacheItem {
 func FindOpt(dir string, key string) []TargetFsEntry {
 	var files []TargetFsEntry
 
-	//dir = filepath.Clean(dir)
+	dir = filepath.Clean(dir)
 
 	var matches, _ = filepath.Glob(filepath.Join(dir, "*"+key+"*"))
 
 	for _, match := range matches {
-		log.Println(match)
-		//if strings.Contains(filepath.Base(match), strings.ReplaceAll(key.Name, "-","_")+""+key.Hash) {
 		var info, _ = os.Stat(match)
 		var relPath, _ = filepath.Rel(dir, match)
-		//var absPath, _ = filepath.Abs(path)
 		targetFile := TargetFsEntry{
 			path:     relPath,
 			basePath: dir,
 			info:     info,
 		}
 		files = append(files, targetFile)
-		//}
-
-		//return nil
 	}
 
 	return files

@@ -2,22 +2,45 @@ stages:
   - build
   - release
 
+variables:
+  PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/forklift"
+  VERSION: $CI_COMMIT_TAG
+  APPLE_AMD64_BINARY:   "forklift-${VERSION}-apple-amd64"
+  APPLE_ARM64_BINARY:   "forklift-${VERSION}-apple-arm64"
+  LINUX_AMD64_BINARY:   "forklift-${VERSION}-linux-amd64"
+  WINDOWS_AMD64_BINARY: "forklift-${VERSION}-win-amd64"
+
 Build:
+  rules:
+    - if: $CI_COMMIT_TAG
   variables:
-    VERSION: "0.2.0"
+    VERSION: $CI_COMMIT_TAG
   stage: build
   image: golang:1.21.0
   script:
-    - GOOS=linux   GOARCH=amd64 go build -ldflags="-X forklift/Commands.Version=$VERSION" -o bin/forklift-linux-amd64
-    - GOOS=darwin  GOARCH=amd64 go build -ldflags="-X forklift/Commands.Version=$VERSION" -o bin/forklift-apple-amd64 -tags no_lzma2
-    - GOOS=darwin  GOARCH=arm64 go build -ldflags="-X forklift/Commands.Version=$VERSION" -o bin/forklift-apple-arm64 -tags no_lzma2
-    - GOOS=windows GOARCH=amd64 go build -ldflags="-X forklift/Commands.Version=$VERSION" -o bin/forklift-win-amd64   -tags no_lzma2
+    - GOOS=linux   GOARCH=amd64 go build -ldflags="-X forklift/Commands.Version=$VERSION" -o bin/${LINUX_AMD64_BINARY}
+    - GOOS=darwin  GOARCH=amd64 go build -ldflags="-X forklift/Commands.Version=$VERSION" -o bin/${APPLE_AMD64_BINARY}   -tags no_lzma2
+    - GOOS=darwin  GOARCH=arm64 go build -ldflags="-X forklift/Commands.Version=$VERSION" -o bin/${APPLE_ARM64_BINARY}   -tags no_lzma2
+    - GOOS=windows GOARCH=amd64 go build -ldflags="-X forklift/Commands.Version=$VERSION" -o bin/${WINDOWS_AMD64_BINARY} -tags no_lzma2
     - ls -al bin
-    - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file bin/forklift-linux-amd64 "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/forklift/$VERSION/forklift-linux-amd64"'
-    - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file bin/forklift-apple-amd64 "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/forklift/$VERSION/forklift-apple-amd64"'
-    - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file bin/forklift-apple-arm64 "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/forklift/$VERSION/forklift-apple-arm64"'
-    - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file bin/forklift-win-amd64 "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/forklift/$VERSION/forklift-win-amd64"'
+    - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file bin/${LINUX_AMD64_BINARY}   "${PACKAGE_REGISTRY_URL}/$VERSION/${LINUX_AMD64_BINARY}"'
+    - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file bin/${APPLE_AMD64_BINARY}   "${PACKAGE_REGISTRY_URL}/$VERSION/${APPLE_AMD64_BINARY}"'
+    - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file bin/${APPLE_ARM64_BINARY}   "${PACKAGE_REGISTRY_URL}/$VERSION/${APPLE_ARM64_BINARY}"'
+    - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file bin/${WINDOWS_AMD64_BINARY} "${PACKAGE_REGISTRY_URL}/$VERSION/${WINDOWS_AMD64_BINARY}"'
   tags:
     - kubernetes-parity-build
 
-
+Release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - echo "running release_job"
+  release:                               # See https://docs.gitlab.com/ee/ci/yaml/#release for available properties
+    tag_name: '$CI_COMMIT_TAG'
+    description: 'CI_COMMIT_TAG_MESSAGE'
+    assets:
+      links:
+        - name: "APPLE_AMD64_BINARY"
+          url: "${PACKAGE_REGISTRY_URL}/$VERSION/${LINUX_AMD64_BINARY}"

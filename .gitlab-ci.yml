@@ -4,14 +4,12 @@ stages:
 
 Build-darwin:
   stage: build
-  image: golang:1.21.0-bullseye
+  image: golang:1.21.0
   script:
-    - apt-get install -y --no-install-recommends musl-dev musl-tools
     - GOOS=darwin  GOARCH=amd64 go build -ldflags="-X forklift/Commands.Version=0.2.0" -o bin/forklift-apple-amd64
     - GOOS=darwin  GOARCH=arm64 go build -ldflags="-X forklift/Commands.Version=0.2.0" -o bin/forklift-apple-arm64
     - ls -al bin
   tags:
-    - kubernetes-parity-build
     - macos
 
 Build-linux:

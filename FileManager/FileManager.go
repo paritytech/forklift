@@ -3,7 +3,9 @@ package FileManager
 import (
 	"archive/tar"
 	"bytes"
+	"crypto/sha1"
 	"fmt"
+	"hash"
 	"io"
 	"io/fs"
 	"log"
@@ -14,8 +16,7 @@ import (
 )
 
 type TargetFsEntry struct {
-	path string
-	//absPath  string
+	path     string
 	basePath string
 	info     fs.FileInfo
 }
@@ -51,17 +52,17 @@ func ParseCacheRequest() []CacheItem {
 	return result
 }
 
-func FindOpt(dir string, key CacheItem) []TargetFsEntry {
+func FindOpt(dir string, key string) []TargetFsEntry {
 	var files []TargetFsEntry
 
-	dir = filepath.Clean(dir)
+	//dir = filepath.Clean(dir)
 
-	var matches, _ = filepath.Glob(filepath.Join(dir, strings.ReplaceAll(key.Name, "-", "_")+"-"+key.Hash+"*"))
+	var matches, _ = filepath.Glob(filepath.Join(dir, "*"+key+"*"))
 
 	for _, match := range matches {
-
+		log.Println(match)
 		//if strings.Contains(filepath.Base(match), strings.ReplaceAll(key.Name, "-","_")+""+key.Hash) {
-		var info, _ = os.Stat(filepath.Join(dir, match))
+		var info, _ = os.Stat(match)
 		var relPath, _ = filepath.Rel(dir, match)
 		//var absPath, _ = filepath.Abs(path)
 		targetFile := TargetFsEntry{
@@ -72,7 +73,7 @@ func FindOpt(dir string, key CacheItem) []TargetFsEntry {
 		files = append(files, targetFile)
 		//}
 
-		return nil
+		//return nil
 	}
 
 	return files
@@ -94,7 +95,6 @@ func Find(dir string, key string) []TargetFsEntry {
 		if strings.Contains(filepath.Base(path), key) {
 			info, _ := de.Info()
 			var relPath, _ = filepath.Rel(dir, path)
-			//var absPath, _ = filepath.Abs(path)
 			targetFile := TargetFsEntry{
 				path:     relPath,
 				basePath: dir,
@@ -118,28 +118,30 @@ func Find(dir string, key string) []TargetFsEntry {
 }
 
 // Tar Tarf dgsrfdg h
-func Tar(fsEntries []TargetFsEntry) io.Reader {
+func Tar(fsEntries []TargetFsEntry) (io.Reader, hash.Hash) {
 
 	var buf bytes.Buffer
 	tw := tar.NewWriter(&buf)
 
+	var sha = sha1.New()
+
 	for _, fsEntry := range fsEntries {
 
 		if fsEntry.info.IsDir() {
-			tarDirectory(tw, fsEntry)
+			tarDirectory(tw, fsEntry, sha)
 		} else {
-			tarFile(tw, fsEntry)
+			tarFile(tw, fsEntry, sha)
 		}
 	}
 
 	if buf.Len() <= 0 {
-		return nil
+		return nil, nil
 	}
 
-	return &buf
+	return &buf, sha
 }
 
-func tarDirectory(tarWriter *tar.Writer, entryInfo TargetFsEntry) {
+func tarDirectory(tarWriter *tar.Writer, entryInfo TargetFsEntry, hash hash.Hash) {
 
 	err := filepath.WalkDir(filepath.Join(entryInfo.basePath, entryInfo.path), func(path string, de fs.DirEntry, err error) error {
 
@@ -153,6 +155,7 @@ func tarDirectory(tarWriter *tar.Writer, entryInfo TargetFsEntry) {
 					basePath: entryInfo.basePath,
 					info:     info,
 				},
+				hash,
 			)
 		}
 
@@ -163,7 +166,7 @@ func tarDirectory(tarWriter *tar.Writer, entryInfo TargetFsEntry) {
 	}
 }
 
-func tarFile(tarWriter *tar.Writer, entryInfo TargetFsEntry) {
+func tarFile(tarWriter *tar.Writer, entryInfo TargetFsEntry, hash hash.Hash) {
 	hdr := &tar.Header{
 		Name:    entryInfo.path,
 		Mode:    int64(entryInfo.info.Mode().Perm()),
@@ -180,10 +183,9 @@ func tarFile(tarWriter *tar.Writer, entryInfo TargetFsEntry) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	body := make([]byte, entryInfo.info.Size())
-	f.Read(body)
 
-	_, err = tarWriter.Write(body)
+	var mw = io.MultiWriter(tarWriter, hash)
+	_, err = io.Copy(mw, f)
 	if err != nil {
 		log.Fatal(err)
 	}

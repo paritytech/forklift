@@ -44,7 +44,7 @@ var pushCmd = &cobra.Command{
 			item   FileManager.CacheItem
 			path   string
 			folder string
-		})
+		}, 20)
 
 		go func() {
 			for _, folder := range folders {
@@ -69,17 +69,18 @@ var pushCmd = &cobra.Command{
 				path   string
 				folder string
 			}) {
-				var files = FileManager.Find(obj.path, obj.item.Hash)
+				var files = FileManager.FindOpt(obj.path, obj.item.Hash)
 				if len(files) > 0 {
 
 					log.Println(fmt.Sprintf("Packing %d entries from `%s` for %s-%s", len(files), obj.folder, obj.item.Name, obj.item.Hash))
-					var reader = FileManager.Tar(files)
+					var reader, sha = FileManager.Tar(files)
 					var compressed = compressor.Compress(&reader)
 					var name = fmt.Sprintf("%s-%s-%s", obj.item.Name, obj.item.Hash, obj.folder)
 
-					store.Upload(name, &compressed, nil)
+					var shaString = fmt.Sprintf("%x", sha.Sum(nil))
+					store.Upload(name, &compressed, map[string]*string{"Sha-1-Content": &shaString})
 
-					log.Println(fmt.Sprintf("Uploaded %d entries from `%s` for %s-%s", len(files), obj.folder, obj.item.Name, obj.item.Hash))
+					log.Println(fmt.Sprintf("Uploaded %d entries from `%s` for %s-%s, %x", len(files), obj.folder, obj.item.Name, obj.item.Hash, sha.Sum(nil)))
 				} else {
 					log.Println(fmt.Sprintf("No entries from `%s` for %s-%s", obj.folder, obj.item.Name, obj.item.Hash))
 				}

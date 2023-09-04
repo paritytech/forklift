@@ -20,6 +20,11 @@ func NewFsStorage(params *map[string]string) *FsStorage {
 	return &fsStorage
 }
 
+func (storage *FsStorage) GetMetadata(key string) map[string]*string {
+
+	return map[string]*string{}
+}
+
 func (storage *FsStorage) Upload(key string, reader *io.Reader, metadata map[string]*string) {
 	var file, err = os.Create(filepath.Join(storage.dir, key))
 	if err != nil {

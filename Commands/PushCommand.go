@@ -72,17 +72,37 @@ var pushCmd = &cobra.Command{
 				var files = FileManager.FindOpt(obj.path, obj.item.Hash)
 				if len(files) > 0 {
 
-					log.Println(fmt.Sprintf("Packing %d entries from `%s` for %s-%s", len(files), obj.folder, obj.item.Name, obj.item.Hash))
+					//log.Println(fmt.Sprintf("Packing %d entries from `%s` for %s-%s", len(files), obj.folder, obj.item.Name, obj.item.Hash))
 					var reader, sha = FileManager.Tar(files)
-					var compressed = compressor.Compress(&reader)
+					var shaLocal = fmt.Sprintf("%x", sha.Sum(nil))
+
 					var name = fmt.Sprintf("%s-%s-%s", obj.item.Name, obj.item.Hash, obj.folder)
 
-					var shaString = fmt.Sprintf("%x", sha.Sum(nil))
-					store.Upload(name, &compressed, map[string]*string{"Sha-1-Content": &shaString})
+					var meta, exists = store.GetMetadata(name)
 
-					log.Println(fmt.Sprintf("Uploaded %d entries from `%s` for %s-%s, %x", len(files), obj.folder, obj.item.Name, obj.item.Hash, sha.Sum(nil)))
+					var needUpload = false
+
+					if !exists {
+						log.Printf("%s does not exist in storage, uploading...", name)
+						needUpload = true
+					} else if meta == nil {
+						log.Printf("no metadata for %s, uploading...", name)
+						needUpload = true
+					} else if shaRemotePtr, ok := meta["Sha-1-Content"]; !ok {
+						log.Printf("no metadata for %s, uploading...", name)
+						needUpload = true
+					} else if *shaRemotePtr != shaLocal {
+						log.Println(name, *shaRemotePtr, shaLocal, "checksum mismatch, uploading...")
+						needUpload = true
+					}
+
+					if needUpload {
+						var compressed = compressor.Compress(&reader)
+						store.Upload(name, &compressed, map[string]*string{"Sha-1-Content": &shaLocal})
+						log.Println(fmt.Sprintf("Uploaded %d entries from `%s` for %s-%s, %x", len(files), obj.folder, obj.item.Name, obj.item.Hash, sha.Sum(nil)))
+					}
 				} else {
-					log.Println(fmt.Sprintf("No entries from `%s` for %s-%s", obj.folder, obj.item.Name, obj.item.Hash))
+					//log.Println(fmt.Sprintf("No entries from `%s` for %s-%s", obj.folder, obj.item.Name, obj.item.Hash))
 				}
 			})
 	},

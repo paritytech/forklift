@@ -11,4 +11,6 @@ Build:
     - GOOS=darwin  GOARCH=arm64 go build -ldflags="-X forklift/Commands.Version=0.2.0" -o bin/forklift-apple-arm64
     - GOOS=windows GOARCH=amd64 go build -ldflags="-X forklift/Commands.Version=0.2.0" -o bin/forklift-win-amd64
     - ls -al bin
+  tags:
+    - kubernetes-parity-build
 

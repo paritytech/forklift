@@ -1,0 +1,14 @@
+stages:
+  - build
+  - release
+
+Build:
+  stage: build
+  image: golang:1.21.0
+  script:
+    - GOOS=linux   GOARCH=amd64 go build -ldflags="-X forklift/Commands.Version=0.2.0" -o bin/forklift-linux-amd64
+    - GOOS=darwin  GOARCH=amd64 go build -ldflags="-X forklift/Commands.Version=0.2.0" -o bin/forklift-apple-amd64
+    - GOOS=darwin  GOARCH=arm64 go build -ldflags="-X forklift/Commands.Version=0.2.0" -o bin/forklift-apple-arm64
+    - GOOS=windows GOARCH=amd64 go build -ldflags="-X forklift/Commands.Version=0.2.0" -o bin/forklift-win-amd64
+    - ls -al bin
+

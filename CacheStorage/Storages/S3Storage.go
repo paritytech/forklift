@@ -11,8 +11,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	log "github.com/sirupsen/logrus"
 	"io"
-	"log"
 )
 
 type S3Storage struct {
@@ -80,7 +80,7 @@ func (storage *S3Storage) Upload(key string, reader *io.Reader, metadata map[str
 		Metadata: metadata,
 	})
 	if err != nil {
-		log.Fatalf("failed to upload file %s\n%s", key, err)
+		log.Fatalf("failed to upload file %s\n%s\n", key, err)
 	}
 }
 
@@ -94,7 +94,7 @@ func (storage *S3Storage) Download(key string) io.Reader {
 		Key:    aws.String(key),
 	})
 	if err != nil {
-		var _ = fmt.Errorf("failed to download file, %v", err)
+		var _ = fmt.Errorf("failed to download file, %v\n", err)
 	}
 	if n == 0 {
 		return nil

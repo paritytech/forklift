@@ -6,8 +6,8 @@ import (
 	"forklift/CacheStorage/Storages"
 	"forklift/FileManager"
 	"forklift/Lib"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -21,6 +21,8 @@ var pullCmd = &cobra.Command{
 	Use:   "pull [flags] [project_dir]",
 	Short: "Download cache artifacts",
 	Run: func(cmd *cobra.Command, args []string) {
+
+		log.Traceln(params)
 
 		if len(args) > 0 {
 			err := os.Chdir(args[0])
@@ -72,6 +74,7 @@ var pullCmd = &cobra.Command{
 				var match = false
 
 				if !existsInStore {
+					log.Debugf("%s does not exist in storage\n", name)
 					return
 				}
 
@@ -90,11 +93,12 @@ var pullCmd = &cobra.Command{
 
 					if shaRemote == shaLocal {
 						match = true
+						log.Tracef("%s checksum match\n", name)
 					} else {
-						log.Println(name, shaRemote, shaLocal, "checksum mismatch, redownload")
+						log.Debugf("%s checksum mismatch, remote: %s local: %s, download\n", name, shaRemote, shaLocal)
 					}
 				} else {
-					log.Println(name, "no metadata")
+					log.Debugf(name, "no metadata, download")
 				}
 
 				if match {
@@ -104,7 +108,7 @@ var pullCmd = &cobra.Command{
 				var f = store.Download(name)
 				if f != nil {
 					FileManager.UnTar(obj.path, compressor.Decompress(&f))
-					log.Println("Downloaded artifacts for", obj.item.Name, obj.item.Hash, obj.folder)
+					log.Infof("Downloaded artifacts for %s\n", name)
 				}
 			})
 	},

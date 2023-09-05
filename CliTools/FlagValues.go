@@ -1,7 +1,7 @@
 package CliTools
 
 import (
-	"log"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"strconv"
 )
@@ -47,7 +47,7 @@ func ExtractParam[T string | int64 | bool](args *map[string]string, key string, 
 	}
 
 	if err != nil {
-		log.Printf("Failed to parse param `%s` with value `%s`\n", key, s)
+		log.Debugf("Failed to parse param `%s` with value `%s`\n", key, s)
 		return defaultValue
 	}
 

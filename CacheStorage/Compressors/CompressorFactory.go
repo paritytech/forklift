@@ -3,7 +3,8 @@
 package Compressors
 
 import (
-	"fmt"
+	"errors"
+	log "github.com/sirupsen/logrus"
 	"strings"
 )
 
@@ -20,6 +21,7 @@ func GetCompressor(name string, params *map[string]string) (ICompressor, error) 
 		var s = NewLzma2CCompressor(params)
 		return s, nil
 	default:
-		return nil, fmt.Errorf("unsupported compessor `%s`", name)
+		log.Fatalf("unsupported compressor `%s`\n", name)
+		return nil, errors.New("unsupported compressor")
 	}
 }

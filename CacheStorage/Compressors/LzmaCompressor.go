@@ -2,10 +2,9 @@ package Compressors
 
 import (
 	"bytes"
-	"io"
-	"log"
-
+	log "github.com/sirupsen/logrus"
 	"github.com/ulikunitz/xz"
+	"io"
 )
 
 type LzmaCompressor struct {
@@ -15,16 +14,16 @@ func (l *LzmaCompressor) Compress(input *io.Reader) io.Reader {
 	var buf bytes.Buffer
 	var writer, err = xz.NewWriter(&buf)
 	if err != nil {
-		log.Fatalf("NewWriter error %s", err)
+		log.Fatalf("NewWriter error %s\n", err)
 	}
 
 	var _, err2 = io.Copy(writer, *input)
 	if err2 != nil {
-		log.Fatalf("Copy error %s", err2)
+		log.Fatalf("Copy error %s\n", err2)
 	}
 
 	if err := writer.Close(); err != nil {
-		log.Fatalf("w.Close error %s", err)
+		log.Fatalf("w.Close error %s\n", err)
 	}
 
 	return &buf
@@ -35,12 +34,12 @@ func (l *LzmaCompressor) Decompress(input *io.Reader) io.Reader {
 
 	var reader, err = xz.NewReader(*input)
 	if err != nil {
-		log.Fatalf("NewReader error %s", err)
+		log.Fatalf("NewReader error %s\n", err)
 	}
 
 	var _, err2 = io.Copy(&buf, reader)
 	if err2 != nil {
-		log.Fatalf("Read error %s", err2)
+		log.Fatalf("Read error %s\n", err2)
 	}
 
 	return &buf

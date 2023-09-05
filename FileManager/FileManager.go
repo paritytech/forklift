@@ -4,11 +4,10 @@ import (
 	"archive/tar"
 	"bytes"
 	"crypto/sha1"
-	"fmt"
+	log "github.com/sirupsen/logrus"
 	"hash"
 	"io"
 	"io/fs"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -73,44 +72,6 @@ func FindOpt(dir string, key string) []TargetFsEntry {
 	return files
 }
 
-// Find ed
-func Find(dir string, key string) []TargetFsEntry {
-	var files []TargetFsEntry
-
-	dir = filepath.Clean(dir)
-
-	err := filepath.WalkDir(dir, func(path string, de fs.DirEntry, err error) error {
-
-		if err != nil {
-			fmt.Println(err)
-			return nil
-		}
-
-		if strings.Contains(filepath.Base(path), key) {
-			info, _ := de.Info()
-			var relPath, _ = filepath.Rel(dir, path)
-			targetFile := TargetFsEntry{
-				path:     relPath,
-				basePath: dir,
-				info:     info,
-			}
-			files = append(files, targetFile)
-		}
-
-		if de.IsDir() && path != dir {
-			return filepath.SkipDir
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return files
-}
-
 // Tar Tarf dgsrfdg h
 func Tar(fsEntries []TargetFsEntry) (io.Reader, hash.Hash) {
 
@@ -156,7 +117,7 @@ func tarDirectory(tarWriter *tar.Writer, entryInfo TargetFsEntry, hash hash.Hash
 		return nil
 	})
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalln(err)
 	}
 }
 
@@ -170,21 +131,24 @@ func tarFile(tarWriter *tar.Writer, entryInfo TargetFsEntry, hash hash.Hash) {
 
 	err := tarWriter.WriteHeader(hdr)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalln(err)
 	}
 
 	f, err := os.Open(filepath.Join(entryInfo.basePath, entryInfo.path))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalln(err)
 	}
 
 	var mw = io.MultiWriter(tarWriter, hash)
 	_, err = io.Copy(mw, f)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalln(err)
 	}
 
-	f.Close()
+	err = f.Close()
+	if err != nil {
+		log.Fatalln(err)
+	}
 }
 
 func UnTar(path string, reader io.Reader) {
@@ -197,7 +161,7 @@ func UnTar(path string, reader io.Reader) {
 			break // End of archive
 		}
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalln(err)
 		}
 
 		filePath := filepath.Join(path, hdr.Name)
@@ -206,11 +170,11 @@ func UnTar(path string, reader io.Reader) {
 		f, err := os.Create(filePath)
 
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalln(err)
 		}
 
 		if _, err := io.Copy(f, tr); err != nil {
-			log.Fatal(err)
+			log.Fatalln(err)
 		}
 
 		f.Close()

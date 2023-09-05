@@ -18,11 +18,11 @@ Build:
   stage: build
   image: golang:1.21.0
   script:
-    - GOOS=linux   GOARCH=amd64 go build -ldflags="-X forklift/Commands.Version=$VERSION" -o bin/${LINUX_AMD64_BINARY}_lzma
-    - GOOS=linux   GOARCH=amd64 go build -ldflags="-X forklift/Commands.Version=$VERSION" -o bin/${LINUX_AMD64_BINARY}   -tags no_lzma2
-    - GOOS=darwin  GOARCH=amd64 go build -ldflags="-X forklift/Commands.Version=$VERSION" -o bin/${APPLE_AMD64_BINARY}   -tags no_lzma2
-    - GOOS=darwin  GOARCH=arm64 go build -ldflags="-X forklift/Commands.Version=$VERSION" -o bin/${APPLE_ARM64_BINARY}   -tags no_lzma2
-    - GOOS=windows GOARCH=amd64 go build -ldflags="-X forklift/Commands.Version=$VERSION" -o bin/${WINDOWS_AMD64_BINARY} -tags no_lzma2
+    - GOOS=linux   GOARCH=amd64 go build -ldflags="-X forklift/Commands.Version=$VERSION -extldflags '-static'" -o bin/${LINUX_AMD64_BINARY}_lzma
+    - GOOS=linux   GOARCH=amd64 go build -ldflags="-X forklift/Commands.Version=$VERSION -extldflags '-static'" -o bin/${LINUX_AMD64_BINARY}   -tags no_lzma2
+    - GOOS=darwin  GOARCH=amd64 go build -ldflags="-X forklift/Commands.Version=$VERSION -extldflags '-static'" -o bin/${APPLE_AMD64_BINARY}   -tags no_lzma2
+    - GOOS=darwin  GOARCH=arm64 go build -ldflags="-X forklift/Commands.Version=$VERSION -extldflags '-static'" -o bin/${APPLE_ARM64_BINARY}   -tags no_lzma2
+    - GOOS=windows GOARCH=amd64 go build -ldflags="-X forklift/Commands.Version=$VERSION -extldflags '-static'" -o bin/${WINDOWS_AMD64_BINARY} -tags no_lzma2
     - ls -al bin
     - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file bin/${LINUX_AMD64_BINARY}_lzma   "${PACKAGE_REGISTRY_URL}/$VERSION/${LINUX_AMD64_BINARY}_lzma"'
     - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file bin/${LINUX_AMD64_BINARY}   "${PACKAGE_REGISTRY_URL}/$VERSION/${LINUX_AMD64_BINARY}"'

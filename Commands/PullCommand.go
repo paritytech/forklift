@@ -76,10 +76,17 @@ var pullCmd = &cobra.Command{
 				}
 
 				if meta != nil {
-					var _, sha = FileManager.Tar(FileManager.FindOpt(obj.path, obj.item.Hash))
+					var files = FileManager.FindOpt(obj.path, obj.item.Hash)
 
-					var shaRemote = *meta["Sha-1-Content"]
-					var shaLocal = fmt.Sprintf("%x", sha.Sum(nil))
+					var shaLocal, shaRemote string
+
+					if len(files) <= 0 {
+						shaLocal = ""
+					} else {
+						var _, sha = FileManager.Tar(files)
+						shaRemote = *meta["Sha-1-Content"]
+						shaLocal = fmt.Sprintf("%x", sha.Sum(nil))
+					}
 
 					if shaRemote == shaLocal {
 						match = true

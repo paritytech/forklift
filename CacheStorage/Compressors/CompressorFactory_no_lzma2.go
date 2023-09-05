@@ -3,6 +3,7 @@
 package Compressors
 
 import (
+	"errors"
 	log "github.com/sirupsen/logrus"
 	"strings"
 )

@@ -110,4 +110,3 @@ parity@Evgenys-MacBook-Pro rust-simple %
 ## TODO
 - optimize uploads
 - internal crates caching
-- logging and exception handling

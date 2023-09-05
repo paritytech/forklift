@@ -71,37 +71,43 @@ var pullCmd = &cobra.Command{
 			}) {
 				var name = fmt.Sprintf("%s-%s-%s-%s", obj.item.Name, obj.item.Hash, obj.folder, compressor.GetKey())
 				var meta, existsInStore = store.GetMetadata(name)
-				var match = false
+				log.Traceln(name, meta)
+
+				var needDownload = true
 
 				if !existsInStore {
 					log.Debugf("%s does not exist in storage\n", name)
 					return
-				}
+				} else if meta == nil {
+					log.Debugf("no metadata for %s, downloading...\n", name)
+					needDownload = true
+				} else if shaRemotePtr, ok := meta["Sha-1-Content"]; !ok {
+					log.Debugf("no metadata header for %s, downloading...\n", name)
+					needDownload = true
+				} else {
 
-				if meta != nil {
 					var files = FileManager.FindOpt(obj.path, obj.item.Hash)
 
-					var shaLocal, shaRemote string
-
 					if len(files) <= 0 {
-						shaLocal = ""
+						log.Debugf("%s no local files, downloading...\n", name)
+						needDownload = true
 					} else {
 						var _, sha = FileManager.Tar(files)
-						shaRemote = *meta["Sha-1-Content"]
-						shaLocal = fmt.Sprintf("%x", sha.Sum(nil))
-					}
+						var shaLocal = fmt.Sprintf("%x", sha.Sum(nil))
 
-					if shaRemote == shaLocal {
-						match = true
-						log.Tracef("%s checksum match\n", name)
-					} else {
-						log.Debugf("%s checksum mismatch, remote: %s local: %s, download\n", name, shaRemote, shaLocal)
+						var shaRemote = *shaRemotePtr
+
+						if shaRemote != shaLocal {
+							log.Debugf("%s checksum mismatch, remote: %s local: %s, downloading...\n", name, shaRemote, shaLocal)
+							needDownload = true
+						} else {
+							log.Tracef("%s checksum match , remote: %s local: %s\n", name, shaRemote, shaLocal)
+							needDownload = false
+						}
 					}
-				} else {
-					log.Debugf(name, "no metadata, download")
 				}
 
-				if match {
+				if !needDownload {
 					return
 				}
 

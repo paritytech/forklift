@@ -18,13 +18,11 @@ Build:
   stage: build
   image: golang:1.21.0
   script:
-    - CGO_ENABLED=0 GOOS=linux   GOARCH=amd64 go build -ldflags="-X forklift/Commands.Version=$VERSION -extldflags '-static'" -o bin/${LINUX_AMD64_BINARY}_lzma
     - CGO_ENABLED=0 GOOS=linux   GOARCH=amd64 go build -ldflags="-X forklift/Commands.Version=$VERSION -extldflags '-static'" -o bin/${LINUX_AMD64_BINARY}   -tags no_lzma2
     - CGO_ENABLED=0 GOOS=darwin  GOARCH=amd64 go build -ldflags="-X forklift/Commands.Version=$VERSION -extldflags '-static'" -o bin/${APPLE_AMD64_BINARY}   -tags no_lzma2
     - CGO_ENABLED=0 GOOS=darwin  GOARCH=arm64 go build -ldflags="-X forklift/Commands.Version=$VERSION -extldflags '-static'" -o bin/${APPLE_ARM64_BINARY}   -tags no_lzma2
     - CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-X forklift/Commands.Version=$VERSION -extldflags '-static'" -o bin/${WINDOWS_AMD64_BINARY} -tags no_lzma2
     - ls -al bin
-    - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file bin/${LINUX_AMD64_BINARY}_lzma   "${PACKAGE_REGISTRY_URL}/$VERSION/${LINUX_AMD64_BINARY}_lzma"'
     - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file bin/${LINUX_AMD64_BINARY}   "${PACKAGE_REGISTRY_URL}/$VERSION/${LINUX_AMD64_BINARY}"'
     - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file bin/${APPLE_AMD64_BINARY}   "${PACKAGE_REGISTRY_URL}/$VERSION/${APPLE_AMD64_BINARY}"'
     - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file bin/${APPLE_ARM64_BINARY}   "${PACKAGE_REGISTRY_URL}/$VERSION/${APPLE_ARM64_BINARY}"'
@@ -53,9 +51,6 @@ Release:
         - name: "${LINUX_AMD64_BINARY}"
           url: "${PACKAGE_REGISTRY_URL}/$VERSION/${LINUX_AMD64_BINARY}"
           filepath: "/bin/forklift_linux_amd64"
-        - name: "${LINUX_AMD64_BINARY}_lzma"
-          url: "${PACKAGE_REGISTRY_URL}/$VERSION/${LINUX_AMD64_BINARY}_lzma"
-          filepath: "/bin/forklift_linux_amd64_lzma"
         - name: "${WINDOWS_AMD64_BINARY}"
           url: "${PACKAGE_REGISTRY_URL}/$VERSION/${WINDOWS_AMD64_BINARY}"
           filepath: "/bin/forklift_win_amd64"

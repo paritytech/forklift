@@ -67,7 +67,7 @@ var pullCmd = &cobra.Command{
 				path   string
 				folder string
 			}) {
-				var name = fmt.Sprintf("%s-%s-%s-%s", obj.item.Name, obj.item.Hash, obj.folder, compressor)
+				var name = fmt.Sprintf("%s-%s-%s-%s", obj.item.Name, obj.item.Hash, obj.folder, compressor.GetKey())
 				var meta, existsInStore = store.GetMetadata(name)
 				var match = false
 

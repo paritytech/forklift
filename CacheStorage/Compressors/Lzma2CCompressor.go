@@ -4,6 +4,7 @@ package Compressors
 
 import (
 	"bytes"
+	"fmt"
 	"forklift/CliTools"
 	"github.com/jamespfennell/xz"
 	"io"
@@ -48,4 +49,8 @@ func (compressor *Lzma2CCompressor) Decompress(input *io.Reader) io.Reader {
 	}
 
 	return &buf
+}
+
+func (compressor *Lzma2CCompressor) GetKey() string {
+	return fmt.Sprintf("lzma2-%d", compressor.level)
 }

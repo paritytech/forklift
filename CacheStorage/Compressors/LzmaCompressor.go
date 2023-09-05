@@ -45,3 +45,7 @@ func (l *LzmaCompressor) Decompress(input *io.Reader) io.Reader {
 
 	return &buf
 }
+
+func (l *LzmaCompressor) GetKey() string {
+	return "xz"
+}

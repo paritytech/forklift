@@ -5,16 +5,17 @@ import (
 )
 
 type NoneCompressor struct {
+	ICompressor
 }
 
-func (n *NoneCompressor) Compress(input *io.Reader) io.Reader {
+func (compressor *NoneCompressor) Compress(input *io.Reader) io.Reader {
 	return *input
 }
 
-func (n *NoneCompressor) Decompress(input *io.Reader) io.Reader {
+func (compressor *NoneCompressor) Decompress(input *io.Reader) io.Reader {
 	return *input
 }
 
-func (n *NoneCompressor) GetKey() string {
+func (compressor *NoneCompressor) GetKey() string {
 	return "none"
 }

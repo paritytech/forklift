@@ -8,9 +8,10 @@ import (
 )
 
 type LzmaCompressor struct {
+	ICompressor
 }
 
-func (l *LzmaCompressor) Compress(input *io.Reader) io.Reader {
+func (compressor *LzmaCompressor) Compress(input *io.Reader) io.Reader {
 	var buf bytes.Buffer
 	var writer, err = xz.NewWriter(&buf)
 	if err != nil {
@@ -29,7 +30,7 @@ func (l *LzmaCompressor) Compress(input *io.Reader) io.Reader {
 	return &buf
 }
 
-func (l *LzmaCompressor) Decompress(input *io.Reader) io.Reader {
+func (compressor *LzmaCompressor) Decompress(input *io.Reader) io.Reader {
 	var buf bytes.Buffer
 
 	var reader, err = xz.NewReader(*input)
@@ -45,6 +46,6 @@ func (l *LzmaCompressor) Decompress(input *io.Reader) io.Reader {
 	return &buf
 }
 
-func (l *LzmaCompressor) GetKey() string {
+func (compressor *LzmaCompressor) GetKey() string {
 	return "xz"
 }

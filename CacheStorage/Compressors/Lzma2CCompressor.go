@@ -12,6 +12,7 @@ import (
 )
 
 type Lzma2CCompressor struct {
+	ICompressor
 	level int
 }
 

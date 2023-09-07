@@ -2,6 +2,7 @@ package Compressors
 
 import (
 	"bytes"
+	"fmt"
 	"forklift/CliTools"
 	"github.com/klauspost/compress/zstd"
 	log "github.com/sirupsen/logrus"
@@ -56,5 +57,5 @@ func (compressor *ZStdCompressor) Decompress(input *io.Reader) io.Reader {
 }
 
 func (compressor *ZStdCompressor) GetKey() string {
-	return "xz"
+	return fmt.Sprintf("zstd-%d", compressor.level)
 }

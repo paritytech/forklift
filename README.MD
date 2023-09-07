@@ -68,8 +68,10 @@ Supported options:
 - None (`--compression none`) default, do not use compression 
 - LZMA (`--compression xz`) use [ulikunitz/xz go library](https://github.com/ulikunitz/xz)
 - LZMA2C (`--compression lzma2`) use [jamespfennell/xz go library](https://github.com/jamespfennell/xz), 
-accepts `-p LZMA2_COMPRESSION_LEVEL=<0-9>`, default 6.  
-**!!! Due to CGO requirements, `-c lzma2` is not supported in artifacts from release page**
+  accepts `-p LZMA2_COMPRESSION_LEVEL=<0-9>`, default 6  
+  **!!! Due to CGO requirements, `-c lzma2` is supported only in `linux_*` artifact from release page !!!**
+- zstandart (`--compression zstd`) use [github.com/klauspost/compress/zstd](https://github.com/klauspost/compress/tree/master/zstd)  
+  accepts `-p ZSTD_COMPRESSION_LEVEL=<1|3>`, default 3
 
 ---
 ## Example

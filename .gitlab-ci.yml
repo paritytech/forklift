@@ -5,9 +5,9 @@ stages:
 variables:
   PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/forklift"
   VERSION: $CI_COMMIT_TAG
+  LINUX_AMD64_BINARY:   "forklift_${VERSION}_linux_amd64"
   APPLE_AMD64_BINARY:   "forklift_${VERSION}_apple_amd64"
   APPLE_ARM64_BINARY:   "forklift_${VERSION}_apple_arm64"
-  LINUX_AMD64_BINARY:   "forklift_${VERSION}_linux_amd64"
   WINDOWS_AMD64_BINARY: "forklift_${VERSION}_win_amd64"
 
 Build:
@@ -16,12 +16,12 @@ Build:
   variables:
     VERSION: $CI_COMMIT_TAG
   stage: build
-  image: golang:1.21.0
+  image: golang:1.21.0-bullseye
   script:
-    - CGO_ENABLED=0 GOOS=linux   GOARCH=amd64 go build -ldflags="-X forklift/Commands.Version=$VERSION -extldflags '-static'" -o bin/${LINUX_AMD64_BINARY}   -tags no_lzma2
-    - CGO_ENABLED=0 GOOS=darwin  GOARCH=amd64 go build -ldflags="-X forklift/Commands.Version=$VERSION -extldflags '-static'" -o bin/${APPLE_AMD64_BINARY}   -tags no_lzma2
-    - CGO_ENABLED=0 GOOS=darwin  GOARCH=arm64 go build -ldflags="-X forklift/Commands.Version=$VERSION -extldflags '-static'" -o bin/${APPLE_ARM64_BINARY}   -tags no_lzma2
-    - CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-X forklift/Commands.Version=$VERSION -extldflags '-static'" -o bin/${WINDOWS_AMD64_BINARY} -tags no_lzma2
+    - GOOS=linux   GOARCH=amd64 go build -ldflags="-X forklift/Commands.Version=$VERSION -extldflags '-static'" -o bin/${LINUX_AMD64_BINARY}
+    - GOOS=darwin  GOARCH=amd64 go build -ldflags="-X forklift/Commands.Version=$VERSION -extldflags '-static'" -o bin/${APPLE_AMD64_BINARY}   -tags no_lzma2
+    - GOOS=darwin  GOARCH=arm64 go build -ldflags="-X forklift/Commands.Version=$VERSION -extldflags '-static'" -o bin/${APPLE_ARM64_BINARY}   -tags no_lzma2
+    - GOOS=windows GOARCH=amd64 go build -ldflags="-X forklift/Commands.Version=$VERSION -extldflags '-static'" -o bin/${WINDOWS_AMD64_BINARY} -tags no_lzma2
     - ls -al bin
     - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file bin/${LINUX_AMD64_BINARY}   "${PACKAGE_REGISTRY_URL}/$VERSION/${LINUX_AMD64_BINARY}"'
     - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file bin/${APPLE_AMD64_BINARY}   "${PACKAGE_REGISTRY_URL}/$VERSION/${APPLE_AMD64_BINARY}"'
@@ -42,15 +42,15 @@ Release:
     description: '$CI_COMMIT_TAG_MESSAGE'
     assets:
       links:
+        - name: "${LINUX_AMD64_BINARY}"
+          url: "${PACKAGE_REGISTRY_URL}/$VERSION/${LINUX_AMD64_BINARY}"
+          filepath: "/bin/forklift_linux_amd64"
         - name: "${APPLE_AMD64_BINARY}"
           url: "${PACKAGE_REGISTRY_URL}/$VERSION/${APPLE_AMD64_BINARY}"
           filepath: "/bin/forklift_apple_amd64"
         - name: "${APPLE_ARM64_BINARY}"
           url: "${PACKAGE_REGISTRY_URL}/$VERSION/${APPLE_ARM64_BINARY}"
           filepath: "/bin/forklift_apple_arm64"
-        - name: "${LINUX_AMD64_BINARY}"
-          url: "${PACKAGE_REGISTRY_URL}/$VERSION/${LINUX_AMD64_BINARY}"
-          filepath: "/bin/forklift_linux_amd64"
         - name: "${WINDOWS_AMD64_BINARY}"
           url: "${PACKAGE_REGISTRY_URL}/$VERSION/${WINDOWS_AMD64_BINARY}"
           filepath: "/bin/forklift_win_amd64"

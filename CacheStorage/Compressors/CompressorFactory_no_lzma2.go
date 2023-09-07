@@ -17,6 +17,9 @@ func GetCompressor(name string, params *map[string]string) (ICompressor, error) 
 	case "xz":
 		var s = &LzmaCompressor{}
 		return s, nil
+	case "zstd":
+		var s = NewZStdCompressor(params)
+		return s, nil
 	default:
 		log.Fatalf("unsupported compressor `%s`\n", name)
 		return nil, errors.New("unsupported compressor")

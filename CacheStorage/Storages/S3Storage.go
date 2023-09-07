@@ -22,9 +22,13 @@ type S3Storage struct {
 }
 
 func NewS3Storage(params *map[string]string) *S3Storage {
-	s3s := S3Storage{
-		bucket: CliTools.ExtractParam(params, "S3_BUCKET_NAME", "forklift", true),
-	}
+	s3s := S3Storage{}
+
+	var bucketName = CliTools.ExtractParam(params, "BUCKET_NAME", "forklift", true)
+	bucketName = CliTools.ExtractParam(params, "S3_BUCKET_NAME", bucketName, true)
+
+	s3s.bucket = bucketName
+
 	var staticCreds = credentials.NewStaticCredentials(
 		CliTools.ExtractParam(params, "S3_ACCESS_KEY_ID", "", true),
 		CliTools.ExtractParam(params, "S3_SECRET_ACCESS_KEY", "", true),

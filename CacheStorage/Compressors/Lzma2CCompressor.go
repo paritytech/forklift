@@ -17,7 +17,8 @@ type Lzma2CCompressor struct {
 }
 
 func NewLzma2CCompressor(params *map[string]string) *Lzma2CCompressor {
-	var compressionLevel = CliTools.ExtractParam[int64](params, "LZMA2_COMPRESSION_LEVEL", int64(6), true)
+	var compressionLevel = CliTools.ExtractParam[int64](params, "COMPRESSION_LEVEL", int64(6), true)
+	compressionLevel = CliTools.ExtractParam[int64](params, "LZMA2_COMPRESSION_LEVEL", compressionLevel, true)
 	return &Lzma2CCompressor{
 		level: int(compressionLevel),
 	}

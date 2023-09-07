@@ -15,7 +15,8 @@ type ZStdCompressor struct {
 }
 
 func NewZStdCompressor(params *map[string]string) *ZStdCompressor {
-	var compressionLevel = CliTools.ExtractParam[int64](params, "ZSTD_COMPRESSION_LEVEL", int64(3), true)
+	var compressionLevel = CliTools.ExtractParam[int64](params, "COMPRESSION_LEVEL", int64(3), true)
+	compressionLevel = CliTools.ExtractParam[int64](params, "ZSTD_COMPRESSION_LEVEL", compressionLevel, true)
 	return &ZStdCompressor{
 		level: int(compressionLevel),
 	}
@@ -23,7 +24,7 @@ func NewZStdCompressor(params *map[string]string) *ZStdCompressor {
 
 func (compressor *ZStdCompressor) Compress(input *io.Reader) io.Reader {
 	var buf bytes.Buffer
-	var writer, err = zstd.NewWriter(&buf, zstd.WithEncoderLevel(zstd.EncoderLevelFromZstd(1)))
+	var writer, err = zstd.NewWriter(&buf, zstd.WithEncoderLevel(zstd.EncoderLevelFromZstd(compressor.level)))
 	if err != nil {
 		log.Fatalf("NewWriter error %s\n", err)
 	}

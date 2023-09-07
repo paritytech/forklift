@@ -29,13 +29,13 @@ func NewGcsStorage(params *map[string]string) *GcsStorage {
 
 	var credentialsFilePath = CliTools.ExtractParam(
 		params,
-		"GCP_APPLICATION_CREDENTIALS",
+		"GCS_APPLICATION_CREDENTIALS",
 		"",
 		true)
 
 	var credentialsJsonBase64 = CliTools.ExtractParam(
 		params,
-		"GCP_CREDENTIALS_JSON_BASE64",
+		"GCS_CREDENTIALS_JSON_BASE64",
 		"",
 		true)
 

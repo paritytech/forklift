@@ -32,7 +32,7 @@ for more info see `forklift help`
 
 You may specify storage with `-s` or `--storage` flag. Additional parameters fo storage could be provided with `-p`
 
-### S3
+### S3 (`-s s3`, default)
 
 S3 looks for parameters in params (`-p`), then in environment variables
 
@@ -41,13 +41,26 @@ Available parameters:
  - S3_SECRET_ACCESS_KEY
  - S3_USE_SSL (default `true`)
  - S3_ENDPOINT_URL
- - S3_BUCKET_NAME (default `forklift`)
+ - BUCKET_NAME, S3_BUCKET_NAME (default `forklift`)
 
 example:
 
-`forklift pull -p S3_ACCESS_KEY_ID=<key_id> -p S3_SECRET_ACCESS_KEY=<>secret> -p S3_ENDPOINT_URL=192.168.1.2:9000 -p S3_BUCKET_NAME=forklift ../rust-simple`
+`forklift pull -s s3 -p S3_ACCESS_KEY_ID=<key_id> -p S3_SECRET_ACCESS_KEY=<>secret> -p S3_ENDPOINT_URL=192.168.1.2:9000 -p S3_BUCKET_NAME=forklift ../rust-simple`
 
-### File system
+### Google cloud storage (`-s gcs`)
+
+Gcs looks for parameters in params (`-p`), then in environment variables
+
+Available parameters:
+- GCP_APPLICATION_CREDENTIALS - path to application credentials file
+- GCP_CREDENTIALS_JSON_BASE64 - base64 decoded application credentials json data
+- BUCKET_NAME, S3_BUCKET_NAME (default `forklift`)
+
+example:
+
+`forklift pull -s gcs -p GCP_APPLICATION_CREDENTIALS="/home/user/application_default_credentials.json" -p S3_BUCKET_NAME=forklift ../rust-simple`
+
+### File system (-s fs)
 
 Available parameters:
 - FS_DIR absolute path
@@ -61,17 +74,15 @@ example:
 
 Specify compression with `-c` or `--compression` flag
 
-**!Important right now you must use the same compression as for push and pull**
+**!Important, right now you must use the same compression as for push and pull**
 
 Supported options:
 
 - None (`--compression none`) default, do not use compression 
 - LZMA (`--compression xz`) use [ulikunitz/xz go library](https://github.com/ulikunitz/xz)
-- LZMA2C (`--compression lzma2`) use [jamespfennell/xz go library](https://github.com/jamespfennell/xz), 
-  accepts `-p LZMA2_COMPRESSION_LEVEL=<0-9>`, default 6  
+- LZMA2C (`--compression lzma2`) use [jamespfennell/xz go library](https://github.com/jamespfennell/xz), accepts `-p LZMA2_COMPRESSION_LEVEL=<0-9>`, default 6  
   **!!! Due to CGO requirements, `-c lzma2` is supported only in `linux_*` artifact from release page !!!**
-- zstandart (`--compression zstd`) use [github.com/klauspost/compress/zstd](https://github.com/klauspost/compress/tree/master/zstd)  
-  accepts `-p ZSTD_COMPRESSION_LEVEL=<1|3>`, default 3
+- zstandart (`--compression zstd`) use [github.com/klauspost/compress/zstd](https://github.com/klauspost/compress/tree/master/zstd), accepts `-p ZSTD_COMPRESSION_LEVEL=<1|3>`, default 3
 
 ---
 ## Example

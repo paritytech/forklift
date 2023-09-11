@@ -99,19 +99,21 @@ func Tar(fsEntries []TargetFsEntry) (io.Reader, hash.Hash) {
 func tarDirectory(tarWriter *tar.Writer, entryInfo TargetFsEntry, hash hash.Hash) {
 
 	err := filepath.WalkDir(filepath.Join(entryInfo.basePath, entryInfo.path), func(path string, de fs.DirEntry, err error) error {
+		var t, _ = os.Lstat(path)
 
-		if !de.IsDir() {
-			var info, _ = de.Info()
+		if t.Mode().IsRegular() {
 			var relPath, _ = filepath.Rel(entryInfo.basePath, path)
 			tarFile(
 				tarWriter,
 				TargetFsEntry{
 					path:     relPath,
 					basePath: entryInfo.basePath,
-					info:     info,
+					info:     t,
 				},
 				hash,
 			)
+		} else if t.Mode()&fs.ModeSymlink != 0 {
+			// symlink
 		}
 
 		return nil

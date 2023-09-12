@@ -11,6 +11,7 @@ import (
 	"google.golang.org/api/option"
 	"io"
 	"os"
+	"strings"
 )
 
 type GcsStorage struct {
@@ -96,7 +97,7 @@ func (driver *GcsStorage) GetMetadata(key string) (map[string]*string, bool) {
 	var metadata = make(map[string]*string, len(attrs.Metadata))
 
 	for key, value := range attrs.Metadata {
-		metadata[key] = &(value)
+		metadata[strings.ToLower(key)] = &(value)
 	}
 
 	return metadata, true
@@ -106,7 +107,7 @@ func (driver *GcsStorage) Upload(key string, reader *io.Reader, metadata map[str
 	var gcpMetadata = make(map[string]string, len(metadata))
 
 	for key, value := range metadata {
-		gcpMetadata[key] = *value
+		gcpMetadata[strings.ToLower(key)] = *value
 	}
 
 	var gcsWriter = driver.client.Bucket(driver.bucket).Object(key).NewWriter(driver.context)

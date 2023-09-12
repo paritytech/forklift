@@ -87,7 +87,7 @@ var pushCmd = &cobra.Command{
 					} else if meta == nil {
 						log.Debugf("no metadata for %s, uploading...\n", name)
 						needUpload = true
-					} else if shaRemotePtr, ok := meta["Sha-1-Content"]; !ok {
+					} else if shaRemotePtr, ok := meta["sha-1-content"]; !ok {
 						log.Debugf("no metadata for %s, uploading...\n", name)
 						needUpload = true
 					} else if *shaRemotePtr != shaLocal {
@@ -97,7 +97,7 @@ var pushCmd = &cobra.Command{
 
 					if needUpload {
 						var compressed = compressor.Compress(&reader)
-						store.Upload(name, &compressed, map[string]*string{"Sha-1-Content": &shaLocal})
+						store.Upload(name, &compressed, map[string]*string{"sha-1-content": &shaLocal})
 						log.Infof("Uploaded %d entries from `%s` for %s-%s, %x\n", len(files), obj.folder, obj.item.Name, obj.item.Hash, sha.Sum(nil))
 					}
 				} else {

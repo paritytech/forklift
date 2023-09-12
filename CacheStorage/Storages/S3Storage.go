@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	log "github.com/sirupsen/logrus"
 	"io"
+	"strings"
 )
 
 type S3Storage struct {
@@ -71,17 +72,28 @@ func (storage *S3Storage) GetMetadata(key string) (map[string]*string, bool) {
 		}
 	}
 
-	return head.Metadata, true
+	var metadata = make(map[string]*string, len(head.Metadata))
+
+	for key, value := range head.Metadata {
+		metadata[strings.ToLower(key)] = value
+	}
+
+	return metadata, true
 }
 
 func (storage *S3Storage) Upload(key string, reader *io.Reader, metadata map[string]*string) {
 	uploader := s3manager.NewUploader(storage.session)
 
+	var normalizedMetadata = make(map[string]*string, len(metadata))
+	for key, value := range metadata {
+		normalizedMetadata[strings.ToLower(key)] = value
+	}
+
 	_, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket:   aws.String(storage.bucket),
 		Key:      aws.String(key),
 		Body:     *reader,
-		Metadata: metadata,
+		Metadata: normalizedMetadata,
 	})
 	if err != nil {
 		log.Fatalf("failed to upload file %s\n%s\n", key, err)

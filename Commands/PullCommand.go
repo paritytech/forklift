@@ -81,7 +81,7 @@ var pullCmd = &cobra.Command{
 				} else if meta == nil {
 					log.Debugf("no metadata for %s, downloading...\n", name)
 					needDownload = true
-				} else if shaRemotePtr, ok := meta["Sha-1-Content"]; !ok {
+				} else if shaRemotePtr, ok := meta["sha-1-content"]; !ok {
 					log.Debugf("no metadata header for %s, downloading...\n", name)
 					needDownload = true
 				} else {

@@ -16,6 +16,9 @@ func GetStorageDriver(name string, params *map[string]string) (IStorage, error) 
 	case "fs":
 		var s = NewFsStorage(params)
 		return s, nil
+	case "null":
+		var s = NewNullStorage()
+		return s, nil
 	default:
 		return nil, fmt.Errorf("unsupported driver `%s`\n", name)
 	}

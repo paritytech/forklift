@@ -11,7 +11,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 )
 
 type TargetFsEntry struct {
@@ -158,7 +157,7 @@ func UnTar(path string, reader io.Reader) {
 	tr := tar.NewReader(reader)
 
 	for {
-		hdr, err := tr.Next()
+		header, err := tr.Next()
 		if err == io.EOF {
 			break // End of archive
 		}
@@ -166,7 +165,7 @@ func UnTar(path string, reader io.Reader) {
 			log.Fatalln(err)
 		}
 
-		filePath := filepath.Join(path, hdr.Name)
+		filePath := filepath.Join(path, header.Name)
 		os.MkdirAll(filepath.Dir(filePath), 0777)
 
 		f, err := os.Create(filePath)
@@ -180,7 +179,7 @@ func UnTar(path string, reader io.Reader) {
 		}
 
 		f.Close()
-		os.Chmod(filePath, os.FileMode(hdr.Mode))
-		os.Chtimes(filePath, time.Now(), hdr.ModTime)
+		os.Chmod(filePath, os.FileMode(header.Mode))
+		os.Chtimes(filePath, header.ModTime, header.ModTime)
 	}
 }

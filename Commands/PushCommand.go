@@ -13,7 +13,11 @@ import (
 	"runtime"
 )
 
+var forcePush bool
+
 func init() {
+	pushCmd.PersistentFlags().BoolVarP(&forcePush, "force-push", "f", false, "")
+
 	rootCmd.AddCommand(pushCmd)
 }
 
@@ -81,7 +85,9 @@ var pushCmd = &cobra.Command{
 
 					var needUpload = false
 
-					if !exists {
+					if forcePush {
+						needUpload = true
+					} else if !exists {
 						log.Debugf("%s does not exist in storage, uploading...\n", name)
 						needUpload = true
 					} else if meta == nil {

@@ -1,13 +1,19 @@
 package Commands
 
 import (
+	"archive/tar"
+	"bytes"
+	"crypto/sha1"
 	"fmt"
 	"forklift/CacheStorage/Compressors"
 	"forklift/CacheStorage/Storages"
 	"forklift/FileManager"
+	"forklift/FileManager/Models"
+	"forklift/FileManager/Tar"
 	"forklift/Lib"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -40,28 +46,52 @@ var pushCmd = &cobra.Command{
 		compressor, _ := Compressors.GetCompressor(compression, &params)
 
 		var cacheItems = FileManager.ParseCacheRequest()
-		var folders = []string{"build", "deps", ".fingerprint"}
+		//var folders = []string{"build", "deps", ".fingerprint"}
+
+		/*var smth = FileManager.FindAll(cacheItems, "target/release")
+
+		for _, items := range smth {
+			for _, item := range *items {
+				fmt.Println(item)
+			}
+		}*/
 
 		var cpuCount = runtime.NumCPU()
 
 		var queue = make(chan struct {
-			item   FileManager.CacheItem
-			path   string
-			folder string
+			item    Models.CacheItem
+			path    string
+			entries []Models.TargetFsEntry
 		}, 20)
 
 		go func() {
-			for _, folder := range folders {
-				var path = filepath.Join("target", mode, folder)
+			var path = filepath.Join("target", mode)
 
+			var dict = make(map[string]Models.CacheItem)
+
+			for _, item := range cacheItems {
+				dict[item.Hash] = item
+			}
+
+			var smth = FileManager.FindAll(cacheItems, path)
+
+			for key, items := range smth {
+				//for _, item := range *items {
+				queue <- struct {
+					item    Models.CacheItem
+					path    string
+					entries []Models.TargetFsEntry
+				}{item: dict[key], path: path, entries: *items}
+				//}
+			}
+			/*
 				for _, item := range cacheItems {
 					queue <- struct {
-						item   FileManager.CacheItem
-						path   string
-						folder string
-					}{item: item, path: path, folder: folder}
-				}
-			}
+						item Models.CacheItem
+						path string
+					}{item: item, path: path}
+				}*/
+
 			close(queue)
 		}()
 
@@ -69,17 +99,20 @@ var pushCmd = &cobra.Command{
 			queue,
 			cpuCount,
 			func(obj struct {
-				item   FileManager.CacheItem
-				path   string
-				folder string
+				item    Models.CacheItem
+				path    string
+				entries []Models.TargetFsEntry
 			}) {
-				var files = FileManager.FindOpt(obj.path, obj.item.Hash)
-				if len(files) > 0 {
+				log.Tracef("Processing %s %s\n", obj.path, obj.item.Hash)
+				//var files = FileManager.Find(obj.path, obj.item.Hash, true)
+				//log.Tracef("Found %d entries for %s %s\n", len(files), obj.path, obj.item.Hash)
 
-					var reader, sha = FileManager.Tar(files)
+				if len(obj.entries) > 0 {
+
+					var reader, sha = Tar.Pack(obj.entries)
 					var shaLocal = fmt.Sprintf("%x", sha.Sum(nil))
 
-					var name = fmt.Sprintf("%s-%s-%s-%s", obj.item.Name, obj.item.Hash, obj.folder, compressor.GetKey())
+					var name = fmt.Sprintf("%s-%s-%s", obj.item.Name, obj.item.Hash, compressor.GetKey())
 
 					var meta, exists = store.GetMetadata(name)
 
@@ -104,11 +137,62 @@ var pushCmd = &cobra.Command{
 					if needUpload {
 						var compressed = compressor.Compress(&reader)
 						store.Upload(name, &compressed, map[string]*string{"sha-1-content": &shaLocal})
-						log.Infof("Uploaded %d entries from `%s` for %s-%s, %x\n", len(files), obj.folder, obj.item.Name, obj.item.Hash, sha.Sum(nil))
+						log.Infof("Uploaded %d entries for %s-%s, %x\n", len(obj.entries), obj.item.Name, obj.item.Hash, sha.Sum(nil))
 					}
 				} else {
-					log.Debugf("No entries from `%s` for %s-%s\n", obj.folder, obj.item.Name, obj.item.Hash)
+					log.Tracef("No entries for %s-%s\n", obj.item.Name, obj.item.Hash)
 				}
 			})
+
+		if len(extraDirs) > 0 {
+
+			var extraDirQueue = make(chan struct {
+				path string
+				name string
+			}, 20)
+
+			go func() {
+				for _, extraDir := range extraDirs {
+					var extraDirPath = filepath.Join("target", mode, extraDir)
+
+					var extraDirFiles, _ = os.ReadDir(extraDirPath)
+
+					for i, file := range extraDirFiles {
+						if !file.IsDir() {
+							continue
+						}
+						log.Tracef("Enqueued %s\n", filepath.Join(extraDirPath, file.Name()))
+						extraDirQueue <- struct {
+							path string
+							name string
+						}{path: filepath.Join(extraDirPath, file.Name()), name: fmt.Sprintf("%s-%s-%s-%d", extraDir, mode, "latest", i)}
+					}
+
+					close(extraDirQueue)
+				}
+			}()
+
+			Lib.Parallel(
+				extraDirQueue,
+				cpuCount,
+				func(obj struct {
+					path string
+					name string
+				}) {
+					log.Tracef("Processing %s\n", obj.name)
+					var buf bytes.Buffer
+					tw := tar.NewWriter(&buf)
+					var hash = sha1.New()
+
+					var reader io.Reader = &buf
+
+					Tar.PackDirectory(tw, obj.path, hash)
+					var compressed = compressor.Compress(&reader)
+					store.Upload(obj.name, &compressed, map[string]*string{})
+
+					log.Tracef("Uploaded %s\n", obj.name)
+				})
+
+		}
 	},
 }

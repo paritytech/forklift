@@ -1,45 +1,30 @@
 package FileManager
 
 import (
-	"archive/tar"
-	"bytes"
-	"crypto/sha1"
-	log "github.com/sirupsen/logrus"
-	"hash"
-	"io"
+	"forklift/FileManager/Models"
+	"forklift/Lib"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
+	"runtime"
 	"strings"
 )
 
-type TargetFsEntry struct {
-	path     string
-	basePath string
-	info     fs.FileInfo
-}
-
-type CacheItem struct {
-	Name    string
-	Version string
-	HashInt string
-	Hash    string
-}
-
-func ParseCacheRequest() []CacheItem {
+func ParseCacheRequest() []Models.CacheItem {
 
 	var b, _ = os.ReadFile("./items.cache")
 	str := string(b)
 	var splitStrings = strings.Split(strings.ReplaceAll(str, "\r\n", "\n"), "\n")
 
-	var result []CacheItem
+	var result []Models.CacheItem
 
 	for i := range splitStrings {
 		var itemParts = strings.Split(splitStrings[i], "|")
 		if len(itemParts) < 4 {
 			continue
 		}
-		result = append(result, CacheItem{
+		result = append(result, Models.CacheItem{
 			Name:    strings.TrimSpace(itemParts[0]),
 			Version: strings.TrimSpace(itemParts[1]),
 			HashInt: strings.TrimSpace(itemParts[2]),
@@ -50,136 +35,151 @@ func ParseCacheRequest() []CacheItem {
 	return result
 }
 
-func FindOpt(dir string, key string) []TargetFsEntry {
-	var files []TargetFsEntry
+func FindAll(cacheItems []Models.CacheItem, dir string) map[string]*[]Models.TargetFsEntry {
+	var dict map[string]*[]Models.TargetFsEntry = make(map[string]*[]Models.TargetFsEntry)
 
-	dir = filepath.Clean(dir)
-
-	var matches, _ = filepath.Glob(filepath.Join(dir, "*"+key+"*"))
-
-	for _, match := range matches {
-		var info, _ = os.Stat(match)
-		var relPath, _ = filepath.Rel(dir, match)
-		targetFile := TargetFsEntry{
-			path:     relPath,
-			basePath: dir,
-			info:     info,
-		}
-		files = append(files, targetFile)
+	for _, item := range cacheItems {
+		dict[item.Hash] = &[]Models.TargetFsEntry{}
 	}
 
-	return files
+	findAllRecursive(&dict, dir)
+	return dict
 }
 
-// Tar Tarf dgsrfdg h
-func Tar(fsEntries []TargetFsEntry) (io.Reader, hash.Hash) {
+var hashRegex = regexp.MustCompile(`[a-zA-Z0-9_]*-([a-fA-F0-9]{16})`)
 
-	var buf bytes.Buffer
-	tw := tar.NewWriter(&buf)
+func findAllRecursive(cacheItemsMap *map[string]*[]Models.TargetFsEntry, dir string) {
+	var files, _ = os.ReadDir(dir)
 
-	var sha = sha1.New()
+	for _, file := range files {
+		var filePath = filepath.Join(dir, file.Name())
 
-	for _, fsEntry := range fsEntries {
+		var matches = hashRegex.FindAllStringSubmatch(file.Name(), -1)
+		var ok = false
+		var result *[]Models.TargetFsEntry
 
-		if fsEntry.info.IsDir() {
-			tarDirectory(tw, fsEntry, sha)
-		} else {
-			tarFile(tw, fsEntry, sha)
+		if len(matches) > 0 {
+			var hash = matches[0][1]
+			result, ok = (*cacheItemsMap)[hash]
+		}
+
+		if ok {
+			if file.Type().IsRegular() {
+				var info, _ = file.Info()
+				targetFile := Models.TargetFsEntry{
+					Path: filePath,
+					Info: info,
+				}
+				*result = append(*result, targetFile)
+			} else if file.Type().IsDir() {
+				filepath.WalkDir(filePath, func(path string, d fs.DirEntry, err error) error {
+
+					var info, _ = d.Info()
+					if info.Mode().IsRegular() {
+						targetFile := Models.TargetFsEntry{
+							Path: path,
+							Info: info,
+						}
+						*result = append(*result, targetFile)
+					}
+					return nil
+				})
+			}
+		} else if file.IsDir() {
+			findAllRecursive(cacheItemsMap, filePath)
 		}
 	}
 
-	if buf.Len() <= 0 {
-		return nil, nil
-	}
-
-	return &buf, sha
 }
 
-func tarDirectory(tarWriter *tar.Writer, entryInfo TargetFsEntry, hash hash.Hash) {
+func Find(dir string, key string, recursive bool) []Models.TargetFsEntry {
+	var result []Models.TargetFsEntry
 
-	err := filepath.WalkDir(filepath.Join(entryInfo.basePath, entryInfo.path), func(path string, de fs.DirEntry, err error) error {
-		var t, _ = os.Lstat(path)
+	if recursive {
+		result = findRecursive(dir, key, false)
+	} else {
+		var files, _ = os.ReadDir(dir)
+		for _, file := range files {
+			var filePath = filepath.Join(dir, file.Name())
 
-		if t.Mode().IsRegular() {
-			var relPath, _ = filepath.Rel(entryInfo.basePath, path)
-			tarFile(
-				tarWriter,
-				TargetFsEntry{
-					path:     relPath,
-					basePath: entryInfo.basePath,
-					info:     t,
-				},
-				hash,
-			)
-		} else if t.Mode()&fs.ModeSymlink != 0 {
-			// symlink
+			if strings.Contains(file.Name(), key) {
+				if file.Type().IsRegular() {
+					var info, _ = file.Info()
+					targetFile := Models.TargetFsEntry{
+						Path: filePath,
+						Info: info,
+					}
+					result = append(result, targetFile)
+				}
+			}
 		}
-
-		return nil
-	})
-	if err != nil {
-		log.Fatalln(err)
 	}
+
+	return result
 }
 
-func tarFile(tarWriter *tar.Writer, entryInfo TargetFsEntry, hash hash.Hash) {
-	hdr := &tar.Header{
-		Name:    entryInfo.path,
-		Mode:    int64(entryInfo.info.Mode().Perm()),
-		Size:    entryInfo.info.Size(),
-		ModTime: entryInfo.info.ModTime(),
+func findRecursive(dir string, key string, all bool) []Models.TargetFsEntry {
+	var files, _ = os.ReadDir(dir)
+
+	var result []Models.TargetFsEntry
+
+	for _, file := range files {
+		var filePath = filepath.Join(dir, file.Name())
+
+		if strings.Contains(file.Name(), key) || all {
+			if file.Type().IsRegular() {
+				var info, _ = file.Info()
+				targetFile := Models.TargetFsEntry{
+					Path: filePath,
+					Info: info,
+				}
+				result = append(result, targetFile)
+			} else if file.Type().IsDir() {
+				result = append(result, findRecursive(filePath, key, true)...)
+			}
+
+		} else if file.IsDir() {
+			result = append(result, findRecursive(filePath, key, false)...)
+		}
 	}
 
-	err := tarWriter.WriteHeader(hdr)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	f, err := os.Open(filepath.Join(entryInfo.basePath, entryInfo.path))
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	var mw = io.MultiWriter(tarWriter, hash)
-	_, err = io.Copy(mw, f)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	err = f.Close()
-	if err != nil {
-		log.Fatalln(err)
-	}
+	return result
 }
 
-func UnTar(path string, reader io.Reader) {
+func UploadDir(dir string) {
 
-	tr := tar.NewReader(reader)
+	var queue = make(chan struct {
+		info fs.FileInfo
+		path string
+		i    int
+	}, 20)
 
-	for {
-		header, err := tr.Next()
-		if err == io.EOF {
-			break // End of archive
+	var cpuCount = runtime.NumCPU()
+
+	go func() {
+		var dirEntries, _ = os.ReadDir(dir)
+
+		for i, file := range dirEntries {
+			var path = filepath.Join(dir, file.Name())
+			var fileInfo, _ = file.Info()
+
+			queue <- struct {
+				info fs.FileInfo
+				path string
+				i    int
+			}{info: fileInfo, path: path, i: i}
 		}
-		if err != nil {
-			log.Fatalln(err)
-		}
+		close(queue)
+	}()
 
-		filePath := filepath.Join(path, header.Name)
-		os.MkdirAll(filepath.Dir(filePath), 0777)
+	Lib.Parallel(
+		queue,
+		cpuCount,
+		func(obj struct {
+			info fs.FileInfo
+			path string
+			i    int
+		}) {
 
-		f, err := os.Create(filePath)
-
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		if _, err := io.Copy(f, tr); err != nil {
-			log.Fatalln(err)
-		}
-
-		f.Close()
-		os.Chmod(filePath, os.FileMode(header.Mode))
-		os.Chtimes(filePath, header.ModTime, header.ModTime)
-	}
+		})
 }

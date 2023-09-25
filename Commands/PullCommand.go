@@ -5,6 +5,8 @@ import (
 	"forklift/CacheStorage/Compressors"
 	"forklift/CacheStorage/Storages"
 	"forklift/FileManager"
+	"forklift/FileManager/Models"
+	"forklift/FileManager/Tar"
 	"forklift/Lib"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -36,28 +38,26 @@ var pullCmd = &cobra.Command{
 
 		store, _ := Storages.GetStorageDriver(storage, &params)
 		compressor, _ := Compressors.GetCompressor(compression, &params)
-		var folders = []string{"build", "deps", ".fingerprint"}
+		//var folders = []string{"build", "deps", ".fingerprint"}
 
 		var cpuCount = runtime.NumCPU()
 
 		var queue = make(chan struct {
-			item   FileManager.CacheItem
-			path   string
-			folder string
+			item Models.CacheItem
+			path string
 		})
 
 		go func() {
-			for _, folder := range folders {
-				var path = filepath.Join("target", mode, folder)
+			//for _, folder := range folders {
+			var path = filepath.Join("target", mode)
 
-				for _, item := range cacheItems {
-					queue <- struct {
-						item   FileManager.CacheItem
-						path   string
-						folder string
-					}{item: item, path: path, folder: folder}
-				}
+			for _, item := range cacheItems {
+				queue <- struct {
+					item Models.CacheItem
+					path string
+				}{item: item, path: path}
 			}
+			//}
 			close(queue)
 		}()
 
@@ -65,11 +65,10 @@ var pullCmd = &cobra.Command{
 			queue,
 			cpuCount,
 			func(obj struct {
-				item   FileManager.CacheItem
-				path   string
-				folder string
+				item Models.CacheItem
+				path string
 			}) {
-				var name = fmt.Sprintf("%s-%s-%s-%s", obj.item.Name, obj.item.Hash, obj.folder, compressor.GetKey())
+				var name = fmt.Sprintf("%s-%s-%s", obj.item.Name, obj.item.Hash, compressor.GetKey())
 				var meta, existsInStore = store.GetMetadata(name)
 				log.Traceln(name, meta)
 
@@ -86,13 +85,13 @@ var pullCmd = &cobra.Command{
 					needDownload = true
 				} else {
 
-					var files = FileManager.FindOpt(obj.path, obj.item.Hash)
+					var files = FileManager.Find(obj.path, obj.item.Hash, true)
 
 					if len(files) <= 0 {
 						log.Debugf("%s no local files, downloading...\n", name)
 						needDownload = true
 					} else {
-						var _, sha = FileManager.Tar(files)
+						var _, sha = Tar.Pack(files)
 						var shaLocal = fmt.Sprintf("%x", sha.Sum(nil))
 
 						var shaRemote = *shaRemotePtr
@@ -113,9 +112,52 @@ var pullCmd = &cobra.Command{
 
 				var f = store.Download(name)
 				if f != nil {
-					FileManager.UnTar(obj.path, compressor.Decompress(&f))
+					Tar.UnPack(".", compressor.Decompress(&f))
 					log.Infof("Downloaded artifacts for %s\n", name)
 				}
 			})
+
+		if len(extraDirs) > 0 {
+			var extraDirQueue = make(chan struct {
+				key string
+			}, 20)
+
+			go func() {
+				for _, extraDir := range extraDirs {
+
+					var exit = false
+					var i = 0
+					for !exit {
+
+						var key = fmt.Sprintf("%s-%s-%s-%d", extraDir, mode, "latest", i)
+
+						var _, exists = store.GetMetadata(key)
+						if !exists {
+							exit = true
+							break
+						}
+						extraDirQueue <- struct{ key string }{key: key}
+						log.Tracef("Enqueued %s\n", key)
+						i++
+					}
+
+					close(extraDirQueue)
+				}
+			}()
+
+			Lib.Parallel(
+				extraDirQueue,
+				cpuCount,
+				func(obj struct {
+					key string
+				}) {
+					var f = store.Download(obj.key)
+					if f != nil {
+						Tar.UnPack(".", compressor.Decompress(&f))
+						log.Infof("Downloaded artifacts %s for extra dir\n", obj.key)
+					}
+				})
+		}
+
 	},
 }

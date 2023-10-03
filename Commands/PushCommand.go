@@ -103,7 +103,7 @@ var pushCmd = &cobra.Command{
 				path    string
 				entries []Models.TargetFsEntry
 			}) {
-				log.Tracef("Processing %s %s\n", obj.path, obj.item.Hash)
+				log.Tracef("Processing %s %s %s\n", obj.path, obj.item.Name, obj.item.Hash)
 				//var files = FileManager.Find(obj.path, obj.item.Hash, true)
 				//log.Tracef("Found %d entries for %s %s\n", len(files), obj.path, obj.item.Hash)
 
@@ -165,7 +165,10 @@ var pushCmd = &cobra.Command{
 						extraDirQueue <- struct {
 							path string
 							name string
-						}{path: filepath.Join(extraDirPath, file.Name()), name: fmt.Sprintf("%s-%s-%s-%d", extraDir, mode, "latest", i)}
+						}{
+							path: filepath.Join(extraDirPath, file.Name()),
+							name: fmt.Sprintf("%s_%s_%s_%s_%d", extraDir, mode, "latest", compressor.GetKey(), i),
+						}
 					}
 
 					close(extraDirQueue)
@@ -182,13 +185,37 @@ var pushCmd = &cobra.Command{
 					log.Tracef("Processing %s\n", obj.name)
 					var buf bytes.Buffer
 					tw := tar.NewWriter(&buf)
-					var hash = sha1.New()
+					var sha = sha1.New()
 
 					var reader io.Reader = &buf
 
-					Tar.PackDirectory(tw, obj.path, hash)
-					var compressed = compressor.Compress(&reader)
-					store.Upload(obj.name, &compressed, map[string]*string{})
+					Tar.PackDirectory(tw, obj.path, sha)
+
+					var meta, exists = store.GetMetadata(obj.name)
+					var shaLocal = fmt.Sprintf("%x", sha.Sum(nil))
+
+					var needUpload = false
+
+					if forcePush {
+						needUpload = true
+					} else if !exists {
+						log.Debugf("%s does not exist in storage, uploading...\n", obj.name)
+						needUpload = true
+					} else if meta == nil {
+						log.Debugf("no metadata for %s, uploading...\n", obj.name)
+						needUpload = true
+					} else if shaRemotePtr, ok := meta["sha-1-content"]; !ok {
+						log.Debugf("no metadata for %s, uploading...\n", obj.name)
+						needUpload = true
+					} else if *shaRemotePtr != shaLocal {
+						log.Debugf("%s checksum mismatch, remote: %s, local: %s, uploading...\n", obj.name, *shaRemotePtr, shaLocal)
+						needUpload = true
+					}
+
+					if needUpload {
+						var compressed = compressor.Compress(&reader)
+						store.Upload(obj.name, &compressed, map[string]*string{})
+					}
 
 					log.Tracef("Uploaded %s\n", obj.name)
 				})

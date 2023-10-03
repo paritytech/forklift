@@ -129,7 +129,7 @@ var pullCmd = &cobra.Command{
 					var i = 0
 					for !exit {
 
-						var key = fmt.Sprintf("%s-%s-%s-%d", extraDir, mode, "latest", i)
+						var key = fmt.Sprintf("%s_%s_%s_%s_%d", extraDir, mode, "latest", compressor.GetKey(), i)
 
 						var _, exists = store.GetMetadata(key)
 						if !exists {

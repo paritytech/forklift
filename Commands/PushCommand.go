@@ -214,7 +214,7 @@ var pushCmd = &cobra.Command{
 
 					if needUpload {
 						var compressed = compressor.Compress(&reader)
-						store.Upload(obj.name, &compressed, map[string]*string{})
+						store.Upload(obj.name, &compressed, map[string]*string{"sha-1-content": &shaLocal})
 					}
 
 					log.Tracef("Uploaded %s\n", obj.name)

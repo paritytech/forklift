@@ -24,11 +24,11 @@ func NewLzma2CCompressor(params *map[string]string) *Lzma2CCompressor {
 	}
 }
 
-func (compressor *Lzma2CCompressor) Compress(input *io.Reader) io.Reader {
+func (compressor *Lzma2CCompressor) Compress(input io.Reader) io.Reader {
 	var buf = bytes.Buffer{}
 	var writer = xz.NewWriterLevel(&buf, compressor.level)
 
-	var _, err2 = io.Copy(writer, *input)
+	var _, err2 = io.Copy(writer, input)
 	if err2 != nil {
 		log.Fatalf("Copy error %s\n", err2)
 	}
@@ -40,10 +40,10 @@ func (compressor *Lzma2CCompressor) Compress(input *io.Reader) io.Reader {
 	return &buf
 }
 
-func (compressor *Lzma2CCompressor) Decompress(input *io.Reader) io.Reader {
+func (compressor *Lzma2CCompressor) Decompress(input io.Reader) io.Reader {
 	var buf bytes.Buffer
 
-	var reader = xz.NewReader(*input)
+	var reader = xz.NewReader(input)
 
 	var _, err2 = io.Copy(&buf, reader)
 	if err2 != nil {

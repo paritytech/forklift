@@ -9,8 +9,10 @@ type TargetFsEntry struct {
 }
 
 type CacheItem struct {
-	Name    string
-	Version string
-	HashInt string
-	Hash    string
+	Name             string
+	Version          string
+	HashInt          string
+	Hash             string
+	CachePackageName string
+	OutDir           string
 }

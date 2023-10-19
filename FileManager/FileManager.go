@@ -5,6 +5,7 @@ import (
 	"forklift/Lib"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -13,23 +14,31 @@ import (
 
 func ParseCacheRequest() []Models.CacheItem {
 
-	var b, _ = os.ReadFile("./items.cache")
-	str := string(b)
-	var splitStrings = strings.Split(strings.ReplaceAll(str, "\r\n", "\n"), "\n")
+	var files, _ = filepath.Glob(path.Join(".forklift", "items-cache", "item-*"))
 
 	var result []Models.CacheItem
 
-	for i := range splitStrings {
-		var itemParts = strings.Split(splitStrings[i], "|")
-		if len(itemParts) < 4 {
-			continue
+	for _, file := range files {
+
+		var b, _ = os.ReadFile(file)
+
+		str := string(b)
+		var splitStrings = strings.Split(strings.ReplaceAll(str, "\r\n", "\n"), "\n")
+
+		for i := range splitStrings {
+			var itemParts = strings.Split(splitStrings[i], "|")
+			if len(itemParts) < 6 {
+				continue
+			}
+			result = append(result, Models.CacheItem{
+				Name:             strings.TrimSpace(itemParts[0]),
+				Version:          strings.TrimSpace(itemParts[1]),
+				HashInt:          strings.TrimSpace(itemParts[2]),
+				Hash:             strings.TrimSpace(itemParts[3]),
+				CachePackageName: strings.TrimSpace(itemParts[4]),
+				OutDir:           strings.TrimSpace(itemParts[5]),
+			})
 		}
-		result = append(result, Models.CacheItem{
-			Name:    strings.TrimSpace(itemParts[0]),
-			Version: strings.TrimSpace(itemParts[1]),
-			HashInt: strings.TrimSpace(itemParts[2]),
-			Hash:    strings.TrimSpace(itemParts[3]),
-		})
 	}
 
 	return result

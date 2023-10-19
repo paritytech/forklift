@@ -2,10 +2,15 @@ package Storages
 
 import (
 	"fmt"
+	"forklift/Lib"
 	"strings"
 )
 
-func GetStorageDriver(name string, params *map[string]string) (IStorage, error) {
+func GetStorageDriver(config Lib.ForkliftConfig) (IStorage, error) {
+
+	var name = config.Storage.Type
+	var params = &config.General.Params
+
 	switch strings.ToLower(name) {
 	case "s3":
 		var s = NewS3Storage(params)

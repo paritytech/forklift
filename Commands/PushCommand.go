@@ -16,7 +16,6 @@ import (
 	"github.com/spf13/cobra"
 	"os"
 	"path"
-	"path/filepath"
 	"runtime"
 )
 
@@ -33,8 +32,6 @@ var pushCmd = &cobra.Command{
 	Short: "Upload cache artifacts. Require storage params",
 	Run: func(cmd *cobra.Command, args []string) {
 
-		log.Info(Lib.AppConfig)
-
 		if len(args) > 0 {
 			err := os.Chdir(args[0])
 			if err != nil {
@@ -43,7 +40,7 @@ var pushCmd = &cobra.Command{
 			}
 		}
 
-		var WorkDir, _ = os.Getwd()
+		//var WorkDir, _ = os.Getwd()
 
 		store, _ := Storages.GetStorageDriver(Lib.AppConfig)
 		compressor, _ := Compressors.GetCompressor(Lib.AppConfig)
@@ -85,16 +82,12 @@ var pushCmd = &cobra.Command{
 					var artifact CacheStorage.RustcArtifact
 					json.Unmarshal([]byte(fileScanner.Text()), &artifact)
 					if artifact.Artifact != "" {
-						var relpath, _ = filepath.Rel(WorkDir, artifact.Artifact)
-						crateArtifactsFiles = append(crateArtifactsFiles, relpath)
+						crateArtifactsFiles = append(crateArtifactsFiles, artifact.Artifact)
 						log.Debug(crateArtifactsFiles)
 					}
 				}
 
 				log.Debugf("%s", crateArtifactsFiles)
-				//return
-
-				log.Debugf("!!!!!!!!!!!!!!")
 
 				if len(crateArtifactsFiles) > 0 {
 					var reader, sha = Tar.Pack(crateArtifactsFiles)

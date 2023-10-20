@@ -1,7 +1,9 @@
 package Wrapper
 
 import (
+	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"forklift/CacheStorage"
 	"forklift/CacheStorage/Compressors"
@@ -63,7 +65,7 @@ func Run(args []string) {
 
 	var cachePackageName = CacheStorage.CreateCachePackageName(crateName, crateHash, outDir, compressor.GetKey())
 
-	logger.Debugf("wrapper args: %s\n", os.Args)
+	logger.Tracef("wrapper args: %s\n", os.Args)
 
 	if crateName != "" &&
 		crateHash != "" &&
@@ -119,7 +121,7 @@ func Run(args []string) {
 				Tar.UnPack(WorkDir, compressor.Decompress(f))
 				logger.Infof("Downloaded artifacts for %s\n", cachePackageName)
 
-				io.Copy(os.Stderr, ReadIOStreamFile(cachePackageName, "stderr"))
+				io.Copy(os.Stderr, readStderrFile(cachePackageName))
 				io.Copy(os.Stdout, ReadIOStreamFile(cachePackageName, "stdout"))
 
 				os.Exit(0)
@@ -150,7 +152,7 @@ func Run(args []string) {
 	var runErr = cmd.Run()
 
 	writeIOStreamFile(&rustcStdout, cachePackageName, "stdout")
-	writeIOStreamFile(&rustcStderr, cachePackageName, "stderr")
+	writeStderrFIle(&rustcStderr, cachePackageName)
 	writeIOStreamFile(&rustcStdin2, cachePackageName, "stdin")
 
 	if runErr != nil {
@@ -186,6 +188,64 @@ func writeToItemCacheFile(crateName string, crateHash string, cachePackageName s
 	err = itemFile.Close()
 	if err != nil {
 		logger.Errorln(err)
+	}
+}
+
+func readStderrFile(cachePackageName string) io.Reader {
+	var itemsCachePath = path.Join(WorkDir, "target", Lib.AppConfig.General.Dir, "forklift")
+	var file, _ = os.Open(path.Join(itemsCachePath, fmt.Sprintf("%s-stderr", cachePackageName)))
+
+	var resultBuf = bytes.Buffer{}
+
+	fileScanner := bufio.NewScanner(file)
+	fileScanner.Split(bufio.ScanLines)
+	for fileScanner.Scan() {
+		var artifact CacheStorage.RustcArtifact
+		var str = fileScanner.Text()
+		json.Unmarshal([]byte(str), &artifact)
+		if artifact.Artifact != "" {
+			var absPath, _ = filepath.Abs(artifact.Artifact)
+			artifact.Artifact = absPath
+			var newArtifactByte, _ = json.Marshal(artifact)
+			resultBuf.Write(newArtifactByte)
+		} else {
+			resultBuf.WriteString(str)
+		}
+		resultBuf.WriteString("\n")
+	}
+
+	return &resultBuf
+}
+
+func writeStderrFIle(reader io.Reader, cachePackageName string) {
+	fileScanner := bufio.NewScanner(reader)
+	fileScanner.Split(bufio.ScanLines)
+
+	var itemsCachePath = path.Join(WorkDir, "target", Lib.AppConfig.General.Dir, "forklift")
+
+	itemFile, err := os.OpenFile(
+		path.Join(itemsCachePath, fmt.Sprintf("%s-stderr", cachePackageName)),
+		os.O_TRUNC|os.O_WRONLY|os.O_CREATE,
+		0755,
+	)
+	if err != nil {
+		logger.Errorln(err)
+	}
+
+	for fileScanner.Scan() {
+		var artifact CacheStorage.RustcArtifact
+		var str = fileScanner.Text()
+		json.Unmarshal([]byte(str), &artifact)
+		if artifact.Artifact != "" {
+			var relpath, _ = filepath.Rel(WorkDir, artifact.Artifact)
+			artifact.Artifact = relpath
+
+			var newArtifactByte, _ = json.Marshal(artifact)
+			itemFile.Write(newArtifactByte)
+		} else {
+			itemFile.WriteString(str)
+		}
+		itemFile.WriteString("\n")
 	}
 }
 

@@ -6,8 +6,8 @@ import (
 )
 
 type RustcArtifact struct {
-	Artifact string
-	Emit     string
+	Artifact string `json:"artifact"`
+	Emit     string `json:"emit"`
 }
 
 func CreateCachePackageName(name string, hash string, outDir string, compressor string) string {

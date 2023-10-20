@@ -17,6 +17,7 @@ import (
 	"os"
 	"path"
 	"runtime"
+	"strings"
 )
 
 var forcePush bool
@@ -82,6 +83,11 @@ var pushCmd = &cobra.Command{
 					var artifact CacheStorage.RustcArtifact
 					json.Unmarshal([]byte(fileScanner.Text()), &artifact)
 					if artifact.Artifact != "" {
+						if strings.Contains(artifact.Artifact, "tmp/") ||
+							strings.Contains(artifact.Artifact, "/var/folders/") {
+							log.Debugf("Temporary artifact folder `%s` detected, skip", artifact.Artifact)
+							return
+						}
 						crateArtifactsFiles = append(crateArtifactsFiles, artifact.Artifact)
 						log.Debug(crateArtifactsFiles)
 					}

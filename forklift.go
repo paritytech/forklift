@@ -33,9 +33,9 @@ func main() {
 		log.Errorln(err)
 	}
 
-	if strings.Contains(os.Args[1], "rustc") {
+	if len(os.Args) > 1 && strings.Contains(os.Args[1], "rustc") {
 		Wrapper.Run(os.Args[1:])
-	} else if strings.Contains(os.Args[1], "cargo") {
+	} else if len(os.Args) > 1 && strings.Contains(os.Args[1], "cargo") {
 		Server.Run(os.Args[1:])
 	} else {
 		Commands.Execute()

@@ -47,9 +47,6 @@ func Execute() {
 	rootCmd.PersistentFlags().StringVarP(&Lib.AppConfig.General.LogLevel, "verbose", "v", "info", "Available: panic, fatal, error, warn, warning, info, debug, trace")
 	viper.BindPFlag("general.logLevel", rootCmd.PersistentFlags().Lookup("verbose"))
 
-	rootCmd.PersistentFlags().StringVarP(&Lib.AppConfig.General.Dir, "dir", "d", "debug", "Subdirectory inside `target` dir")
-	viper.BindPFlag("general.dir", rootCmd.PersistentFlags().Lookup("dir"))
-
 	rootCmd.PersistentFlags().StringToStringVarP(&Lib.AppConfig.General.Params, "param", "p", map[string]string{}, "map of additional parameters\n ex: -p S3_BUCKET_NAME=my_bucket")
 
 	err := viper.Unmarshal(&Lib.AppConfig)

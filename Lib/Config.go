@@ -4,7 +4,6 @@ var AppConfig = ForkliftConfig{
 	Storage:     ForkliftStorage{},
 	Compression: ForkliftCompression{},
 	General: ForkliftGeneral{
-		Dir:      "",
 		Params:   map[string]string{},
 		LogLevel: "",
 	},
@@ -25,7 +24,6 @@ type ForkliftCompression struct {
 }
 
 type ForkliftGeneral struct {
-	Dir      string
 	Params   map[string]string
 	LogLevel string
 }

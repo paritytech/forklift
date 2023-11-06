@@ -2,6 +2,7 @@ package main
 
 import (
 	"forklift/Commands"
+	"forklift/Commands/Server"
 	"forklift/Commands/Wrapper"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -34,6 +35,8 @@ func main() {
 
 	if strings.Contains(os.Args[1], "rustc") {
 		Wrapper.Run(os.Args[1:])
+	} else if strings.Contains(os.Args[1], "cargo") {
+		Server.Run(os.Args[1:])
 	} else {
 		Commands.Execute()
 	}

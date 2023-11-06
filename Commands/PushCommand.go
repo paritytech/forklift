@@ -7,15 +7,15 @@ import (
 	"forklift/CacheStorage"
 	"forklift/CacheStorage/Compressors"
 	"forklift/CacheStorage/Storages"
-	"forklift/Commands/Wrapper"
 	"forklift/FileManager"
-	"forklift/FileManager/Models"
 	"forklift/FileManager/Tar"
 	"forklift/Lib"
+	"forklift/Lib/Rustc"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"os"
 	"path"
+	"path/filepath"
 	"runtime"
 	"strings"
 )
@@ -41,7 +41,7 @@ var pushCmd = &cobra.Command{
 			}
 		}
 
-		//var WorkDir, _ = os.Getwd()
+		var WorkDir, _ = os.Getwd()
 
 		store, _ := Storages.GetStorageDriver(Lib.AppConfig)
 		compressor, _ := Compressors.GetCompressor(Lib.AppConfig)
@@ -52,11 +52,11 @@ var pushCmd = &cobra.Command{
 
 		var cpuCount = runtime.NumCPU()
 
-		var queue = make(chan Models.CacheItem, 20)
+		var queue = make(chan *Rustc.WrapperTool, 20)
 
 		go func() {
 			for _, item := range cacheItems {
-				queue <- item
+				queue <- Rustc.NewWrapperToolFromCacheItem(WorkDir, item)
 			}
 
 			close(queue)
@@ -65,18 +65,18 @@ var pushCmd = &cobra.Command{
 		Lib.Parallel(
 			queue,
 			cpuCount,
-			func(item Models.CacheItem) {
-				log.Debugf("Processing %s %s %s\n", item.Name, item.Hash, item.OutDir)
-				//var files = FileManager.Find(obj.path, obj.item.Hash, true)
-				//log.Tracef("Found %d entries for %s %s\n", len(files), obj.path, obj.item.Hash)
+			func(wrapperTool *Rustc.WrapperTool) {
+				log.Debugf("Processing %s %s %s\n", wrapperTool.CrateName, wrapperTool.CrateHash, wrapperTool.OutDir)
 
 				var crateArtifactsFiles []string = []string{
-					path.Join("target", Lib.AppConfig.General.Dir, "forklift", fmt.Sprintf("%s-%s", item.CachePackageName, "stderr")),
-					path.Join("target", Lib.AppConfig.General.Dir, "forklift", fmt.Sprintf("%s-%s", item.CachePackageName, "stdout")),
-					path.Join("target", Lib.AppConfig.General.Dir, "forklift", fmt.Sprintf("%s-%s", item.CachePackageName, "stdin")),
+					path.Join("target", "forklift", fmt.Sprintf("%s-%s", wrapperTool.GetCachePackageName(), "stderr")),
+					path.Join("target", "forklift", fmt.Sprintf("%s-%s", wrapperTool.GetCachePackageName(), "stdout")),
+					path.Join("target", "forklift", fmt.Sprintf("%s-%s", wrapperTool.GetCachePackageName(), "stdin")),
 				}
 
-				var stderrFile = Wrapper.ReadIOStreamFile(item.CachePackageName, "stderr")
+				//crateArtifactsFiles = append(crateArtifactsFiles, FileManager.FindBuildFiles(wrapperTool.CrateHash)...)
+
+				var stderrFile = wrapperTool.ReadStderrFile()
 				fileScanner := bufio.NewScanner(stderrFile)
 				fileScanner.Split(bufio.ScanLines)
 				for fileScanner.Scan() {
@@ -88,7 +88,8 @@ var pushCmd = &cobra.Command{
 							log.Debugf("Temporary artifact folder `%s` detected, skip", artifact.Artifact)
 							return
 						}
-						crateArtifactsFiles = append(crateArtifactsFiles, artifact.Artifact)
+						var relPath, _ = filepath.Rel(WorkDir, artifact.Artifact)
+						crateArtifactsFiles = append(crateArtifactsFiles, relPath)
 						log.Debug(crateArtifactsFiles)
 					}
 				}
@@ -102,7 +103,7 @@ var pushCmd = &cobra.Command{
 					//var reader, sha = Tar.Pack(obj.entries)
 					var shaLocal = fmt.Sprintf("%x", sha.Sum(nil))
 
-					var name = item.CachePackageName // fmt.Sprintf("%s-%s-%s", obj.item.Name, obj.item.Hash, compressor.GetKey())
+					var name = wrapperTool.GetCachePackageName() // fmt.Sprintf("%s-%s-%s", obj.item.Name, obj.item.Hash, compressor.GetKey())
 
 					var meta, exists = store.GetMetadata(name)
 
@@ -126,11 +127,11 @@ var pushCmd = &cobra.Command{
 
 					if needUpload {
 						var compressed = compressor.Compress(reader)
-						store.Upload(name, &compressed, map[string]*string{"sha-1-content": &shaLocal})
-						log.Infof("Uploaded %s-%s, %x\n", item.Name, item.Hash, sha.Sum(nil))
+						store.Upload(name+"_"+compressor.GetKey(), &compressed, map[string]*string{"sha-1-content": &shaLocal})
+						log.Infof("Uploaded %s-%s, %x\n", wrapperTool.CrateName, wrapperTool.CrateHash, sha.Sum(nil))
 					}
 				} else {
-					log.Tracef("No entries for %s-%s\n", item.Name, item.Hash)
+					log.Tracef("No entries for %s-%s\n", wrapperTool.CrateName, wrapperTool.CrateHash)
 				}
 			})
 	},

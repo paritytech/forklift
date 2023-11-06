@@ -10,7 +10,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 // Pack -
@@ -117,9 +116,9 @@ func UnPack(path string, reader io.Reader) {
 
 		log.Tracef("Unpacking %s", filePath)
 
-		if strings.Contains(filePath, ".fingerprint") {
+		/*if strings.Contains(filePath, ".fingerprint") {
 			continue
-		}
+		}*/
 
 		/*
 			if _, err := os.Stat(filePath); err == nil {

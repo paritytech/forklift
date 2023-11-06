@@ -15,7 +15,7 @@ var cleanCmd = &cobra.Command{
 	Use:   "clean [project_dir]",
 	Short: "Cleanup generated `items-cache` files",
 	Run: func(cmd *cobra.Command, args []string) {
-		var files, _ = filepath.Glob(path.Join(".forklift", "items-cache", "items-*"))
+		var files, _ = filepath.Glob(path.Join(".forklift", "items-cache", "item-*"))
 
 		for _, file := range files {
 			os.Remove(file)

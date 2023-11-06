@@ -1,24 +1,19 @@
 package Wrapper
 
 import (
-	"bufio"
 	"bytes"
-	"encoding/json"
-	"fmt"
-	"forklift/CacheStorage"
 	"forklift/CacheStorage/Compressors"
 	"forklift/CacheStorage/Storages"
+	"forklift/FileManager"
 	"forklift/FileManager/Tar"
 	"forklift/Lib"
+	"forklift/Lib/Rustc"
+	"forklift/Rpc"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"io"
 	"os"
 	"os/exec"
-	"path"
-	"path/filepath"
-	"regexp"
-	"strings"
 )
 
 var logger = log.WithFields(log.Fields{})
@@ -32,7 +27,7 @@ func Run(args []string) {
 	wd, ok := os.LookupEnv("FORKLIFT_WORK_DIR")
 
 	if !ok || wd == "" {
-		logger.Fatalln("NO `FORKLIFT_WORK_DIR` specified!")
+		logger.Fatalln("No `FORKLIFT_WORK_DIR` specified!")
 		return
 	}
 
@@ -51,43 +46,65 @@ func Run(args []string) {
 
 	log.SetLevel(logLevel)
 
-	var crateName, crateHash, outDir = extractNameMetaHashDir(args)
+	var wrapperTool = Rustc.NewWrapperToolFromArgs(WorkDir, &args)
 
-	outDir, _ = filepath.Rel(WorkDir, outDir)
-
-	var logger = log.WithFields(log.Fields{
-		"crate": crateName,
-		"hash":  crateHash,
-	})
+	var logger = wrapperTool.Logger
 
 	store, _ := Storages.GetStorageDriver(Lib.AppConfig)
 	compressor, _ := Compressors.GetCompressor(Lib.AppConfig)
 
-	var cachePackageName = CacheStorage.CreateCachePackageName(crateName, crateHash, outDir, compressor.GetKey())
+	//var cachePackageName = CacheStorage.CreateCachePackageName(crateName, crateHash, outDir, compressor.GetKey())
 
 	logger.Tracef("wrapper args: %s\n", os.Args)
+	var flClient = Rpc.NewForkliftRpcClient()
 
-	if crateName != "" &&
-		crateHash != "" &&
-		!strings.Contains(outDir, "/var/folders/") &&
-		!strings.HasPrefix(outDir, "/tmp") {
+	//check deps
+	var deps = Rustc.GetExternDeps(&args)
+	var gotRebuildDeps = flClient.CheckExternDeps(deps)
 
-		//var cachePackageName = CacheStorage.CreateCachePackageName(crateName, crateHash, outDir, compressor.GetKey())
-		writeToItemCacheFile(crateName, crateHash, cachePackageName, outDir)
+	if gotRebuildDeps {
+		logger.Debugf("Got rebuilt deps")
+	} else {
+		logger.Debugf("No rebuilt deps")
+	}
 
-		fmt.Sprintf("%s-%s-%s", crateName, crateHash, compressor.GetKey())
-		var meta, existsInStore = store.GetMetadata(cachePackageName)
+	// calc sources checksum
+	if wrapperTool.CrateName != "___" && !gotRebuildDeps {
+		var depInfoOnlyCommand = Rustc.CreateDepInfoCommand(&os.Args)
+
+		depInfoCmd := exec.Command(depInfoOnlyCommand[1], depInfoOnlyCommand[2:]...)
+		var depInfoStderr = bytes.Buffer{}
+
+		depInfoCmd.Stderr = &depInfoStderr
+		depInfoCmd.Run()
+		artifact, err := Rustc.GetDepArtifact(&depInfoStderr)
+		if err != nil {
+			logger.Fatalln(err)
+		}
+		var files = Rustc.GetSourceFiles(artifact.Artifact)
+		var checksum = FileManager.GetCheckSum(files, WorkDir)
+
+		wrapperTool.CrateSourceChecksum = checksum
+		logger.Debugf("Checksum: %s", checksum)
+	}
+
+	// try get from cache
+	if wrapperTool.IsNeedProcessFromCache() && !gotRebuildDeps {
+
+		wrapperTool.WriteToItemCacheFile()
+
+		var meta, existsInStore = store.GetMetadata(wrapperTool.GetCachePackageName() + "_" + compressor.GetKey())
 
 		var needDownload = true
 
 		if !existsInStore {
-			logger.Debugf("%s does not exist in storage\n", cachePackageName)
+			logger.Debugf("%s does not exist in storage\n", wrapperTool.GetCachePackageName())
 			needDownload = false
 		} else if meta == nil {
-			logger.Debugf("no metadata for %s, downloading...\n", cachePackageName)
+			logger.Debugf("no metadata for %s, downloading...\n", wrapperTool.GetCachePackageName())
 			needDownload = true
 		} else if _, ok := meta["sha-1-content"]; !ok {
-			logger.Debugf("no metadata header for %s, downloading...\n", cachePackageName)
+			logger.Debugf("no metadata header for %s, downloading...\n", wrapperTool.GetCachePackageName())
 			needDownload = true
 		} else {
 			//var searchPath = filepath.Join("target", config.General.Dir)
@@ -95,34 +112,22 @@ func Run(args []string) {
 
 			needDownload = true
 
-			/*
-				if len(files) <= 0 {
-					log.Debugf("%s no local files, downloading...\n", cachePackageName)
-					needDownload = true
-				} else {
-					var _, sha = Tar.Pack(files)
-					var shaLocal = fmt.Sprintf("%x", sha.Sum(nil))
-
-					var shaRemote = *shaRemotePtr
-
-					if shaRemote != shaLocal {
-						logger.Debugf("%s checksum mismatch, remote: %s local: %s, downloading...\n", cachePackageName, shaRemote, shaLocal)
-						needDownload = true
-					} else {
-						logger.Tracef("%s checksum match , remote: %s local: %s\n", cachePackageName, shaRemote, shaLocal)
-						needDownload = false
-					}
-				}*/
+			//TODO: check local files
 		}
 
 		if needDownload {
-			var f = store.Download(cachePackageName)
+			var f = store.Download(wrapperTool.GetCachePackageName() + "_" + compressor.GetKey())
 			if f != nil {
 				Tar.UnPack(WorkDir, compressor.Decompress(f))
-				logger.Infof("Downloaded artifacts for %s\n", cachePackageName)
+				logger.Infof("Downloaded artifacts for %s\n", wrapperTool.GetCachePackageName())
 
-				io.Copy(os.Stderr, readStderrFile(cachePackageName))
-				io.Copy(os.Stdout, ReadIOStreamFile(cachePackageName, "stdout"))
+				var smth = bytes.Buffer{}
+				var mw = io.MultiWriter(os.Stderr, &smth)
+				io.Copy(mw, wrapperTool.ReadStderrFile())
+
+				logger.Tracef("!!!!!!!!!!!!!!!!!!!!!! %s", string(smth.Bytes()))
+
+				io.Copy(os.Stdout, wrapperTool.ReadIOStreamFile("stdout"))
 
 				os.Exit(0)
 			}
@@ -151,9 +156,16 @@ func Run(args []string) {
 
 	var runErr = cmd.Run()
 
-	writeIOStreamFile(&rustcStdout, cachePackageName, "stdout")
-	writeStderrFIle(&rustcStderr, cachePackageName)
-	writeIOStreamFile(&rustcStdin2, cachePackageName, "stdin")
+	wrapperTool.WriteIOStreamFile(&rustcStdout, "stdout")
+	artifacts := wrapperTool.WriteStderrFile(&rustcStderr)
+	wrapperTool.WriteIOStreamFile(&rustcStdin2, "stdin")
+
+	// register rebuilt artifacts path
+	var artifactsPaths []string
+	for _, artifact := range *artifacts {
+		artifactsPaths = append(artifactsPaths, artifact.Artifact)
+	}
+	flClient.RegisterExternDeps(&artifactsPaths)
 
 	if runErr != nil {
 		if serr, ok := err.(*exec.ExitError); ok {
@@ -161,175 +173,4 @@ func Run(args []string) {
 		}
 		os.Exit(1)
 	}
-}
-
-func writeToItemCacheFile(crateName string, crateHash string, cachePackageName string, outDir string) {
-
-	var itemsCachePath = path.Join(WorkDir, ".forklift", "items-cache")
-	err := os.MkdirAll(itemsCachePath, 0755)
-	if err != nil {
-		logger.Errorln(err)
-	}
-
-	itemFile, err := os.OpenFile(
-		path.Join(itemsCachePath, fmt.Sprintf("item-%s", cachePackageName)),
-		os.O_APPEND|os.O_WRONLY|os.O_CREATE,
-		0755,
-	)
-	if err != nil {
-		logger.Errorln(err)
-	}
-
-	_, err = itemFile.WriteString(fmt.Sprintf("%s | | | %s | %s | %s \n", crateName, crateHash, cachePackageName, outDir))
-	if err != nil {
-		logger.Errorln(err)
-	}
-
-	err = itemFile.Close()
-	if err != nil {
-		logger.Errorln(err)
-	}
-}
-
-func readStderrFile(cachePackageName string) io.Reader {
-	var itemsCachePath = path.Join(WorkDir, "target", Lib.AppConfig.General.Dir, "forklift")
-	var file, _ = os.Open(path.Join(itemsCachePath, fmt.Sprintf("%s-stderr", cachePackageName)))
-
-	var resultBuf = bytes.Buffer{}
-
-	fileScanner := bufio.NewScanner(file)
-	fileScanner.Split(bufio.ScanLines)
-	for fileScanner.Scan() {
-		var artifact CacheStorage.RustcArtifact
-		var str = fileScanner.Text()
-		json.Unmarshal([]byte(str), &artifact)
-		if artifact.Artifact != "" {
-			var absPath, _ = filepath.Abs(artifact.Artifact)
-			artifact.Artifact = absPath
-			var newArtifactByte, _ = json.Marshal(artifact)
-			resultBuf.Write(newArtifactByte)
-		} else {
-			resultBuf.WriteString(str)
-		}
-		resultBuf.WriteString("\n")
-	}
-
-	return &resultBuf
-}
-
-func writeStderrFIle(reader io.Reader, cachePackageName string) {
-	fileScanner := bufio.NewScanner(reader)
-	fileScanner.Split(bufio.ScanLines)
-
-	var itemsCachePath = path.Join(WorkDir, "target", Lib.AppConfig.General.Dir, "forklift")
-
-	itemFile, err := os.OpenFile(
-		path.Join(itemsCachePath, fmt.Sprintf("%s-stderr", cachePackageName)),
-		os.O_TRUNC|os.O_WRONLY|os.O_CREATE,
-		0755,
-	)
-	if err != nil {
-		logger.Errorln(err)
-	}
-
-	for fileScanner.Scan() {
-		var artifact CacheStorage.RustcArtifact
-		var str = fileScanner.Text()
-		json.Unmarshal([]byte(str), &artifact)
-		if artifact.Artifact != "" {
-			var relpath, _ = filepath.Rel(WorkDir, artifact.Artifact)
-			artifact.Artifact = relpath
-
-			var newArtifactByte, _ = json.Marshal(artifact)
-			itemFile.Write(newArtifactByte)
-		} else {
-			itemFile.WriteString(str)
-		}
-		itemFile.WriteString("\n")
-	}
-}
-
-func writeIOStreamFile(reader io.Reader, cachePackageName string, suffix string) {
-
-	var itemsCachePath = path.Join(WorkDir, "target", Lib.AppConfig.General.Dir, "forklift")
-	err := os.MkdirAll(itemsCachePath, 0755)
-	if err != nil {
-		logger.Errorln(err)
-	}
-
-	itemFile, err := os.OpenFile(
-		path.Join(itemsCachePath, fmt.Sprintf("%s-%s", cachePackageName, suffix)),
-		os.O_TRUNC|os.O_WRONLY|os.O_CREATE,
-		0755,
-	)
-	if err != nil {
-		logger.Errorln(err)
-	}
-
-	_, err = io.Copy(itemFile, reader)
-	if err != nil {
-		logger.Errorln(err)
-	}
-
-	err = itemFile.Close()
-	if err != nil {
-		logger.Errorln(err)
-	}
-}
-
-func ReadIOStreamFile(cachePackageName string, suffix string) io.Reader {
-
-	var itemsCachePath = path.Join(WorkDir, "target", Lib.AppConfig.General.Dir, "forklift")
-
-	itemFile, err := os.Open(
-		path.Join(itemsCachePath, fmt.Sprintf("%s-%s", cachePackageName, suffix)),
-	)
-	if err != nil {
-		logger.Errorln(err)
-	}
-
-	var result = bytes.Buffer{}
-	io.Copy(&result, itemFile)
-	itemFile.Close()
-
-	return &result
-}
-
-// /
-// /
-// /
-var regex = regexp.MustCompile("^metadata=([0-9a-f]{16})$")
-
-func extractNameMetaHashDir(args []string) (string, string, string) {
-
-	var name, hash, outDir string
-
-	var count = 0
-
-	for i, arg := range args {
-
-		if name == "" && arg == "--crate-name" {
-			name = args[i+1]
-			count += 1
-		}
-
-		if hash == "" {
-			var match = regex.FindAllStringSubmatch(arg, 1)
-			if len(match) > 0 {
-				hash = match[0][1]
-				count += 1
-			}
-		}
-
-		if outDir == "" && arg == "--out-dir" {
-			outDir = args[i+1]
-			count += 1
-		}
-
-		if count >= 3 {
-			break
-		}
-	}
-
-	return name, hash, outDir
 }

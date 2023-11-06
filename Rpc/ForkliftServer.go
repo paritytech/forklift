@@ -1,42 +1,39 @@
 package Rpc
 
-import "sync"
+import (
+	log "github.com/sirupsen/logrus"
+	"net"
+	"net/rpc"
+	"os"
+)
 
 type ForkliftRpcServer struct {
-	Extern map[string]bool
-	lock   sync.RWMutex
+	goRpcServer *rpc.Server
 }
 
 func NewForkliftServer() *ForkliftRpcServer {
 	var srv = ForkliftRpcServer{
-		Extern: make(map[string]bool),
-		lock:   sync.RWMutex{},
+		goRpcServer: rpc.NewServer(),
 	}
 	return &srv
 }
 
-func (server *ForkliftRpcServer) CheckExternDeps(paths *[]string, result *bool) error {
-	server.lock.RLock()
-	defer server.lock.RUnlock()
+func (server *ForkliftRpcServer) Start() {
 
-	for _, path := range *paths {
-		var _, b = server.Extern[path]
-		if b {
-			*result = true
-			return nil
-		}
+	//check for existing server
+	var _, e = os.Stat("forklift.sock")
+
+	if e == nil {
+		log.Panic("Forklift rpc goRpcServer is already running")
 	}
-	*result = false
-	return nil
-}
 
-func (server *ForkliftRpcServer) RegisterExternDeps(paths *[]string, result *bool) error {
-	server.lock.Lock()
-	defer server.lock.Unlock()
-
-	for _, path := range *paths {
-		server.Extern[path] = true
+	err := server.goRpcServer.Register(NewForkliftRpc())
+	if err != nil {
+		log.Fatalln(err)
 	}
-	*result = true
-	return nil
+
+	socket, _ := net.Listen("unix", "forklift.sock")
+	defer os.Remove("forklift.sock")
+
+	server.goRpcServer.Accept(socket)
 }

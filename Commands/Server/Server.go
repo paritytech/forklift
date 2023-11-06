@@ -2,24 +2,14 @@ package Server
 
 import (
 	"forklift/Rpc"
-	log "github.com/sirupsen/logrus"
-	"net"
-	"net/rpc"
 	"os"
 	"os/exec"
 	"path/filepath"
 )
 
 func Run(args []string) {
-	var server = rpc.NewServer()
-	err := server.Register(Rpc.NewForkliftServer())
-	if err != nil {
-		log.Fatalln(err)
-	}
-	socket, _ := net.Listen("tcp", ":9999")
-	//defer os.Remove("forklift.sock")
-
-	go server.Accept(socket)
+	var rpcServer = Rpc.NewForkliftServer()
+	go rpcServer.Start()
 
 	// set RUSTC_WRAPPER env var
 	var flExecPath, _ = os.Executable()

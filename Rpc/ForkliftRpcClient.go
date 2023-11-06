@@ -3,6 +3,8 @@ package Rpc
 import (
 	log "github.com/sirupsen/logrus"
 	"net/rpc"
+	"os"
+	"path/filepath"
 )
 
 type ForkliftRpcClient struct {
@@ -11,7 +13,17 @@ type ForkliftRpcClient struct {
 
 func NewForkliftRpcClient() *ForkliftRpcClient {
 	var forkliftClient = &ForkliftRpcClient{}
-	var rpcClient, _ = rpc.Dial("tcp", ":9999")
+	var address string
+
+	wd, ok := os.LookupEnv("FORKLIFT_WORK_DIR")
+
+	if !ok || wd == "" {
+		address = "forklift.sock"
+	} else {
+		address = filepath.Join(wd, "forklift.sock")
+	}
+
+	var rpcClient, _ = rpc.Dial("unix", address)
 
 	forkliftClient.rpcClient = rpcClient
 
@@ -27,7 +39,7 @@ func (client *ForkliftRpcClient) RegisterExternDeps(deps *[]string) {
 		return
 	}
 
-	_ = client.rpcClient.Call("ForkliftRpcServer.RegisterExternDeps", deps, nil)
+	_ = client.rpcClient.Call("ForkliftRpc.RegisterExternDeps", deps, nil)
 }
 
 func (client *ForkliftRpcClient) CheckExternDeps(deps *[]string) bool {
@@ -39,9 +51,8 @@ func (client *ForkliftRpcClient) CheckExternDeps(deps *[]string) bool {
 		return false
 	}
 
-	log.Debug("$$$$$$$$$$$$$$$", *deps)
 	var result bool
-	err := client.rpcClient.Call("ForkliftRpcServer.CheckExternDeps", deps, &result)
+	err := client.rpcClient.Call("ForkliftRpc.CheckExternDeps", deps, &result)
 	if err != nil {
 		log.Fatal(err, *deps)
 	}

@@ -25,6 +25,7 @@ func (server *ForkliftRpcServer) Start() {
 
 	if e == nil {
 		log.Error("Forklift RpcServer is already running for this location")
+		os.Exit(0)
 	}
 
 	err := server.goRpcServer.Register(NewForkliftRpc())

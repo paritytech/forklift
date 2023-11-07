@@ -67,14 +67,27 @@ func (wrapperTool *WrapperTool) IsNeedProcessFromCache() bool {
 }
 
 func (wrapperTool *WrapperTool) GetCachePackageName() string {
+
 	var sha = sha1.New()
 	sha.Write([]byte(wrapperTool.OutDir))
-	return fmt.Sprintf(
-		"%s_%s_%s_%x",
-		wrapperTool.CrateName,
-		wrapperTool.CrateHash,
-		wrapperTool.CrateSourceChecksum,
-		sha.Sum(nil))
+
+	if prefix, ok := os.LookupEnv("FORKLIFT_PACKAGE_SUFFIX"); ok {
+		return fmt.Sprintf(
+			"%s_%s_%s_%x_%s",
+			wrapperTool.CrateName,
+			wrapperTool.CrateHash,
+			wrapperTool.CrateSourceChecksum,
+			sha.Sum(nil),
+			prefix)
+	} else {
+		return fmt.Sprintf(
+			"%s_%s_%s_%x",
+			wrapperTool.CrateName,
+			wrapperTool.CrateHash,
+			wrapperTool.CrateSourceChecksum,
+			sha.Sum(nil))
+	}
+
 }
 
 func (wrapperTool *WrapperTool) WriteToItemCacheFile() {

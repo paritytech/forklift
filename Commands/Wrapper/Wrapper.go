@@ -78,12 +78,12 @@ func Run(args []string) {
 		depInfoCmd.Stderr = &depInfoStderr
 		err := depInfoCmd.Run()
 		if err != nil {
-			logger.Fatalf("%s, %s", err, depInfoStderr.Bytes())
+			logger.Fatalf("%s, %s, %s", err, string(depInfoStderr.Bytes()), depInfoOnlyCommand)
 		}
 
 		artifact, err := Rustc.GetDepArtifact(&depInfoStderr)
 		if err != nil {
-			logger.Fatalf("%s, %s", err, depInfoStderr.Bytes())
+			logger.Fatalf("%s, %s, %s", err, string(depInfoStderr.Bytes()), depInfoOnlyCommand)
 		}
 
 		var files = Rustc.GetSourceFiles(artifact.Artifact)
@@ -129,8 +129,6 @@ func Run(args []string) {
 				var smth = bytes.Buffer{}
 				var mw = io.MultiWriter(os.Stderr, &smth)
 				io.Copy(mw, wrapperTool.ReadStderrFile())
-
-				logger.Tracef("!!!!!!!!!!!!!!!!!!!!!! %s", string(smth.Bytes()))
 
 				io.Copy(os.Stdout, wrapperTool.ReadIOStreamFile("stdout"))
 

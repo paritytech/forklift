@@ -78,7 +78,7 @@ func Run(args []string) {
 		depInfoCmd.Stderr = &depInfoStderr
 		err := depInfoCmd.Run()
 		if err != nil {
-			logger.Fatalln(err)
+			logger.Fatalf("%s, %s", err, depInfoStderr.Bytes())
 		}
 
 		artifact, err := Rustc.GetDepArtifact(&depInfoStderr)

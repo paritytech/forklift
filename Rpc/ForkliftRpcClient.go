@@ -54,7 +54,7 @@ func (client *ForkliftRpcClient) CheckExternDeps(deps *[]string) bool {
 	var result bool
 	err := client.rpcClient.Call("ForkliftRpc.CheckExternDeps", deps, &result)
 	if err != nil {
-		log.Fatal(err, *deps)
+		log.Fatal(err)
 	}
 	return result
 }

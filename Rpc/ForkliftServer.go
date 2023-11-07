@@ -24,7 +24,7 @@ func (server *ForkliftRpcServer) Start() {
 	var _, e = os.Stat("forklift.sock")
 
 	if e == nil {
-		log.Panic("Forklift rpc goRpcServer is already running")
+		log.Error("Forklift RpcServer is already running for this location")
 	}
 
 	err := server.goRpcServer.Register(NewForkliftRpc())

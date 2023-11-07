@@ -76,11 +76,16 @@ func Run(args []string) {
 		var depInfoStderr = bytes.Buffer{}
 
 		depInfoCmd.Stderr = &depInfoStderr
-		depInfoCmd.Run()
-		artifact, err := Rustc.GetDepArtifact(&depInfoStderr)
+		err := depInfoCmd.Run()
 		if err != nil {
 			logger.Fatalln(err)
 		}
+
+		artifact, err := Rustc.GetDepArtifact(&depInfoStderr)
+		if err != nil {
+			logger.Fatalf("%s, %s", err, depInfoStderr.Bytes())
+		}
+
 		var files = Rustc.GetSourceFiles(artifact.Artifact)
 		var checksum = FileManager.GetCheckSum(files, WorkDir)
 

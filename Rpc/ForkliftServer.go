@@ -33,8 +33,17 @@ func (server *ForkliftRpcServer) Start() {
 		log.Fatalln(err)
 	}
 
+	var controlRpc = NewControlRpc()
+	err = server.goRpcServer.Register(controlRpc)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
 	socket, _ := net.Listen("unix", "forklift.sock")
 	defer os.Remove("forklift.sock")
 
-	server.goRpcServer.Accept(socket)
+	for !controlRpc.IsStopRequested() {
+		var con, _ = socket.Accept()
+		go server.goRpcServer.ServeConn(con)
+	}
 }

@@ -4,8 +4,6 @@ import (
 	"sync"
 )
 
-var StopEvent = 1
-
 type ForkliftRpc struct {
 	Extern map[string]bool
 	lock   sync.RWMutex

@@ -164,7 +164,7 @@ func Run(args []string) {
 	wrapperTool.WriteIOStreamFile(&rustcStdin2, "stdin")
 
 	// register rebuilt artifacts path
-	var artifactsPaths []string
+	var artifactsPaths []string = make([]string, 0)
 	for _, artifact := range *artifacts {
 		artifactsPaths = append(artifactsPaths, artifact.Artifact)
 	}

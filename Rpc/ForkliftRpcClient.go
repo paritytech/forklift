@@ -23,7 +23,15 @@ func NewForkliftRpcClient() *ForkliftRpcClient {
 		address = filepath.Join(wd, "forklift.sock")
 	}
 
-	var rpcClient, _ = rpc.Dial("unix", address)
+	var _, e = os.Stat(address)
+	if e != nil {
+		log.Fatal("No socket at "+address, e)
+	}
+
+	var rpcClient, err = rpc.Dial("unix", address)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	forkliftClient.rpcClient = rpcClient
 

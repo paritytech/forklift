@@ -28,10 +28,7 @@ func Run(args []string) {
 
 	_ = cmd.Run()
 
-	var execPath, _ = os.Executable()
-	execPath, _ = filepath.EvalSymlinks(execPath)
-
-	command := exec.Command(execPath, "push")
+	command := exec.Command(flExecPath, "push")
 	command.Stdout = os.Stdout
 	command.Stderr = os.Stderr
 	command.Stdin = os.Stdin

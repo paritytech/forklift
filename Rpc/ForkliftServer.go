@@ -39,7 +39,10 @@ func (server *ForkliftRpcServer) Start() {
 		log.Fatalln(err)
 	}
 
-	socket, _ := net.Listen("unix", "forklift.sock")
+	socket, err := net.Listen("unix", "forklift.sock")
+	if err != nil {
+		log.Fatalln(err)
+	}
 	defer os.Remove("forklift.sock")
 
 	for !controlRpc.IsStopRequested() {

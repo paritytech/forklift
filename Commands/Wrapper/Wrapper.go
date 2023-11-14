@@ -96,8 +96,6 @@ func Run(args []string) {
 	// try get from cache
 	if wrapperTool.IsNeedProcessFromCache() && !gotRebuildDeps {
 
-		wrapperTool.WriteToItemCacheFile()
-
 		var meta, existsInStore = store.GetMetadata(wrapperTool.GetCachePackageName() + "_" + compressor.GetKey())
 
 		var needDownload = true
@@ -169,6 +167,8 @@ func Run(args []string) {
 		artifactsPaths = append(artifactsPaths, artifact.Artifact)
 	}
 	flClient.RegisterExternDeps(&artifactsPaths)
+
+	wrapperTool.WriteToItemCacheFile()
 
 	if runErr != nil {
 		if serr, ok := err.(*exec.ExitError); ok {

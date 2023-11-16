@@ -33,4 +33,8 @@ func Run(args []string) {
 	command.Stderr = os.Stderr
 	command.Stdin = os.Stdin
 	command.Run()
+
+	rpcServer.Stop()
+
+	<-rpcServer.Channel
 }

@@ -2,6 +2,7 @@ package Rpc
 
 import (
 	log "github.com/sirupsen/logrus"
+	"io/fs"
 	"net"
 	"net/rpc"
 	"os"
@@ -37,12 +38,16 @@ func (server *ForkliftRpcServer) Stop() {
 func (server *ForkliftRpcServer) Start() {
 
 	//check for existing server
-	var _, e = os.Stat("forklift.sock")
+	var stat, e = os.Stat("forklift.sock")
 
 	if e == nil {
-		log.Error("Forklift RpcServer is already running for this location")
-		server.Channel <- true
-		return
+		if stat.Mode().Type() == fs.ModeSocket {
+			log.Error("Forklift RpcServer is already running for this location")
+			server.Channel <- true
+			return
+		} else {
+			os.Remove("forklift.sock")
+		}
 	}
 
 	err := server.goRpcServer.Register(NewForkliftRpc())

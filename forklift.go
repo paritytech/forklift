@@ -25,6 +25,7 @@ func main() {
 	viper.SetDefault("storage.type", "s3")
 	viper.SetDefault("compression.type", "zstd")
 	viper.SetDefault("general.params", map[string]string{})
+	viper.SetDefault("general.threadsCount", 0)
 
 	log.SetFormatter(&log.TextFormatter{})
 

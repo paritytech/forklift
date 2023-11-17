@@ -51,6 +51,11 @@ var pushCmd = &cobra.Command{
 		log.Infof("cacheItems %d", len(cacheItems))
 
 		var cpuCount = runtime.NumCPU()
+		if Lib.AppConfig.General.ThreadsCount > 0 {
+			cpuCount = Lib.AppConfig.General.ThreadsCount
+		}
+
+		log.Debugf("ThreadsCount: %d", cpuCount)
 
 		var queue = make(chan *Rustc.WrapperTool, 20)
 

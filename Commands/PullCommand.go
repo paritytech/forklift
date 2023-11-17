@@ -1,9 +1,7 @@
 package Commands
 
 import (
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"os"
 )
 
 func init() {
@@ -11,18 +9,11 @@ func init() {
 }
 
 var pullCmd = &cobra.Command{
-	Use:   "pull [flags] [project_dir]",
-	Short: "Download cache artifacts",
-	//Deprecated: "Use forklift as RUSTC_WRAPPER instead",
+	Use:        "pull [flags] [project_dir]",
+	Short:      "Download cache artifacts",
+	Deprecated: "Use forklift as RUSTC_WRAPPER instead",
 	Run: func(cmd *cobra.Command, args []string) {
 
-		if len(args) > 0 {
-			err := os.Chdir(args[0])
-			if err != nil {
-				log.Fatalln(err)
-				return
-			}
-		}
 		/*
 			var WorkDir, _ = os.Getwd()
 

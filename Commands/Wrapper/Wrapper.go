@@ -136,7 +136,7 @@ func Run(args []string) {
 	}
 
 	// execute rustc
-	logger.Debug("executing rustc")
+	logger.Infof("executing rustc")
 
 	cmd := exec.Command(os.Args[1], os.Args[2:]...)
 
@@ -168,14 +168,14 @@ func Run(args []string) {
 	}
 	flClient.RegisterExternDeps(&artifactsPaths)
 
-	if wrapperTool.CrateName != "___" {
-		wrapperTool.WriteToItemCacheFile()
-	}
-
 	if runErr != nil {
 		if serr, ok := err.(*exec.ExitError); ok {
 			os.Exit(serr.ExitCode())
 		}
 		os.Exit(1)
+	}
+
+	if wrapperTool.CrateName != "___" {
+		wrapperTool.WriteToItemCacheFile()
 	}
 }

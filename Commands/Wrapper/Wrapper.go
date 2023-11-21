@@ -14,6 +14,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 )
 
 var logger = log.WithFields(log.Fields{})
@@ -164,7 +165,9 @@ func Run(args []string) {
 	// register rebuilt artifacts path
 	var artifactsPaths = make([]string, 0)
 	for _, artifact := range *artifacts {
-		artifactsPaths = append(artifactsPaths, artifact.Artifact)
+		var abs = filepath.Join(WorkDir, artifact.Artifact)
+
+		artifactsPaths = append(artifactsPaths, abs)
 	}
 	flClient.RegisterExternDeps(&artifactsPaths)
 

@@ -1,7 +1,9 @@
 package Rpc
 
 import (
+	"encoding/json"
 	"forklift/FileManager/Models"
+	log "github.com/sirupsen/logrus"
 	"sync"
 )
 
@@ -23,6 +25,9 @@ func NewForkliftRpc() *ForkliftRpc {
 func (server *ForkliftRpc) CheckExternDeps(paths *[]string, result *bool) error {
 	server.lock.RLock()
 	defer server.lock.RUnlock()
+
+	bs, _ := json.Marshal(server.Extern)
+	log.Tracef("check request: %s __________ existing: %s", *paths, string(bs))
 
 	for _, path := range *paths {
 		var _, b = server.Extern[path]

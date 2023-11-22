@@ -101,26 +101,13 @@ func Run(args []string) {
 	// try get from cache
 	if wrapperTool.IsNeedProcessFromCache() && !gotRebuildDeps {
 
-		var meta, existsInStore = store.GetMetadata(wrapperTool.GetCachePackageName() + "_" + compressor.GetKey())
+		var _, existsInStore = store.GetMetadata(wrapperTool.GetCachePackageName() + "_" + compressor.GetKey())
 
 		var needDownload = true
 
 		if !existsInStore {
-			logger.Debugf("%s does not exist in storage\n", wrapperTool.GetCachePackageName())
+			logger.Infof("%s does not exist in storage\n", wrapperTool.GetCachePackageName())
 			needDownload = false
-		} else if meta == nil {
-			logger.Debugf("no metadata for %s, downloading...\n", wrapperTool.GetCachePackageName())
-			needDownload = true
-		} else if _, ok := meta["sha-1-content"]; !ok {
-			logger.Debugf("no metadata header for %s, downloading...\n", wrapperTool.GetCachePackageName())
-			needDownload = true
-		} else {
-			//var searchPath = filepath.Join("target", config.General.Dir)
-			//var files = FileManager.Find(searchPath, crateHash, true)
-
-			needDownload = true
-
-			//TODO: check local files
 		}
 
 		if needDownload {
@@ -138,6 +125,8 @@ func Run(args []string) {
 				os.Exit(0)
 			}
 		}
+	} else {
+		logger.Infof("No need to use cache for %s", wrapperTool.OutDir)
 	}
 
 	// execute rustc

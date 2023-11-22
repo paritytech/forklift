@@ -74,7 +74,7 @@ func Run(args []string) {
 	}
 
 	// calc sources checksum
-	if wrapperTool.CrateName != "___" && !gotRebuildDeps {
+	if wrapperTool.CrateName != "___" {
 		var depInfoOnlyCommand = Rustc.CreateDepInfoCommand(&os.Args)
 
 		depInfoCmd := exec.Command(depInfoOnlyCommand[1], depInfoOnlyCommand[2:]...)

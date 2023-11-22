@@ -22,7 +22,7 @@ func NewForkliftRpc() *ForkliftRpc {
 	return &srv
 }
 
-func (server *ForkliftRpc) CheckExternDeps(paths *[]string, result *bool) error {
+func (server *ForkliftRpc) CheckExternDeps(paths *[]string, result *string) error {
 	server.lock.RLock()
 	defer server.lock.RUnlock()
 
@@ -32,11 +32,11 @@ func (server *ForkliftRpc) CheckExternDeps(paths *[]string, result *bool) error 
 	for _, path := range *paths {
 		var _, b = server.Extern[path]
 		if b {
-			*result = true
+			*result = path
 			return nil
 		}
 	}
-	*result = false
+	*result = ""
 	return nil
 }
 

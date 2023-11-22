@@ -50,16 +50,16 @@ func (client *ForkliftRpcClient) RegisterExternDeps(deps *[]string) {
 	_ = client.rpcClient.Call("ForkliftRpc.RegisterExternDeps", deps, nil)
 }
 
-func (client *ForkliftRpcClient) CheckExternDeps(deps *[]string) bool {
+func (client *ForkliftRpcClient) CheckExternDeps(deps *[]string) string {
 	if deps == nil {
-		return false
+		return ""
 	}
 
 	if len(*deps) == 0 {
-		return false
+		return ""
 	}
 
-	var result bool
+	var result string
 	err := client.rpcClient.Call("ForkliftRpc.CheckExternDeps", deps, &result)
 	if err != nil {
 		log.Fatal(err)

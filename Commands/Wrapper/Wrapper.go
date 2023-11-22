@@ -61,12 +61,16 @@ func Run(args []string) {
 
 	//check deps
 	var deps = Rustc.GetExternDeps(&args)
-	var gotRebuildDeps = flClient.CheckExternDeps(deps)
+	var rebuiltDep = flClient.CheckExternDeps(deps)
+	var gotRebuildDeps = true
+	if rebuiltDep == "" {
+		gotRebuildDeps = false
+	}
 
 	if gotRebuildDeps {
-		logger.Debugf("Got rebuilt deps")
+		logger.Infof("Got rebuilt dep: %s", rebuiltDep)
 	} else {
-		logger.Debugf("No rebuilt deps")
+		logger.Infof("No rebuilt deps")
 	}
 
 	// calc sources checksum

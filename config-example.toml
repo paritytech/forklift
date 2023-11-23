@@ -1,0 +1,16 @@
+[storage]
+type = "s3"
+
+[compression]
+type = "zstd"
+
+[general]
+logLevel = "info"
+threadsCount = 0
+
+[general.params]
+S3_ACCESS_KEY_ID = "key_id"
+S3_SECRET_ACCESS_KEY = "some_secret"
+S3_ENDPOINT_URL = "https://storage.googleapis.com"
+S3_BUCKET_NAME = "forklift-cache-bucket"
+COMPRESSION_LEVEL = "1"

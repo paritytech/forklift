@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	"bytes"
 	"crypto/sha1"
-	"forklift/FileManager/Models"
 	log "github.com/sirupsen/logrus"
 	"hash"
 	"io"
@@ -14,7 +13,7 @@ import (
 )
 
 // Pack -
-func Pack(fsEntries []Models.TargetFsEntry) (io.Reader, hash.Hash) {
+func Pack(fsEntries []string) (io.Reader, hash.Hash) {
 
 	var buf bytes.Buffer
 	tw := tar.NewWriter(&buf)
@@ -23,8 +22,13 @@ func Pack(fsEntries []Models.TargetFsEntry) (io.Reader, hash.Hash) {
 
 	for _, fsEntry := range fsEntries {
 
-		if fsEntry.Info.IsDir() {
-			PackDirectory(tw, fsEntry.Path, sha)
+		log.Tracef("packing %s", fsEntry)
+		var info, e = os.Stat(fsEntry)
+		if e != nil {
+			log.Error(e)
+		}
+		if info.IsDir() {
+			PackDirectory(tw, fsEntry, sha)
 		} else {
 			PackFile(tw, fsEntry, sha)
 		}
@@ -45,10 +49,7 @@ func PackDirectory(tarWriter *tar.Writer, dirPath string, hash hash.Hash) {
 		if t.Mode().IsRegular() {
 			PackFile(
 				tarWriter,
-				Models.TargetFsEntry{
-					Path: path,
-					Info: t,
-				},
+				path,
 				hash,
 			)
 		} else if t.Mode()&fs.ModeSymlink != 0 {
@@ -61,12 +62,19 @@ func PackDirectory(tarWriter *tar.Writer, dirPath string, hash hash.Hash) {
 	}
 }
 
-func PackFile(tarWriter *tar.Writer, entryInfo Models.TargetFsEntry, hash hash.Hash) {
+func PackFile(tarWriter *tar.Writer, path string, hash hash.Hash) {
+
+	var info, e = os.Stat(path)
+
+	if e != nil {
+		log.Errorf("file stat error")
+	}
+
 	hdr := &tar.Header{
-		Name:    entryInfo.Path,
-		Mode:    int64(entryInfo.Info.Mode().Perm()),
-		Size:    entryInfo.Info.Size(),
-		ModTime: entryInfo.Info.ModTime(),
+		Name:    path,
+		Mode:    int64(info.Mode().Perm()),
+		Size:    info.Size(),
+		ModTime: info.ModTime(),
 	}
 
 	err := tarWriter.WriteHeader(hdr)
@@ -74,7 +82,7 @@ func PackFile(tarWriter *tar.Writer, entryInfo Models.TargetFsEntry, hash hash.H
 		log.Fatalln(err)
 	}
 
-	f, err := os.Open(entryInfo.Path)
+	f, err := os.Open(path)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -105,16 +113,36 @@ func UnPack(path string, reader io.Reader) {
 		}
 
 		filePath := filepath.Join(path, header.Name)
-		os.MkdirAll(filepath.Dir(filePath), 0777)
+
+		log.Tracef("Unpacking %s", filePath)
+
+		/*if strings.Contains(filePath, ".fingerprint") {
+			continue
+		}*/
+
+		/*
+			if _, err := os.Stat(filePath); err == nil {
+				log.Debugf("Already exists: %s", filePath)
+				//time.Sleep(1 * time.Second)
+				return
+			}
+		*/
+
+		err = os.MkdirAll(filepath.Dir(filePath), 0777)
+		if err != nil {
+			log.Fatalf("mkdirall %s", err)
+		}
 
 		f, err := os.Create(filePath)
 
 		if err != nil {
-			log.Fatalln(err)
+			log.Fatalf("%s", err)
 		}
 
-		if _, err := io.Copy(f, tr); err != nil {
+		if w, err := io.Copy(f, tr); err != nil {
 			log.Fatalln(err)
+		} else {
+			log.Tracef("Unpacked %s written: %d", filePath, w)
 		}
 
 		f.Close()

@@ -4,11 +4,15 @@ package Compressors
 
 import (
 	"errors"
+	"forklift/Lib"
 	log "github.com/sirupsen/logrus"
 	"strings"
 )
 
-func GetCompressor(name string, params *map[string]string) (ICompressor, error) {
+func GetCompressor(config Lib.ForkliftConfig) (ICompressor, error) {
+
+	var name = config.Compression.Type
+	var params = &config.General.Params
 
 	switch strings.ToLower(name) {
 	case "none":

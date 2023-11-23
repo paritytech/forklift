@@ -4,10 +4,11 @@ import (
 	log "github.com/sirupsen/logrus"
 	"os"
 	"strconv"
+	"strings"
 )
 
 func getByKey(args *map[string]string, key string, defaultFromEnvironment bool) (string, bool) {
-	var s, ok = (*args)[key]
+	var s, ok = (*args)[strings.ToLower(key)]
 
 	if ok {
 		return s, true

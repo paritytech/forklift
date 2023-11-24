@@ -146,7 +146,7 @@ func UnPack(path string, reader io.Reader) {
 		}
 
 		f.Close()
-		os.Chmod(filePath, os.FileMode(header.Mode))
+		os.Chmod(filePath, 0777)
 		os.Chtimes(filePath, header.ModTime, header.ModTime)
 	}
 }

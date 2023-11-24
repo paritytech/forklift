@@ -61,6 +61,7 @@ func (wrapperTool *WrapperTool) createLogger() {
 
 func (wrapperTool *WrapperTool) IsNeedProcessFromCache() bool {
 	return wrapperTool.CrateName != "" &&
+		wrapperTool.CrateName != "___" &&
 		wrapperTool.CrateHash != "" &&
 		!strings.Contains(wrapperTool.OutDir, "/var/folders/") &&
 		!strings.HasPrefix(wrapperTool.OutDir, "/tmp")

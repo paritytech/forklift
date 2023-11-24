@@ -142,7 +142,7 @@ func UnPack(path string, reader io.Reader) {
 		if w, err := io.Copy(f, tr); err != nil {
 			log.Fatalln(err)
 		} else {
-			log.Tracef("Unpacked %s written: %d", filePath, w)
+			log.Debugf("Unpacked %s written: %d", filePath, w)
 		}
 
 		f.Close()

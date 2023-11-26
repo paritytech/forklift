@@ -76,6 +76,10 @@ func (wrapperTool *WrapperTool) IsNeedProcessFromCache() bool {
 		!strings.HasPrefix(wrapperTool.OutDir, "/tmp")
 }
 
+func (wrapperTool *WrapperTool) IsCratesIoCrate() bool {
+	return strings.Contains(wrapperTool.OutDir, "index.crates.io")
+}
+
 func (wrapperTool *WrapperTool) GetCachePackageName() string {
 
 	var sha = sha1.New()

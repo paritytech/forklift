@@ -139,10 +139,16 @@ var pushCmd = &cobra.Command{
 					if needUpload {
 						var compressed = compressor.Compress(reader)
 						store.Upload(name+"_"+compressor.GetKey(), &compressed, metaMap)
-						log.Infof("Uploaded %s-%s, %x\n", wrapperTool.CrateName, wrapperTool.CrateHash, sha.Sum(nil))
+
+						marshal, err := json.Marshal(metaMap)
+						if err != nil {
+							return
+						}
+
+						log.Infof("Uploaded %s, metadata: %s", wrapperTool.GetCachePackageName(), marshal)
 					}
 				} else {
-					log.Tracef("No entries for %s-%s\n", wrapperTool.CrateName, wrapperTool.CrateHash)
+					log.Tracef("No entries for %s-%s\n", wrapperTool.GetCachePackageName(), wrapperTool.CrateHash)
 				}
 			})
 	},

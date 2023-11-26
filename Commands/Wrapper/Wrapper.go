@@ -102,7 +102,7 @@ func Run(args []string) {
 	}
 
 	// try get from cache
-	if wrapperTool.IsNeedProcessFromCache() && !gotRebuildDeps {
+	if wrapperTool.IsNeedProcessFromCache() && !gotRebuildDeps && wrapperTool.IsCratesIoCrate() {
 
 		var _, existsInStore = store.GetMetadata(wrapperTool.GetCachePackageName() + "_" + compressor.GetKey())
 
@@ -174,7 +174,7 @@ func Run(args []string) {
 		os.Exit(1)
 	}
 
-	if wrapperTool.CrateName != "___" {
+	if wrapperTool.CrateName != "___" && !wrapperTool.IsCratesIoCrate() {
 		wrapperTool.WriteToItemCacheFile()
 	}
 }

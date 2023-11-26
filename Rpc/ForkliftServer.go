@@ -24,6 +24,7 @@ func NewForkliftServer() *ForkliftRpcServer {
 	return &srv
 }
 
+// Stop - stop rpc server
 func (server *ForkliftRpcServer) Stop() {
 	if isStopRequested {
 		return
@@ -35,6 +36,11 @@ func (server *ForkliftRpcServer) Stop() {
 	}
 }
 
+func handleSigTerm() {
+
+}
+
+// Start - start rpc server
 func (server *ForkliftRpcServer) Start() {
 
 	//check for existing server

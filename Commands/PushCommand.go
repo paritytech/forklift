@@ -129,9 +129,16 @@ var pushCmd = &cobra.Command{
 						needUpload = true
 					}
 
+					var metaMap = map[string]*string{
+						"sha1-artifact":     &shaLocal,
+						"cargo-hash":        &wrapperTool.CrateHash,
+						"sha1-source-files": &wrapperTool.CrateSourceChecksum,
+						"sha1-rustc-args":   &wrapperTool.RustCArgsHash,
+					}
+
 					if needUpload {
 						var compressed = compressor.Compress(reader)
-						store.Upload(name+"_"+compressor.GetKey(), &compressed, map[string]*string{"sha-1-content": &shaLocal})
+						store.Upload(name+"_"+compressor.GetKey(), &compressed, metaMap)
 						log.Infof("Uploaded %s-%s, %x\n", wrapperTool.CrateName, wrapperTool.CrateHash, sha.Sum(nil))
 					}
 				} else {

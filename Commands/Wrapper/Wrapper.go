@@ -25,6 +25,9 @@ func Run(args []string) {
 	//var outBuf = bytes.Buffer{}
 	//log.SetOutput(&outBuf)
 
+	var rustcArgsOnly = args[1:]
+
+	//log.Error(args)
 	wd, ok := os.LookupEnv("FORKLIFT_WORK_DIR")
 
 	if !ok || wd == "" {
@@ -47,7 +50,7 @@ func Run(args []string) {
 
 	log.SetLevel(logLevel)
 
-	var wrapperTool = Rustc.NewWrapperToolFromArgs(WorkDir, &args)
+	var wrapperTool = Rustc.NewWrapperToolFromArgs(WorkDir, &rustcArgsOnly)
 
 	var logger = wrapperTool.Logger
 

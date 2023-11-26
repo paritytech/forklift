@@ -16,4 +16,5 @@ type CacheItem struct {
 	CachePackageName    string
 	OutDir              string
 	CrateSourceChecksum string
+	RustCArgsHash       string
 }

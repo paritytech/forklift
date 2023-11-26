@@ -18,11 +18,11 @@ import (
 )
 
 type WrapperTool struct {
-	Logger    *log.Entry
-	CrateName string
-	CrateHash string
-	OutDir    string
-	//CachePackageName    string
+	Logger              *log.Entry
+	CrateName           string
+	CrateHash           string
+	OutDir              string
+	RustCArgsHash       string
 	workDir             string
 	CrateSourceChecksum string
 }
@@ -32,7 +32,7 @@ func NewWrapperToolFromArgs(workDir string, rustArgs *[]string) *WrapperTool {
 	wrapper.CrateName, wrapper.CrateHash, wrapper.OutDir = wrapper.extractNameMetaHashDir(rustArgs)
 	wrapper.workDir = workDir
 	wrapper.OutDir, _ = filepath.Rel(wrapper.workDir, wrapper.OutDir)
-	//wrapper.CachePackageName = createCachePackageName(wrapper.CrateName, wrapper.CrateHash, wrapper.OutDir)
+	wrapper.RustCArgsHash = GetArgsHash(rustArgs)
 	wrapper.createLogger()
 
 	return &wrapper
@@ -44,12 +44,21 @@ func NewWrapperToolFromCacheItem(workDir string, item Models.CacheItem) *Wrapper
 	wrapper.CrateHash = item.Hash
 	wrapper.OutDir = item.OutDir
 	wrapper.workDir = workDir
-	//wrapper.OutDir, _ = filepath.Rel(wrapper.workDir, wrapper.OutDir)
-	//wrapper.CachePackageName = createCachePackageName(wrapper.CrateName, wrapper.CrateHash, wrapper.OutDir)
 	wrapper.CrateSourceChecksum = item.CrateSourceChecksum
+	wrapper.RustCArgsHash = item.RustCArgsHash
+
 	wrapper.createLogger()
 
 	return &wrapper
+}
+
+func GetArgsHash(args *[]string) string {
+	var sha = sha1.New()
+	for _, arg := range *args {
+		sha.Write([]byte(arg))
+	}
+
+	return fmt.Sprintf("%x", sha.Sum(nil))
 }
 
 func (wrapperTool *WrapperTool) createLogger() {
@@ -70,25 +79,22 @@ func (wrapperTool *WrapperTool) IsNeedProcessFromCache() bool {
 func (wrapperTool *WrapperTool) GetCachePackageName() string {
 
 	var sha = sha1.New()
+
+	sha.Write([]byte(wrapperTool.CrateHash))
+	sha.Write([]byte(wrapperTool.CrateSourceChecksum))
 	sha.Write([]byte(wrapperTool.OutDir))
+	sha.Write([]byte(wrapperTool.RustCArgsHash))
+
+	var result = fmt.Sprintf(
+		"%s_%x",
+		wrapperTool.CrateName,
+		sha.Sum(nil))
 
 	if prefix, ok := os.LookupEnv("FORKLIFT_PACKAGE_SUFFIX"); ok {
-		return fmt.Sprintf(
-			"%s_%s_%s_%x_%s",
-			wrapperTool.CrateName,
-			wrapperTool.CrateHash,
-			wrapperTool.CrateSourceChecksum,
-			sha.Sum(nil),
-			prefix)
-	} else {
-		return fmt.Sprintf(
-			"%s_%s_%s_%x",
-			wrapperTool.CrateName,
-			wrapperTool.CrateHash,
-			wrapperTool.CrateSourceChecksum,
-			sha.Sum(nil))
+		result += "_" + prefix
 	}
 
+	return result
 }
 
 func (wrapperTool *WrapperTool) WriteToItemCacheFile() {
@@ -109,12 +115,13 @@ func (wrapperTool *WrapperTool) WriteToItemCacheFile() {
 	}
 
 	_, err = itemFile.WriteString(fmt.Sprintf(
-		"%s | | | %s | %s | %s | %s  \n",
+		"%s | | | %s | %s | %s | %s | %s \n",
 		wrapperTool.CrateName,
 		wrapperTool.CrateHash,
 		wrapperTool.GetCachePackageName(),
 		wrapperTool.OutDir,
-		wrapperTool.CrateSourceChecksum))
+		wrapperTool.CrateSourceChecksum,
+		wrapperTool.RustCArgsHash))
 	if err != nil {
 		wrapperTool.Logger.Errorln(err)
 	}

@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 )
 
-// Pack -
+// Pack - Pack forklift tar archive
 func Pack(fsEntries []string) (io.Reader, hash.Hash) {
 
 	var buf bytes.Buffer
@@ -99,6 +99,7 @@ func PackFile(tarWriter *tar.Writer, path string, hash hash.Hash) {
 	}
 }
 
+// UnPack -	Unpack forklift tar archive
 func UnPack(path string, reader io.Reader) {
 
 	tr := tar.NewReader(reader)
@@ -147,6 +148,6 @@ func UnPack(path string, reader io.Reader) {
 
 		f.Close()
 		os.Chmod(filePath, 0777)
-		os.Chtimes(filePath, header.ModTime, header.ModTime)
+		//os.Chtimes(filePath, header.ModTime, header.ModTime)
 	}
 }

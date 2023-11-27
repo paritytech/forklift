@@ -18,6 +18,7 @@ import (
 )
 
 type WrapperTool struct {
+	rustcArgs           *[]string
 	Logger              *log.Entry
 	CrateName           string
 	CrateHash           string
@@ -25,6 +26,8 @@ type WrapperTool struct {
 	RustCArgsHash       string
 	workDir             string
 	CrateSourceChecksum string
+
+	crateDepsChecksum string
 }
 
 func NewWrapperToolFromArgs(workDir string, rustArgs *[]string) *WrapperTool {
@@ -34,6 +37,8 @@ func NewWrapperToolFromArgs(workDir string, rustArgs *[]string) *WrapperTool {
 	wrapper.OutDir, _ = filepath.Rel(wrapper.workDir, wrapper.OutDir)
 	wrapper.RustCArgsHash = GetArgsHash(rustArgs)
 	wrapper.createLogger()
+
+	wrapper.rustcArgs = rustArgs
 
 	return &wrapper
 }
@@ -77,7 +82,32 @@ func (wrapperTool *WrapperTool) IsNeedProcessFromCache() bool {
 }
 
 func (wrapperTool *WrapperTool) IsCratesIoCrate() bool {
-	return strings.Contains(wrapperTool.OutDir, "index.crates.io")
+
+	for _, arg := range *wrapperTool.rustcArgs {
+		if strings.Contains(arg, "index.crates.io") {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (wrapperTool *WrapperTool) GetDepsChecksum() string {
+
+	if wrapperTool.crateDepsChecksum != "" {
+		return wrapperTool.crateDepsChecksum
+	}
+
+	var deps = GetExternDeps(wrapperTool.rustcArgs)
+	var sha = sha1.New()
+	for _, dep := range *deps {
+		var data, _ = os.ReadFile(dep)
+		sha.Write(data)
+	}
+
+	wrapperTool.crateDepsChecksum = fmt.Sprintf("%x", sha.Sum(nil))
+
+	return wrapperTool.crateDepsChecksum
 }
 
 func (wrapperTool *WrapperTool) GetCachePackageName() string {

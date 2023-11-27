@@ -76,33 +76,15 @@ func Run(args []string) {
 		logger.Infof("No rebuilt deps")
 	}
 
+	var useCache = false
+
 	// calc sources checksum
 	if wrapperTool.CrateName != "___" {
-		var depInfoOnlyCommand = Rustc.CreateDepInfoCommand(&os.Args)
-
-		depInfoCmd := exec.Command(depInfoOnlyCommand[1], depInfoOnlyCommand[2:]...)
-		var depInfoStderr = bytes.Buffer{}
-
-		depInfoCmd.Stderr = &depInfoStderr
-		err := depInfoCmd.Run()
-		if err != nil {
-			logger.Fatalf("%s, %s, %s", err, string(depInfoStderr.Bytes()), depInfoOnlyCommand)
-		}
-
-		artifact, err := Rustc.GetDepArtifact(&depInfoStderr)
-		if err != nil {
-			logger.Fatalf("%s, %s, %s", err, string(depInfoStderr.Bytes()), depInfoOnlyCommand)
-		}
-
-		var files = Rustc.GetSourceFiles(artifact.Artifact)
-		var checksum = FileManager.GetCheckSum(files, WorkDir)
-
-		wrapperTool.CrateSourceChecksum = checksum
-		logger.Debugf("Checksum: %s", checksum)
+		useCache = calcChecksum(wrapperTool)
 	}
 
 	// try get from cache
-	if wrapperTool.IsNeedProcessFromCache() && !gotRebuildDeps && wrapperTool.IsCratesIoCrate() {
+	if useCache && wrapperTool.IsNeedProcessFromCache() && !gotRebuildDeps && wrapperTool.IsCratesIoCrate() {
 
 		var _, existsInStore = store.GetMetadata(wrapperTool.GetCachePackageName() + "_" + compressor.GetKey())
 
@@ -177,4 +159,32 @@ func Run(args []string) {
 	if wrapperTool.CrateName != "___" && !wrapperTool.IsCratesIoCrate() {
 		wrapperTool.WriteToItemCacheFile()
 	}
+}
+
+func calcChecksum(wrapperTool *Rustc.WrapperTool) bool {
+	var logger = wrapperTool.Logger
+	var depInfoOnlyCommand = Rustc.CreateDepInfoCommand(&os.Args)
+
+	depInfoCmd := exec.Command(depInfoOnlyCommand[1], depInfoOnlyCommand[2:]...)
+	var depInfoStderr = bytes.Buffer{}
+
+	depInfoCmd.Stderr = &depInfoStderr
+	err := depInfoCmd.Run()
+	if err != nil {
+		logger.Debugf("%s, %s, %s", err, string(depInfoStderr.Bytes()), depInfoOnlyCommand)
+		return false
+	}
+
+	artifact, err := Rustc.GetDepArtifact(&depInfoStderr)
+	if err != nil {
+		logger.Debugf("%s, %s, %s", err, string(depInfoStderr.Bytes()), depInfoOnlyCommand)
+		return false
+	}
+
+	var files = Rustc.GetSourceFiles(artifact.Artifact)
+	var checksum = FileManager.GetCheckSum(files, WorkDir)
+
+	wrapperTool.CrateSourceChecksum = checksum
+	logger.Debugf("Checksum: %s", checksum)
+	return true
 }

@@ -34,7 +34,7 @@ func ParseCacheRequest() []Models.CacheItem {
 
 		for i := range splitStrings {
 			var itemParts = strings.Split(splitStrings[i], "|")
-			if len(itemParts) < 8 {
+			if len(itemParts) < 9 {
 				continue
 			}
 			result = append(result, Models.CacheItem{
@@ -46,6 +46,7 @@ func ParseCacheRequest() []Models.CacheItem {
 				OutDir:              strings.TrimSpace(itemParts[5]),
 				CrateSourceChecksum: strings.TrimSpace(itemParts[6]),
 				RustCArgsHash:       strings.TrimSpace(itemParts[7]),
+				CrateDepsChecksum:   strings.TrimSpace(itemParts[8]),
 			})
 		}
 	}

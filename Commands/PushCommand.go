@@ -129,12 +129,8 @@ var pushCmd = &cobra.Command{
 						needUpload = true
 					}
 
-					var metaMap = map[string]*string{
-						"sha1-artifact":     &shaLocal,
-						"cargo-hash":        &wrapperTool.CrateHash,
-						"sha1-source-files": &wrapperTool.CrateSourceChecksum,
-						"sha1-rustc-args":   &wrapperTool.RustCArgsHash,
-					}
+					var metaMap = wrapperTool.CreateMetadata()
+					metaMap["sha1-artifact"] = &shaLocal
 
 					if needUpload {
 						var compressed = compressor.Compress(reader)

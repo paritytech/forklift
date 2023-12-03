@@ -115,20 +115,6 @@ func UnPack(path string, reader io.Reader) {
 
 		filePath := filepath.Join(path, header.Name)
 
-		log.Tracef("Unpacking %s", filePath)
-
-		/*if strings.Contains(filePath, ".fingerprint") {
-			continue
-		}*/
-
-		/*
-			if _, err := os.Stat(filePath); err == nil {
-				log.Debugf("Already exists: %s", filePath)
-				//time.Sleep(1 * time.Second)
-				return
-			}
-		*/
-
 		err = os.MkdirAll(filepath.Dir(filePath), 0777)
 		if err != nil {
 			log.Fatalf("mkdirall %s", err)
@@ -143,7 +129,7 @@ func UnPack(path string, reader io.Reader) {
 		if w, err := io.Copy(f, tr); err != nil {
 			log.Fatalln(err)
 		} else {
-			log.Debugf("Unpacked %s written: %d", filePath, w)
+			log.Tracef("Unpacked %s written: %d", filePath, w)
 		}
 
 		f.Close()

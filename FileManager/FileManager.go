@@ -7,6 +7,7 @@ import (
 	"forklift/Lib"
 	"io"
 	"io/fs"
+	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -15,8 +16,27 @@ import (
 	"strings"
 )
 
-func MergeCacheRequest() {
+func GetTrueRelFilePath(workDir string, path string) string {
+	if workDir == "" {
+		workDir, _ = os.Getwd()
+	}
 
+	var absPath, err = filepath.Abs(path)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	absPath, err = filepath.EvalSymlinks(absPath)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	relPath, err := filepath.Rel(workDir, absPath)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	return relPath
 }
 
 func ParseCacheRequest() []Models.CacheItem {
@@ -34,7 +54,7 @@ func ParseCacheRequest() []Models.CacheItem {
 
 		for i := range splitStrings {
 			var itemParts = strings.Split(splitStrings[i], "|")
-			if len(itemParts) < 9 {
+			if len(itemParts) < 8 {
 				continue
 			}
 			result = append(result, Models.CacheItem{
@@ -46,7 +66,7 @@ func ParseCacheRequest() []Models.CacheItem {
 				OutDir:              strings.TrimSpace(itemParts[5]),
 				CrateSourceChecksum: strings.TrimSpace(itemParts[6]),
 				RustCArgsHash:       strings.TrimSpace(itemParts[7]),
-				CrateDepsChecksum:   strings.TrimSpace(itemParts[8]),
+				//CrateDepsChecksum:   strings.TrimSpace(itemParts[8]),
 			})
 		}
 	}

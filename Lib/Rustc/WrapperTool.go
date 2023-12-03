@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"forklift/CacheStorage"
+	"forklift/FileManager"
 	"forklift/FileManager/Models"
 	log "github.com/sirupsen/logrus"
 	"io"
@@ -26,19 +27,23 @@ type WrapperTool struct {
 	RustCArgsHash       string
 	workDir             string
 	CrateSourceChecksum string
+	osWorkDir           string
 
-	CrateDepsChecksum string
+	//CrateDepsChecksum string
 }
 
 func NewWrapperToolFromArgs(workDir string, rustArgs *[]string) *WrapperTool {
 	var wrapper = WrapperTool{}
 	wrapper.CrateName, wrapper.CrateHash, wrapper.OutDir = wrapper.extractNameMetaHashDir(rustArgs)
 	wrapper.workDir = workDir
-	wrapper.OutDir, _ = filepath.Rel(wrapper.workDir, wrapper.OutDir)
+	wrapper.OutDir = FileManager.GetTrueRelFilePath(wrapper.workDir, wrapper.OutDir) // filepath.Rel(wrapper.workDir, wrapper.OutDir)
 	wrapper.RustCArgsHash = GetArgsHash(rustArgs)
 	wrapper.rustcArgs = rustArgs
-	wrapper.CrateSourceChecksum = wrapper.GetDepsChecksum()
+	//wrapper.CrateSourceChecksum = wrapper.GetDepsChecksum()
 	wrapper.createLogger()
+
+	var osWorkDir, _ = os.Getwd()
+	wrapper.osWorkDir = osWorkDir
 
 	return &wrapper
 }
@@ -51,7 +56,7 @@ func NewWrapperToolFromCacheItem(workDir string, item Models.CacheItem) *Wrapper
 	wrapper.workDir = workDir
 	wrapper.CrateSourceChecksum = item.CrateSourceChecksum
 	wrapper.RustCArgsHash = item.RustCArgsHash
-	wrapper.CrateDepsChecksum = item.CrateDepsChecksum
+	//wrapper.CrateDepsChecksum = item.CrateDepsChecksum
 
 	wrapper.createLogger()
 
@@ -93,6 +98,7 @@ func (wrapperTool *WrapperTool) IsCratesIoCrate() bool {
 	return false
 }
 
+/*
 func (wrapperTool *WrapperTool) GetDepsChecksum() string {
 
 	if wrapperTool.CrateDepsChecksum != "" {
@@ -102,14 +108,17 @@ func (wrapperTool *WrapperTool) GetDepsChecksum() string {
 	var deps = GetExternDeps(wrapperTool.rustcArgs)
 	var sha = sha1.New()
 	for _, dep := range *deps {
-		var data, _ = os.ReadFile(dep)
+		var data, err = os.ReadFile(dep)
+		if err != nil {
+			log.Panic(err)
+		}
 		sha.Write(data)
 	}
 
 	wrapperTool.CrateDepsChecksum = fmt.Sprintf("%x", sha.Sum(nil))
 
 	return wrapperTool.CrateDepsChecksum
-}
+}*/
 
 func (wrapperTool *WrapperTool) GetCachePackageName() string {
 
@@ -119,7 +128,7 @@ func (wrapperTool *WrapperTool) GetCachePackageName() string {
 	sha.Write([]byte(wrapperTool.CrateSourceChecksum))
 	sha.Write([]byte(wrapperTool.OutDir))
 	sha.Write([]byte(wrapperTool.RustCArgsHash))
-	sha.Write([]byte(wrapperTool.GetDepsChecksum()))
+	//sha.Write([]byte(wrapperTool.GetDepsChecksum()))
 
 	var result = fmt.Sprintf(
 		"%s_%x",
@@ -151,14 +160,15 @@ func (wrapperTool *WrapperTool) WriteToItemCacheFile() {
 	}
 
 	_, err = itemFile.WriteString(fmt.Sprintf(
-		"%s | | | %s | %s | %s | %s | %s | %s\n",
+		"%s | | | %s | %s | %s | %s | %s \n",
 		wrapperTool.CrateName,
 		wrapperTool.CrateHash,
 		wrapperTool.GetCachePackageName(),
 		wrapperTool.OutDir,
 		wrapperTool.CrateSourceChecksum,
 		wrapperTool.RustCArgsHash,
-		wrapperTool.CrateDepsChecksum))
+		//wrapperTool.CrateDepsChecksum,
+	))
 	if err != nil {
 		wrapperTool.Logger.Errorln(err)
 	}
@@ -218,7 +228,7 @@ func (wrapperTool *WrapperTool) WriteStderrFile(reader io.Reader) *[]CacheStorag
 		var str = fileScanner.Text()
 		json.Unmarshal([]byte(str), &artifact)
 		if artifact.Artifact != "" {
-			var relpath, _ = filepath.Rel(wrapperTool.workDir, artifact.Artifact)
+			var relpath = FileManager.GetTrueRelFilePath(wrapperTool.workDir, artifact.Artifact)
 			artifact.Artifact = relpath
 			result = append(result, artifact)
 
@@ -284,7 +294,7 @@ func (wrapperTool *WrapperTool) CreateMetadata() map[string]*string {
 		"cargo-hash":        &wrapperTool.CrateHash,
 		"sha1-source-files": &wrapperTool.CrateSourceChecksum,
 		"sha1-rustc-args":   &wrapperTool.RustCArgsHash,
-		"sha1-dependencies": &wrapperTool.CrateDepsChecksum,
+		//"sha1-dependencies": &wrapperTool.CrateDepsChecksum,
 	}
 	return metaMap
 }

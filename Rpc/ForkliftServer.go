@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/rpc"
 	"os"
+	"path/filepath"
 )
 
 type ForkliftRpcServer struct {
@@ -41,10 +42,10 @@ func handleSigTerm() {
 }
 
 // Start - start rpc server
-func (server *ForkliftRpcServer) Start() {
+func (server *ForkliftRpcServer) Start(workDir string) {
 
 	//check for existing server
-	var stat, e = os.Stat("forklift.sock")
+	var stat, e = os.Stat(filepath.Join(workDir, "forklift.sock"))
 
 	if e == nil {
 		if stat.Mode().Type() == fs.ModeSocket {

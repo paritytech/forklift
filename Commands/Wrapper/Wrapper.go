@@ -59,7 +59,7 @@ func Run(args []string) {
 
 	//var cachePackageName = CacheStorage.CreateCachePackageName(crateName, crateHash, outDir, compressor.GetKey())
 
-	logger.Tracef("wrapper args: %s\n", os.Args)
+	//logger.Tracef("wrapper args: %s\n", os.Args)
 	var flClient = Rpc.NewForkliftRpcClient()
 
 	//check deps
@@ -79,12 +79,12 @@ func Run(args []string) {
 	var useCache = false
 
 	// calc sources checksum
-	if wrapperTool.CrateName != "___" {
+	if wrapperTool.IsNeedProcessFromCache() {
 		useCache = calcChecksum(wrapperTool)
 	}
 
 	// try get from cache
-	if useCache && wrapperTool.IsNeedProcessFromCache() && !gotRebuildDeps && wrapperTool.IsCratesIoCrate() {
+	if useCache && wrapperTool.IsNeedProcessFromCache() && !gotRebuildDeps {
 
 		var _, existsInStore = store.GetMetadata(wrapperTool.GetCachePackageName() + "_" + compressor.GetKey())
 
@@ -143,7 +143,7 @@ func Run(args []string) {
 	// register rebuilt artifacts path
 	var artifactsPaths = make([]string, 0)
 	for _, artifact := range *artifacts {
-		var abs = filepath.Join(WorkDir, artifact.Artifact)
+		var abs = filepath.Base(artifact.Artifact)
 
 		artifactsPaths = append(artifactsPaths, abs)
 	}
@@ -156,7 +156,7 @@ func Run(args []string) {
 		os.Exit(1)
 	}
 
-	if wrapperTool.CrateName != "___" && !wrapperTool.IsCratesIoCrate() {
+	if wrapperTool.IsNeedProcessFromCache() {
 		wrapperTool.WriteToItemCacheFile()
 	}
 }

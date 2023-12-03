@@ -14,6 +14,6 @@ var serveCmd = &cobra.Command{
 	Short: "Run forklift coordinator server for current location",
 	Run: func(cmd *cobra.Command, args []string) {
 		var rpcServer = Rpc.NewForkliftServer()
-		rpcServer.Start()
+		rpcServer.Start(".")
 	},
 }

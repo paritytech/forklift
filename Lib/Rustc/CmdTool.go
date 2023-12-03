@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -40,7 +41,7 @@ func GetExternDeps(args *[]string) *[]string {
 			if len(parts) < 2 {
 				result = append(result, parts[0])
 			} else {
-				result = append(result, parts[1])
+				result = append(result, filepath.Base(parts[1]))
 			}
 
 			i++

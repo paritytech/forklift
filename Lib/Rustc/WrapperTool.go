@@ -192,7 +192,7 @@ func (wrapperTool *WrapperTool) ReadStderrFile() io.Reader {
 		var str = fileScanner.Text()
 		json.Unmarshal([]byte(str), &artifact)
 		if artifact.Artifact != "" {
-			var absPath = filepath.Join(wrapperTool.workDir, artifact.Artifact)
+			var absPath = filepath.Join(wrapperTool.workDir, wrapperTool.OutDir, artifact.Artifact)
 			artifact.Artifact = absPath
 			var newArtifactByte, _ = json.Marshal(artifact)
 			wrapperTool.Logger.Tracef("read artifact as %s", absPath)
@@ -228,7 +228,7 @@ func (wrapperTool *WrapperTool) WriteStderrFile(reader io.Reader) *[]CacheStorag
 		var str = fileScanner.Text()
 		json.Unmarshal([]byte(str), &artifact)
 		if artifact.Artifact != "" {
-			var relpath = FileManager.GetTrueRelFilePath(wrapperTool.workDir, artifact.Artifact)
+			var relpath = filepath.Base(artifact.Artifact)
 			artifact.Artifact = relpath
 			result = append(result, artifact)
 

@@ -39,18 +39,17 @@ func (uploader *Uploader) Start(queue chan Models.CacheItem, threads int) {
 	uploader.uploads = queue
 
 	for i := 0; i < threads; i++ {
+		uploader.Add(1)
 		go uploader.upload()
 	}
 }
 
 func (uploader *Uploader) upload() {
-	uploader.Add(1)
-	defer uploader.Done()
 	for {
-
 		item, more := <-uploader.uploads
 		if !more {
-			break
+			uploader.Done()
+			return
 		}
 
 		var wrapperTool = Rustc.NewWrapperToolFromCacheItem(uploader.workDir, item)

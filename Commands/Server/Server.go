@@ -50,12 +50,19 @@ func Run(args []string) {
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 
-	_ = cmd.Run()
+	var err = cmd.Run()
+	if err != nil {
+		log.Errorf("Cargo finished with error: %s", err)
+		os.Exit(1)
+	} else {
+		log.Infof("Cargo finished successfully")
+	}
 
 	close(forkliftRpc.Uploads)
+	uploader.Wait()
+
+	log.Infof("Uploader finish")
 
 	rpcServer.Stop()
-
-	uploader.Wait()
 	<-rpcServer.Channel
 }

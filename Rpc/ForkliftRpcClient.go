@@ -1,6 +1,7 @@
 package Rpc
 
 import (
+	"forklift/FileManager/Models"
 	log "github.com/sirupsen/logrus"
 	"net/rpc"
 	"os"
@@ -65,4 +66,13 @@ func (client *ForkliftRpcClient) CheckExternDeps(deps *[]string) string {
 		log.Fatal(err)
 	}
 	return result
+}
+
+// AddUpload - send cacheItem to server for upload
+func (client *ForkliftRpcClient) AddUpload(cacheItem Models.CacheItem) {
+	var result bool
+	err := client.rpcClient.Call("ForkliftRpc.AddUpload", cacheItem, &result)
+	if err != nil {
+		log.Fatal(err)
+	}
 }

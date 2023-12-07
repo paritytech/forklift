@@ -142,6 +142,19 @@ func (wrapperTool *WrapperTool) GetCachePackageName() string {
 	return result
 }
 
+func (wrapperTool *WrapperTool) ToCacheItem() Models.CacheItem {
+	var item = Models.CacheItem{
+		Name:                wrapperTool.CrateName,
+		Hash:                wrapperTool.CrateHash,
+		CachePackageName:    wrapperTool.GetCachePackageName(),
+		OutDir:              wrapperTool.OutDir,
+		CrateSourceChecksum: wrapperTool.CrateSourceChecksum,
+		RustCArgsHash:       wrapperTool.RustCArgsHash,
+	}
+
+	return item
+}
+
 func (wrapperTool *WrapperTool) WriteToItemCacheFile() {
 
 	var itemsCachePath = path.Join(wrapperTool.workDir, ".forklift", "items-cache")

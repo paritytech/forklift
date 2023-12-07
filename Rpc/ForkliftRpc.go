@@ -14,9 +14,10 @@ type ForkliftRpc struct {
 }
 
 func NewForkliftRpc() *ForkliftRpc {
+	var uploads = make(chan Models.CacheItem, 20)
 	var srv = ForkliftRpc{
 		Extern:  make(map[string]bool),
-		Uploads: make(chan Models.CacheItem, 10),
+		Uploads: uploads,
 		lock:    sync.RWMutex{},
 	}
 	return &srv
@@ -55,4 +56,8 @@ func (server *ForkliftRpc) AddUpload(cacheItem Models.CacheItem, result *bool) e
 	server.Uploads <- cacheItem
 	*result = true
 	return nil
+}
+
+func upload(item Models.CacheItem) {
+
 }

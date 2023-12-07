@@ -41,6 +41,8 @@ func (client *ForkliftControlClient) Connect() error {
 	return nil
 }
 
+/*
 func (client *ForkliftControlClient) Stop() {
 	_ = client.rpcClient.Call("ForkliftControlRpc.Stop", 0, nil)
 }
+*/

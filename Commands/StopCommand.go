@@ -1,8 +1,6 @@
 package Commands
 
 import (
-	"forklift/Rpc"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -15,15 +13,16 @@ var stopCmd = &cobra.Command{
 	Short: "Stop forklift coordinator server for current location",
 	Run: func(cmd *cobra.Command, args []string) {
 
-		var client = Rpc.NewForkliftControlClient()
+		/*
+			var client = Rpc.NewForkliftControlClient()
 
-		err := client.Connect()
-		if err != nil {
-			log.Fatal(err)
-			return
-		}
+			err := client.Connect()
+			if err != nil {
+				log.Fatal(err)
+				return
+			}
 
-		client.Stop()
-
+			client.Stop()
+		*/
 	},
 }

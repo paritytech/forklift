@@ -1,6 +1,9 @@
 package Server
 
 import (
+	"forklift/CacheStorage/Compressors"
+	"forklift/CacheStorage/Storages"
+	"forklift/Lib"
 	"forklift/Rpc"
 	log "github.com/sirupsen/logrus"
 	"os"
@@ -31,7 +34,15 @@ func Run(args []string) {
 	}
 
 	var rpcServer = Rpc.NewForkliftServer()
-	go rpcServer.Start(flWorkDir)
+	var forkliftRpc = Rpc.NewForkliftRpc()
+
+	var storage, _ = Storages.GetStorageDriver(Lib.AppConfig)
+	var compressor, _ = Compressors.GetCompressor(Lib.AppConfig)
+	var uploader = Rpc.NewUploader(".", storage, compressor)
+
+	uploader.Start(forkliftRpc.Uploads, 2)
+
+	go rpcServer.Start(flWorkDir, forkliftRpc)
 
 	// execute cargo
 	cmd := exec.Command(os.Args[1], os.Args[2:]...)
@@ -41,13 +52,10 @@ func Run(args []string) {
 
 	_ = cmd.Run()
 
-	command := exec.Command("forklift", "push")
-	command.Stdout = os.Stdout
-	command.Stderr = os.Stderr
-	command.Stdin = os.Stdin
-	command.Run()
+	close(forkliftRpc.Uploads)
 
 	rpcServer.Stop()
 
+	uploader.Wait()
 	<-rpcServer.Channel
 }

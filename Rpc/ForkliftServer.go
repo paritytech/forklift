@@ -42,7 +42,7 @@ func handleSigTerm() {
 }
 
 // Start - start rpc server
-func (server *ForkliftRpcServer) Start(workDir string) {
+func (server *ForkliftRpcServer) Start(workDir string, forkliftRpc *ForkliftRpc) {
 
 	//check for existing server
 	var stat, e = os.Stat(filepath.Join(workDir, "forklift.sock"))
@@ -57,7 +57,7 @@ func (server *ForkliftRpcServer) Start(workDir string) {
 		}
 	}
 
-	err := server.goRpcServer.Register(NewForkliftRpc())
+	err := server.goRpcServer.Register(forkliftRpc)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -72,12 +72,6 @@ func (server *ForkliftRpcServer) Start(workDir string) {
 	if err != nil {
 		log.Fatalln(err)
 	}
-
-	/*go func() {
-		time.Sleep(time.Second * 3)
-		log.Infof("Stopping server")
-		server.Stop()
-	}()*/
 
 	for !controlRpc.IsStopRequested() && !server.isStopRequested {
 		var con, e = server.socket.Accept()

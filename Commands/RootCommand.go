@@ -49,11 +49,6 @@ func Execute() {
 
 	rootCmd.PersistentFlags().StringToStringVarP(&Lib.AppConfig.General.Params, "param", "p", map[string]string{}, "map of additional parameters\n ex: -p S3_BUCKET_NAME=my_bucket")
 
-	err := viper.Unmarshal(&Lib.AppConfig)
-	if err != nil {
-		log.Errorln(err)
-	}
-
 	if err := rootCmd.Execute(); err != nil {
 		log.Errorln(err)
 		os.Exit(1)

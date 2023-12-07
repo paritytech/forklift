@@ -4,6 +4,7 @@ import (
 	"forklift/Commands"
 	"forklift/Commands/Server"
 	"forklift/Commands/Wrapper"
+	"forklift/Lib"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"os"
@@ -30,6 +31,11 @@ func main() {
 	log.SetFormatter(&log.TextFormatter{})
 
 	var err = viper.ReadInConfig()
+	if err != nil {
+		log.Errorln(err)
+	}
+
+	err = viper.Unmarshal(&Lib.AppConfig)
 	if err != nil {
 		log.Errorln(err)
 	}

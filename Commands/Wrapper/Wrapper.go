@@ -157,7 +157,8 @@ func Run(args []string) {
 	}
 
 	if wrapperTool.IsNeedProcessFromCache() {
-		wrapperTool.WriteToItemCacheFile()
+		flClient.AddUpload(wrapperTool.ToCacheItem())
+		//wrapperTool.WriteToItemCacheFile()
 	}
 }
 

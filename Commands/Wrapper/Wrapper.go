@@ -45,7 +45,7 @@ func Run(args []string) {
 	logLevel, err := log.ParseLevel(Lib.AppConfig.General.LogLevel)
 	if err != nil {
 		logLevel = log.InfoLevel
-		log.Infof("unknown log level (verbose) `%s`, using default `info`\n", Lib.AppConfig.General.LogLevel)
+		log.Debugf("unknown log level (verbose) `%s`, using default `info`\n", Lib.AppConfig.General.LogLevel)
 	}
 
 	log.SetLevel(logLevel)
@@ -71,9 +71,9 @@ func Run(args []string) {
 	}
 
 	if gotRebuildDeps {
-		logger.Infof("Got rebuilt dep: %s", rebuiltDep)
+		logger.Debugf("Got rebuilt dep: %s", rebuiltDep)
 	} else {
-		logger.Infof("No rebuilt deps")
+		logger.Debugf("No rebuilt deps")
 	}
 
 	var useCache = false
@@ -91,7 +91,7 @@ func Run(args []string) {
 		var needDownload = true
 
 		if !existsInStore {
-			logger.Infof("%s does not exist in storage\n", wrapperTool.GetCachePackageName())
+			logger.Debugf("%s does not exist in storage\n", wrapperTool.GetCachePackageName())
 			needDownload = false
 		}
 
@@ -99,7 +99,7 @@ func Run(args []string) {
 			var f = store.Download(wrapperTool.GetCachePackageName() + "_" + compressor.GetKey())
 			if f != nil {
 				Tar.UnPack(WorkDir, compressor.Decompress(f))
-				logger.Infof("Downloaded artifacts for %s\n", wrapperTool.GetCachePackageName())
+				logger.Debugf("Downloaded artifacts for %s\n", wrapperTool.GetCachePackageName())
 
 				var smth = bytes.Buffer{}
 				var mw = io.MultiWriter(os.Stderr, &smth)
@@ -111,11 +111,11 @@ func Run(args []string) {
 			}
 		}
 	} else {
-		logger.Infof("No need to use cache for %s", wrapperTool.OutDir)
+		logger.Debugf("No need to use cache for %s", wrapperTool.OutDir)
 	}
 
 	// execute rustc
-	logger.Infof("executing rustc")
+	logger.Debugf("executing rustc")
 
 	cmd := exec.Command(os.Args[1], os.Args[2:]...)
 

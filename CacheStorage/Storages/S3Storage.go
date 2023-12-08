@@ -109,6 +109,23 @@ func (storage *S3Storage) Download(key string) io.Reader {
 		Bucket: aws.String(storage.bucket),
 		Key:    aws.String(key),
 	})
+
+	if err != nil {
+		var awsErr awserr.Error
+		if errors.As(err, &awsErr) {
+			switch awsErr.Code() {
+			case "NotFound":
+				return nil
+			case s3.ErrCodeNoSuchBucket:
+				log.Printf("bucket %s does not exist\n", storage.bucket)
+			case s3.ErrCodeNoSuchKey:
+				log.Printf("object with key %s does not exist in bucket %s\n", key, storage.bucket)
+			}
+		} else {
+			log.Fatalf("failed to get head for file %s\n%s", key, err)
+		}
+	}
+
 	if err != nil {
 		var _ = fmt.Errorf("failed to download file, %v\n", err)
 	}

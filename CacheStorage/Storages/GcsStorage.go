@@ -1,7 +1,6 @@
 package Storages
 
 import (
-	"bytes"
 	"cloud.google.com/go/storage"
 	"context"
 	"encoding/base64"
@@ -134,13 +133,5 @@ func (driver *GcsStorage) Download(key string) io.Reader {
 	}
 	defer gcsReader.Close()
 
-	var buf bytes.Buffer
-
-	_, err2 := io.Copy(&buf, gcsReader)
-	if err2 != nil {
-		log.Errorf("Unable to read data from bucket %q, file %q: %v", driver.bucket, key, err)
-		return nil
-	}
-
-	return &buf
+	return gcsReader
 }

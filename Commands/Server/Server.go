@@ -54,7 +54,12 @@ func Run(args []string) {
 	var compressor, _ = Compressors.GetCompressor(Lib.AppConfig)
 	var uploader = Rpc.NewUploader(".", storage, compressor)
 
-	uploader.Start(forkliftRpc.Uploads, 2)
+	var threadsCount = Lib.AppConfig.General.ThreadsCount
+	if threadsCount <= 0 {
+		threadsCount = 2
+	}
+	log.Infof("Uploader threads: %d", threadsCount)
+	uploader.Start(forkliftRpc.Uploads, threadsCount)
 
 	go rpcServer.Start(flWorkDir, forkliftRpc)
 

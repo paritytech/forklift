@@ -22,8 +22,12 @@ var logger = log.WithFields(log.Fields{})
 var WorkDir string
 
 func Run(args []string) {
-	//var outBuf = bytes.Buffer{}
-	//log.SetOutput(&outBuf)
+
+	/*os.MkdirAll("prof", os.ModePerm)
+	var filename = fmt.Sprintf("prof/mem.prof.%d", os.Getpid())
+	var profFile, _ = os.Create(filename)
+	pprof.StartCPUProfile(profFile)
+	*/
 
 	var rustcArgsOnly = args[1:]
 
@@ -62,7 +66,7 @@ func Run(args []string) {
 	var flClient = Rpc.NewForkliftRpcClient()
 
 	//check deps
-	var deps = Rustc.GetExternDeps(&args)
+	var deps = Rustc.GetExternDeps(&rustcArgsOnly)
 	var rebuiltDep = flClient.CheckExternDeps(deps)
 	var gotRebuildDeps = true
 	if rebuiltDep == "" {
@@ -85,27 +89,30 @@ func Run(args []string) {
 	// try get from cache
 	if useCache && wrapperTool.IsNeedProcessFromCache() && !gotRebuildDeps {
 
-		var _, existsInStore = store.GetMetadata(wrapperTool.GetCachePackageName() + "_" + compressor.GetKey())
+		//var _, existsInStore = store.GetMetadata(wrapperTool.GetCachePackageName() + "_" + compressor.GetKey())
 
-		var needDownload = true
+		/*
+			var needDownload = true
 
-		if !existsInStore {
-			logger.Debugf("%s does not exist in storage\n", wrapperTool.GetCachePackageName())
-			needDownload = false
+			if !existsInStore {
+				logger.Debugf("%s does not exist in storage\n", wrapperTool.GetCachePackageName())
+				needDownload = false
+			}*/
+
+		//if needDownload {
+		var f = store.Download(wrapperTool.GetCachePackageName() + "_" + compressor.GetKey())
+		if f != nil {
+			Tar.UnPack(WorkDir, compressor.Decompress(f))
+			logger.Debugf("Downloaded artifacts for %s\n", wrapperTool.GetCachePackageName())
+
+			io.Copy(os.Stderr, wrapperTool.ReadStderrFile())
+			//io.Copy(os.Stdout, wrapperTool.ReadIOStreamFile("stdout"))
+
+			//pprof.StopCPUProfile()
+			//profFile.Close()
+			os.Exit(0)
 		}
-
-		if needDownload {
-			var f = store.Download(wrapperTool.GetCachePackageName() + "_" + compressor.GetKey())
-			if f != nil {
-				Tar.UnPack(WorkDir, compressor.Decompress(f))
-				logger.Debugf("Downloaded artifacts for %s\n", wrapperTool.GetCachePackageName())
-
-				io.Copy(os.Stderr, wrapperTool.ReadStderrFile())
-				io.Copy(os.Stdout, wrapperTool.ReadIOStreamFile("stdout"))
-
-				os.Exit(0)
-			}
-		}
+		//}
 	} else {
 		logger.Debugf("No need to use cache for %s", wrapperTool.OutDir)
 	}

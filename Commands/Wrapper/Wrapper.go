@@ -27,7 +27,6 @@ func Run(args []string) {
 
 	var rustcArgsOnly = args[1:]
 
-	//log.Error(args)
 	wd, ok := os.LookupEnv("FORKLIFT_WORK_DIR")
 
 	if !ok || wd == "" {
@@ -155,6 +154,8 @@ func Run(args []string) {
 		}
 		os.Exit(1)
 	}
+
+	logger.Debugf("Finished rustc")
 
 	if wrapperTool.IsNeedProcessFromCache() {
 		flClient.AddUpload(wrapperTool.ToCacheItem())

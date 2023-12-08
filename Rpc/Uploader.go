@@ -85,20 +85,16 @@ func (uploader *Uploader) upload() {
 		if len(crateArtifactsFiles) > 0 {
 			var reader, sha = Tar.Pack(crateArtifactsFiles)
 
-			//Tar.PackDirectory()
-			//var reader, sha = Tar.Pack(obj.entries)
-			//
+			var name = wrapperTool.GetCachePackageName()
 
-			var name = wrapperTool.GetCachePackageName() // fmt.Sprintf("%s-%s-%s", obj.item.Name, obj.item.Hash, compressor.GetKey())
-
-			var _, exists = uploader.storage.GetMetadata(name)
-
-			var needUpload = false
+			/*var _, exists = uploader.storage.GetMetadata(name)
 
 			if !exists {
 				log.Debugf("%s does not exist in storage, uploading...\n", name)
 				needUpload = true
-			}
+			}*/
+
+			var needUpload = true
 
 			var metaMap = wrapperTool.CreateMetadata()
 			var shaLocal = fmt.Sprintf("%x", sha.Sum(nil))
@@ -108,12 +104,10 @@ func (uploader *Uploader) upload() {
 				var compressed = uploader.compressor.Compress(reader)
 				uploader.storage.Upload(name+"_"+uploader.compressor.GetKey(), &compressed, metaMap)
 
-				marshal, err := json.Marshal(metaMap)
-				if err != nil {
-					return
-				}
+				marshal, _ := json.Marshal(metaMap)
 
 				log.Infof("Uploaded %s, metadata: %s", wrapperTool.GetCachePackageName(), marshal)
+				log.Infof("Items in upload queue: %d", len(uploader.uploads))
 			}
 		} else {
 			log.Tracef("No entries for %s-%s\n", wrapperTool.GetCachePackageName(), wrapperTool.CrateHash)

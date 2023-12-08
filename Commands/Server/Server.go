@@ -6,11 +6,25 @@ import (
 	"forklift/Lib"
 	"forklift/Rpc"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"os"
 	"os/exec"
 )
 
 func Run(args []string) {
+
+	var err = viper.Unmarshal(&Lib.AppConfig)
+	if err != nil {
+		log.Errorln(err)
+	}
+
+	logLevel, err := log.ParseLevel(Lib.AppConfig.General.LogLevel)
+	if err != nil {
+		logLevel = log.InfoLevel
+		log.Debugf("unknown log level (verbose) `%s`, using default `info`\n", Lib.AppConfig.General.LogLevel)
+	}
+
+	log.SetLevel(logLevel)
 
 	var flWorkDir string
 
@@ -50,7 +64,7 @@ func Run(args []string) {
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 
-	var err = cmd.Run()
+	err = cmd.Run()
 	if err != nil {
 		log.Errorf("Cargo finished with error: %s", err)
 		os.Exit(1)

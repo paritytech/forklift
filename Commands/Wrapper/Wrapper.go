@@ -100,10 +100,7 @@ func Run(args []string) {
 				Tar.UnPack(WorkDir, compressor.Decompress(f))
 				logger.Debugf("Downloaded artifacts for %s\n", wrapperTool.GetCachePackageName())
 
-				var smth = bytes.Buffer{}
-				var mw = io.MultiWriter(os.Stderr, &smth)
-				io.Copy(mw, wrapperTool.ReadStderrFile())
-
+				io.Copy(os.Stderr, wrapperTool.ReadStderrFile())
 				io.Copy(os.Stdout, wrapperTool.ReadIOStreamFile("stdout"))
 
 				os.Exit(0)

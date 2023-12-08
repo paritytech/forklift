@@ -29,7 +29,7 @@ type WrapperTool struct {
 	CrateSourceChecksum string
 	osWorkDir           string
 
-	//CrateDepsChecksum string
+	cachePackageName string
 }
 
 func NewWrapperToolFromArgs(workDir string, rustArgs *[]string) *WrapperTool {
@@ -84,7 +84,7 @@ func (wrapperTool *WrapperTool) IsNeedProcessFromCache() bool {
 		wrapperTool.CrateName != "___" &&
 		wrapperTool.CrateHash != "" &&
 		!strings.Contains(wrapperTool.OutDir, "/var/folders/") &&
-		!strings.HasPrefix(wrapperTool.OutDir, "/tmp")
+		!strings.Contains(wrapperTool.OutDir, "/tmp")
 }
 
 func (wrapperTool *WrapperTool) IsCratesIoCrate() bool {
@@ -122,6 +122,10 @@ func (wrapperTool *WrapperTool) GetDepsChecksum() string {
 
 func (wrapperTool *WrapperTool) GetCachePackageName() string {
 
+	if wrapperTool.cachePackageName != "" {
+		return wrapperTool.cachePackageName
+	}
+
 	var sha = sha1.New()
 
 	sha.Write([]byte(wrapperTool.CrateHash))
@@ -139,6 +143,7 @@ func (wrapperTool *WrapperTool) GetCachePackageName() string {
 		result += "_" + prefix
 	}
 
+	wrapperTool.cachePackageName = result
 	return result
 }
 

@@ -107,7 +107,6 @@ func (uploader *Uploader) upload() {
 				marshal, _ := json.Marshal(metaMap)
 
 				log.Infof("Uploaded %s, metadata: %s", wrapperTool.GetCachePackageName(), marshal)
-				log.Infof("Items in upload queue: %d", len(uploader.uploads))
 			}
 		} else {
 			log.Tracef("No entries for %s-%s\n", wrapperTool.GetCachePackageName(), wrapperTool.CrateHash)

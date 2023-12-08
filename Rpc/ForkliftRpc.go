@@ -1,7 +1,6 @@
 package Rpc
 
 import (
-	"encoding/json"
 	"forklift/FileManager/Models"
 	log "github.com/sirupsen/logrus"
 	"sync"
@@ -26,9 +25,6 @@ func NewForkliftRpc() *ForkliftRpc {
 func (server *ForkliftRpc) CheckExternDeps(paths *[]string, result *string) error {
 	server.lock.RLock()
 	defer server.lock.RUnlock()
-
-	bs, _ := json.Marshal(server.Extern)
-	log.Tracef("check request: %s __________ existing: %s", *paths, string(bs))
 
 	for _, path := range *paths {
 		var _, b = server.Extern[path]
@@ -55,9 +51,7 @@ func (server *ForkliftRpc) RegisterExternDeps(paths *[]string, result *bool) err
 func (server *ForkliftRpc) AddUpload(cacheItem Models.CacheItem, result *bool) error {
 	server.Uploads <- cacheItem
 	*result = true
+
+	log.Debugf("Items in upload queue: %d", len(server.Uploads))
 	return nil
-}
-
-func upload(item Models.CacheItem) {
-
 }

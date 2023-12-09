@@ -110,7 +110,7 @@ func Run(args []string) {
 
 			//pprof.StopCPUProfile()
 			//profFile.Close()
-			os.Exit(0)
+			return
 		}
 		//}
 	} else {
@@ -168,11 +168,24 @@ func Run(args []string) {
 }
 
 func calcChecksum(wrapperTool *Rustc.WrapperTool) bool {
+	/*wrapperTool.CrateSourceChecksum = "000"
+	return true
+	*/
+
 	var logger = wrapperTool.Logger
 	var depInfoOnlyCommand = Rustc.CreateDepInfoCommand(&os.Args)
 
+	logger.Debugf("depInfoOnlyCommand: %s", depInfoOnlyCommand)
 	depInfoCmd := exec.Command(depInfoOnlyCommand[1], depInfoOnlyCommand[2:]...)
 	var depInfoStderr = bytes.Buffer{}
+	depInfoCmd.Env = []string{}
+
+	//CARGO_ENCODED_RUSTFLAGS
+	var rustFlags, _ = os.LookupEnv("RUSTFLAGS")
+	log.Infof("RUSTFLAGS %s", rustFlags)
+
+	rustFlags, _ = os.LookupEnv("CARGO_ENCODED_RUSTFLAGS")
+	log.Infof("CARGO_ENCODED_RUSTFLAGS %s", rustFlags)
 
 	depInfoCmd.Stderr = &depInfoStderr
 	err := depInfoCmd.Run()

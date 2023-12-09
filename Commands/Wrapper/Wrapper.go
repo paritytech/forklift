@@ -177,15 +177,19 @@ func calcChecksum(wrapperTool *Rustc.WrapperTool) bool {
 
 	logger.Debugf("depInfoOnlyCommand: %s", depInfoOnlyCommand)
 	depInfoCmd := exec.Command(depInfoOnlyCommand[1], depInfoOnlyCommand[2:]...)
-	var depInfoStderr = bytes.Buffer{}
-	depInfoCmd.Env = []string{}
+	//depInfoCmd.Env = []string{}
 
-	//CARGO_ENCODED_RUSTFLAGS
 	var rustFlags, _ = os.LookupEnv("RUSTFLAGS")
 	log.Infof("RUSTFLAGS %s", rustFlags)
 
 	rustFlags, _ = os.LookupEnv("CARGO_ENCODED_RUSTFLAGS")
 	log.Infof("CARGO_ENCODED_RUSTFLAGS %s", rustFlags)
+
+	rustFlags, _ = os.LookupEnv("WASM_BUILD_RUSTFLAGS")
+	log.Infof("WASM_BUILD_RUSTFLAGS %s", rustFlags)
+
+	var depInfoStderr = bytes.Buffer{}
+	//var multiWriter
 
 	depInfoCmd.Stderr = &depInfoStderr
 	err := depInfoCmd.Run()
@@ -193,6 +197,8 @@ func calcChecksum(wrapperTool *Rustc.WrapperTool) bool {
 		logger.Debugf("%s, %s, %s", err, string(depInfoStderr.Bytes()), depInfoOnlyCommand)
 		return false
 	}
+
+	logger.Debugf("depInfoStderr: %s", depInfoStderr.String())
 
 	artifact, err := Rustc.GetDepArtifact(&depInfoStderr)
 	if err != nil {

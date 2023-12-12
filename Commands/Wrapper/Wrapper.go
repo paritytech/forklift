@@ -2,6 +2,8 @@ package Wrapper
 
 import (
 	"bytes"
+	"crypto/sha1"
+	"fmt"
 	"forklift/CacheStorage/Compressors"
 	"forklift/CacheStorage/Storages"
 	"forklift/FileManager"
@@ -11,10 +13,12 @@ import (
 	"forklift/Rpc"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"hash"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 var logger = log.WithFields(log.Fields{})
@@ -83,7 +87,7 @@ func Run(args []string) {
 
 	// calc sources checksum
 	if wrapperTool.IsNeedProcessFromCache() {
-		useCache = calcChecksum(wrapperTool)
+		useCache = calcChecksum2(wrapperTool)
 	}
 
 	// try get from cache
@@ -167,11 +171,56 @@ func Run(args []string) {
 	}
 }
 
-func calcChecksum(wrapperTool *Rustc.WrapperTool) bool {
-	/*wrapperTool.CrateSourceChecksum = "000"
-	return true
-	*/
+func hasCargoToml(path string) bool {
+	var cargoTomls, err = filepath.Glob(filepath.Join(path, "Cargo.toml"))
+	if err != nil {
+		log.Panicf("Error: %s", err)
+	}
 
+	return len(cargoTomls) > 0
+}
+
+func calcChecksum2(wrapperTool *Rustc.WrapperTool) bool {
+
+	var path = wrapperTool.SourceFile
+
+	path = filepath.Dir(path)
+
+	for {
+		if hasCargoToml(path) {
+			break
+		} else {
+			path = filepath.Dir(path)
+		}
+	}
+
+	wrapperTool.Logger.Infof("Cargo.toml found in %s", path)
+
+	var sha = sha1.New()
+	checksum(path, sha, true)
+	wrapperTool.CrateSourceChecksum = fmt.Sprintf("%x", sha.Sum(nil))
+	return true
+}
+
+func checksum(path string, hash hash.Hash, root bool) {
+	var entries, _ = os.ReadDir(path)
+
+	if !root && hasCargoToml(path) {
+		return
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			checksum(filepath.Join(path, entry.Name()), hash, false)
+		} else if strings.HasSuffix(entry.Name(), ".rs") {
+			var file, _ = os.Open(filepath.Join(path, entry.Name()))
+			io.Copy(hash, file)
+			file.Close()
+		}
+	}
+}
+
+func calcChecksum(wrapperTool *Rustc.WrapperTool) bool {
 	var logger = wrapperTool.Logger
 	var depInfoOnlyCommand = Rustc.CreateDepInfoCommand(&os.Args)
 

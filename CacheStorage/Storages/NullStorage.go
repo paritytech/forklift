@@ -15,7 +15,7 @@ func NewNullStorage() *NullStorage {
 }
 
 func (storage *NullStorage) GetMetadata(_ string) (map[string]*string, bool) {
-	return nil, true
+	return nil, false
 }
 
 func (storage *NullStorage) Upload(key string, reader *io.Reader, _ map[string]*string) {

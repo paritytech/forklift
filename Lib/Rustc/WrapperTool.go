@@ -24,6 +24,7 @@ type WrapperTool struct {
 	CrateName           string
 	CrateHash           string
 	OutDir              string
+	SourceFile          string
 	RustCArgsHash       string
 	workDir             string
 	CrateSourceChecksum string
@@ -329,6 +330,10 @@ func (wrapperTool *WrapperTool) extractNameMetaHashDir(args *[]string) (string, 
 	var count = 0
 
 	for i, arg := range *args {
+
+		if wrapperTool.SourceFile == "" && strings.HasPrefix(arg, "--edition") {
+			wrapperTool.SourceFile = (*args)[i+1]
+		}
 
 		if name == "" && arg == "--crate-name" {
 			name = (*args)[i+1]

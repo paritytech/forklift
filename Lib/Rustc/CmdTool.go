@@ -17,15 +17,21 @@ type CmdTool struct {
 
 // CreateDepInfoCommand Create same command? but with --emit=dep-info only
 func CreateDepInfoCommand(args *[]string) []string {
-	var result = make([]string, len(*args))
+	var result = make([]string, len(*args)+2)
 
 	for i, arg := range *args {
 		if len(arg) > 7 && arg[:7] == "--emit=" {
 			result[i] = "--emit=dep-info"
+			/*} else if arg == "debug-assertions=off" {
+			result[i] = "debug-assertions=on"*/
 		} else {
 			result[i] = arg
 		}
 	}
+
+	result[len(result)-2] = "-C"
+	result[len(result)-1] = "debuginfo=2" +
+		""
 
 	return result
 }

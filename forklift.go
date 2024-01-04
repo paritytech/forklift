@@ -14,9 +14,10 @@ import (
 
 func main() {
 
-	viper.SetConfigName("config")    // name of config file (without extension)
-	viper.SetConfigType("toml")      // REQUIRED if the config file does not have the extension in the name
-	viper.AddConfigPath(".forklift") // path to look for the config file in
+	viper.SetConfigName("config") // name of config file (without extension)
+	viper.SetConfigType("toml")   // REQUIRED if the config file does not have the extension in the name
+	viper.AddConfigPath(".forklift")
+	viper.AddConfigPath("$HOME/.forklift")
 	if wd, ok := os.LookupEnv("FORKLIFT_WORK_DIR"); ok {
 		viper.AddConfigPath(path.Join(wd, ".forklift"))
 	}

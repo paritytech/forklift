@@ -18,7 +18,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 )
 
 var logger = log.WithFields(log.Fields{})
@@ -194,7 +193,7 @@ func calcChecksum2(wrapperTool *Rustc.WrapperTool) bool {
 		}
 	}
 
-	wrapperTool.Logger.Infof("Cargo.toml found in %s", path)
+	wrapperTool.Logger.Tracef("Cargo.toml found in %s", path)
 
 	var sha = sha1.New()
 	checksum(path, sha, true)
@@ -212,7 +211,7 @@ func checksum(path string, hash hash.Hash, root bool) {
 	for _, entry := range entries {
 		if entry.IsDir() {
 			checksum(filepath.Join(path, entry.Name()), hash, false)
-		} else if strings.HasSuffix(entry.Name(), ".rs") {
+		} else /*if strings.HasSuffix(entry.Name(), ".rs")*/ {
 			var file, _ = os.Open(filepath.Join(path, entry.Name()))
 			io.Copy(hash, file)
 			file.Close()

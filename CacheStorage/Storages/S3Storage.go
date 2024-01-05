@@ -3,7 +3,6 @@ package Storages
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"forklift/CliTools"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -115,22 +114,21 @@ func (storage *S3Storage) Download(key string) io.Reader {
 		if errors.As(err, &awsErr) {
 			switch awsErr.Code() {
 			case "NotFound":
-				return nil
 			case s3.ErrCodeNoSuchBucket:
-				log.Printf("bucket %s does not exist\n", storage.bucket)
+				log.Debugf("bucket '%s' does not exist, error:%s", storage.bucket, err)
 			case s3.ErrCodeNoSuchKey:
-				log.Printf("object with key %s does not exist in bucket %s\n", key, storage.bucket)
+				log.Debugf("object with key '%s' does not exist in bucket '%s', error: %s", key, storage.bucket, err)
 			}
 		} else {
-			log.Fatalf("failed to get head for file %s\n%s", key, err)
+			log.Debugf("failed to get head for '%s', %s", key, err)
 		}
-	}
-
-	if err != nil {
-		var _ = fmt.Errorf("failed to download file, %v\n", err)
-	}
-	if n == 0 {
 		return nil
 	}
+
+	if n == 0 {
+		log.Errorf("received 0 bytes for '%s', but no error", key)
+		return nil
+	}
+
 	return bytes.NewBuffer(buf.Bytes())
 }

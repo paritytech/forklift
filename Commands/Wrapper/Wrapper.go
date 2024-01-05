@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"forklift/CacheStorage/Compressors"
 	"forklift/CacheStorage/Storages"
-	"forklift/FileManager"
 	"forklift/FileManager/Tar"
 	"forklift/Lib"
 	"forklift/Lib/Rustc"
@@ -114,6 +113,8 @@ func Run(args []string) {
 			//pprof.StopCPUProfile()
 			//profFile.Close()
 			return
+		} else {
+			logger.Debugf("%s does not exist in storage\n", wrapperTool.GetCachePackageName())
 		}
 		//}
 	} else {
@@ -175,7 +176,7 @@ func hasCargoToml(path string) bool {
 	if err != nil {
 		log.Panicf("Error: %s", err)
 	}
-
+	//log.Debugf("cargo tomls: %d", len(cargoTomls))
 	return len(cargoTomls) > 0
 }
 
@@ -209,9 +210,14 @@ func checksum(path string, hash hash.Hash, root bool) {
 	}
 
 	for _, entry := range entries {
+
+		if root && needIgnore(entry.Name()) {
+			continue
+		}
+
 		if entry.IsDir() {
 			checksum(filepath.Join(path, entry.Name()), hash, false)
-		} else /*if strings.HasSuffix(entry.Name(), ".rs")*/ {
+		} else {
 			var file, _ = os.Open(filepath.Join(path, entry.Name()))
 			io.Copy(hash, file)
 			file.Close()
@@ -219,45 +225,22 @@ func checksum(path string, hash hash.Hash, root bool) {
 	}
 }
 
-func calcChecksum(wrapperTool *Rustc.WrapperTool) bool {
-	var logger = wrapperTool.Logger
-	var depInfoOnlyCommand = Rustc.CreateDepInfoCommand(&os.Args)
-
-	logger.Debugf("depInfoOnlyCommand: %s", depInfoOnlyCommand)
-	depInfoCmd := exec.Command(depInfoOnlyCommand[1], depInfoOnlyCommand[2:]...)
-	//depInfoCmd.Env = []string{}
-
-	var rustFlags, _ = os.LookupEnv("RUSTFLAGS")
-	log.Infof("RUSTFLAGS %s", rustFlags)
-
-	rustFlags, _ = os.LookupEnv("CARGO_ENCODED_RUSTFLAGS")
-	log.Infof("CARGO_ENCODED_RUSTFLAGS %s", rustFlags)
-
-	rustFlags, _ = os.LookupEnv("WASM_BUILD_RUSTFLAGS")
-	log.Infof("WASM_BUILD_RUSTFLAGS %s", rustFlags)
-
-	var depInfoStderr = bytes.Buffer{}
-	//var multiWriter
-
-	depInfoCmd.Stderr = &depInfoStderr
-	err := depInfoCmd.Run()
-	if err != nil {
-		logger.Debugf("%s, %s, %s", err, string(depInfoStderr.Bytes()), depInfoOnlyCommand)
-		return false
+// needIgnore returns true if entryName should be ignored
+func needIgnore(entryName string) bool {
+	var ignorePatterns = []string{
+		".git",
+		".idea",
+		".vscode",
+		".cargo",
+		"target",
+		".forklift",
 	}
 
-	logger.Debugf("depInfoStderr: %s", depInfoStderr.String())
-
-	artifact, err := Rustc.GetDepArtifact(&depInfoStderr)
-	if err != nil {
-		logger.Debugf("%s, %s, %s", err, string(depInfoStderr.Bytes()), depInfoOnlyCommand)
-		return false
+	for _, pattern := range ignorePatterns {
+		if pattern == entryName {
+			return true
+		}
 	}
 
-	var files = Rustc.GetSourceFiles(artifact.Artifact)
-	var checksum = FileManager.GetCheckSum(files, WorkDir)
-
-	wrapperTool.CrateSourceChecksum = checksum
-	logger.Debugf("Checksum: %s", checksum)
-	return true
+	return false
 }

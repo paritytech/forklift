@@ -29,7 +29,7 @@ func Run(args []string) {
 
 	if isJobInBlacklist() {
 		log.Infof("Job is blacklisted, bypassing forklift")
-		bypassForklift()
+		BypassForklift()
 		return
 	}
 
@@ -77,12 +77,6 @@ func Run(args []string) {
 	cmd.Stdin = os.Stdin
 
 	err = cmd.Run()
-	if err != nil {
-		log.Errorf("Cargo finished with error: %s", err)
-		os.Exit(1)
-	} else {
-		log.Infof("Cargo finished successfully")
-	}
 
 	close(forkliftRpc.Uploads)
 	uploader.Wait()
@@ -93,6 +87,13 @@ func Run(args []string) {
 
 	rpcServer.Stop()
 	<-rpcServer.Channel
+
+	if err != nil {
+		log.Errorf("Cargo finished with error: %s", err)
+		os.Exit(1)
+	} else {
+		log.Infof("Cargo finished successfully")
+	}
 }
 
 func isJobInBlacklist() bool {
@@ -121,7 +122,7 @@ func isJobInBlacklist() bool {
 	return false
 }
 
-func bypassForklift() {
+func BypassForklift() {
 
 	cmd := exec.Command(os.Args[1], os.Args[2:]...)
 	cmd.Stdout = os.Stdout

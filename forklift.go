@@ -24,8 +24,8 @@ func main() {
 
 	//viper.AddConfigPath("$HOME/.forklift") // call multiple times to add many search paths
 
-	viper.SetDefault("storage.type", "s3")
-	viper.SetDefault("compression.type", "zstd")
+	viper.SetDefault("storage.type", "null")
+	viper.SetDefault("compression.type", "none")
 	viper.SetDefault("general.params", map[string]string{})
 	viper.SetDefault("general.threadsCount", 0)
 
@@ -34,6 +34,9 @@ func main() {
 	var err = viper.ReadInConfig()
 	if err != nil {
 		log.Errorln(err)
+		log.Infof("Config not found, bypassing forklift")
+		Server.BypassForklift()
+		return
 	}
 
 	err = viper.Unmarshal(&Lib.AppConfig)

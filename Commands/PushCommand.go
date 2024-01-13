@@ -29,8 +29,9 @@ func init() {
 }
 
 var pushCmd = &cobra.Command{
-	Use:   "push [flags] [project_dir]",
-	Short: "Upload cache artifacts. Require storage params",
+	Use:        "push [flags] [project_dir]",
+	Short:      "Upload cache artifacts. Require storage params",
+	Deprecated: "Use forklift as RUSTC_WRAPPER/cargo wrapper instead",
 	Run: func(cmd *cobra.Command, args []string) {
 
 		if len(args) > 0 {

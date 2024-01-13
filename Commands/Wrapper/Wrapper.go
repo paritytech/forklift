@@ -10,6 +10,7 @@ import (
 	"forklift/Lib"
 	"forklift/Lib/Rustc"
 	"forklift/Rpc"
+	"forklift/Rpc/Models"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"hash"
@@ -77,6 +78,7 @@ func Run(args []string) {
 
 	if gotRebuildDeps {
 		logger.Debugf("Got rebuilt dep: %s", rebuiltDep)
+		flClient.ReportStatus(wrapperTool.CrateName, Models.DependencyRebuilt)
 	} else {
 		logger.Debugf("No rebuilt deps")
 	}
@@ -105,20 +107,22 @@ func Run(args []string) {
 		var f = store.Download(wrapperTool.GetCachePackageName() + "_" + compressor.GetKey())
 		if f != nil {
 			Tar.UnPack(WorkDir, compressor.Decompress(f))
-			logger.Debugf("Downloaded artifacts for %s\n", wrapperTool.GetCachePackageName())
+			logger.Infof("Downloaded artifacts for %s\n", wrapperTool.GetCachePackageName())
 
 			io.Copy(os.Stderr, wrapperTool.ReadStderrFile())
-			//io.Copy(os.Stdout, wrapperTool.ReadIOStreamFile("stdout"))
 
 			//pprof.StopCPUProfile()
 			//profFile.Close()
+			flClient.ReportStatus(wrapperTool.CrateName, Models.CacheUsed)
 			return
 		} else {
 			logger.Debugf("%s does not exist in storage\n", wrapperTool.GetCachePackageName())
+			flClient.ReportStatus(wrapperTool.CrateName, Models.CacheMiss)
 		}
 		//}
 	} else {
 		logger.Debugf("No need to use cache for %s", wrapperTool.OutDir)
+
 	}
 
 	// execute rustc

@@ -41,7 +41,18 @@ func main() {
 		log.Errorln(err)
 	}
 
-	if len(os.Args) > 1 && strings.Contains(os.Args[1], "rustc") {
+	logLevel, err := log.ParseLevel(Lib.AppConfig.General.LogLevel)
+	if err != nil {
+		logLevel = log.InfoLevel
+		log.Debugf("unknown log level (verbose) `%s`, using default `info`\n", Lib.AppConfig.General.LogLevel)
+	}
+	log.SetLevel(logLevel)
+
+	//log.Debugf("Checking for blacklisted jobs")
+
+	if len(os.Args) > 1 &&
+		(strings.Contains(os.Args[1], "rustc") || strings.Contains(os.Args[1], "clippy-driver")) {
+
 		Wrapper.Run(os.Args[1:])
 	} else if len(os.Args) > 1 && strings.Contains(os.Args[1], "cargo") {
 		Server.Run(os.Args[1:])

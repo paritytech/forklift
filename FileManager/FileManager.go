@@ -1,18 +1,12 @@
 package FileManager
 
 import (
-	"crypto/sha1"
-	"fmt"
 	"forklift/FileManager/Models"
-	"forklift/Lib"
-	"io"
-	"io/fs"
 	"log"
 	"os"
 	"path"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 )
 
@@ -74,28 +68,6 @@ func ParseCacheRequest() []Models.CacheItem {
 	return result
 }
 
-func GetCheckSum(files []string, baseDir string) string {
-
-	var sha = sha1.New()
-
-	for _, file := range files {
-		var path string
-		if baseDir != "" {
-			path = filepath.Join(baseDir, file)
-		} else {
-			path = file
-		}
-
-		var reader, _ = os.Open(path)
-
-		io.Copy(sha, reader)
-
-		reader.Close()
-	}
-
-	return fmt.Sprintf("%x", sha.Sum(nil))
-}
-
 var hashRegex = regexp.MustCompile(`[a-zA-Z0-9_]*-([a-fA-F0-9]{16})`)
 
 func Find(dir string, key string, recursive bool) []Models.TargetFsEntry {
@@ -150,42 +122,4 @@ func findRecursive(dir string, key string, all bool) []Models.TargetFsEntry {
 	}
 
 	return result
-}
-
-func UploadDir(dir string) {
-
-	var queue = make(chan struct {
-		info fs.FileInfo
-		path string
-		i    int
-	}, 20)
-
-	var cpuCount = runtime.NumCPU()
-
-	go func() {
-		var dirEntries, _ = os.ReadDir(dir)
-
-		for i, file := range dirEntries {
-			var path = filepath.Join(dir, file.Name())
-			var fileInfo, _ = file.Info()
-
-			queue <- struct {
-				info fs.FileInfo
-				path string
-				i    int
-			}{info: fileInfo, path: path, i: i}
-		}
-		close(queue)
-	}()
-
-	Lib.Parallel(
-		queue,
-		cpuCount,
-		func(obj struct {
-			info fs.FileInfo
-			path string
-			i    int
-		}) {
-
-		})
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/viper"
 	"os"
 	"os/exec"
+	"regexp"
 )
 
 func Run(args []string) {
@@ -25,6 +26,12 @@ func Run(args []string) {
 	}
 
 	log.SetLevel(logLevel)
+
+	if isJobInBlacklist() {
+		log.Infof("Job is blacklisted, bypassing forklift")
+		bypassForklift()
+		return
+	}
 
 	var flWorkDir string
 
@@ -82,6 +89,48 @@ func Run(args []string) {
 
 	log.Infof("Uploader finish")
 
+	log.Infof("%s", forkliftRpc.StatusReport)
+
 	rpcServer.Stop()
 	<-rpcServer.Channel
+}
+
+func isJobInBlacklist() bool {
+	if Lib.AppConfig.General.JobNameVariable == "" {
+		log.Debugf("JobNameVariable is not set")
+		return false
+	}
+
+	currentJobName, ok := os.LookupEnv(Lib.AppConfig.General.JobNameVariable)
+	if !ok {
+		log.Debugf("JobNameVariable '%s' is not set", Lib.AppConfig.General.JobNameVariable)
+		return false
+	}
+	log.Infof("Current job name is '%s'", currentJobName)
+
+	for _, blacklistedJobRegex := range Lib.AppConfig.General.JobsBlacklist {
+		match, _ := regexp.MatchString(blacklistedJobRegex, currentJobName)
+
+		if match {
+			log.Infof("Job %s is blacklisted by '%s'", currentJobName, blacklistedJobRegex)
+			return true
+		}
+	}
+
+	log.Debugf("Job %s is not blacklisted", currentJobName)
+	return false
+}
+
+func bypassForklift() {
+
+	cmd := exec.Command(os.Args[1], os.Args[2:]...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+
+	err := cmd.Run()
+	if err != nil {
+		log.Errorf("Finished with error: %s", err)
+		os.Exit(1)
+	}
 }

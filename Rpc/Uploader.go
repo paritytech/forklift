@@ -87,27 +87,16 @@ func (uploader *Uploader) upload() {
 
 			var name = wrapperTool.GetCachePackageName()
 
-			/*var _, exists = uploader.storage.GetMetadata(name)
-
-			if !exists {
-				log.Debugf("%s does not exist in storage, uploading...\n", name)
-				needUpload = true
-			}*/
-
-			var needUpload = true
-
 			var metaMap = wrapperTool.CreateMetadata()
 			var shaLocal = fmt.Sprintf("%x", sha.Sum(nil))
 			metaMap["sha1-artifact"] = &shaLocal
 
-			if needUpload {
-				var compressed = uploader.compressor.Compress(reader)
-				uploader.storage.Upload(name+"_"+uploader.compressor.GetKey(), &compressed, metaMap)
+			var compressed = uploader.compressor.Compress(reader)
+			uploader.storage.Upload(name+"_"+uploader.compressor.GetKey(), &compressed, metaMap)
 
-				marshal, _ := json.Marshal(metaMap)
+			marshal, _ := json.Marshal(metaMap)
+			log.Infof("Uploaded %s, metadata: %s", wrapperTool.GetCachePackageName(), marshal)
 
-				log.Infof("Uploaded %s, metadata: %s", wrapperTool.GetCachePackageName(), marshal)
-			}
 		} else {
 			log.Tracef("No entries for %s-%s\n", wrapperTool.GetCachePackageName(), wrapperTool.CrateHash)
 		}

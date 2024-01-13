@@ -333,6 +333,7 @@ func (wrapperTool *WrapperTool) extractNameMetaHashDir(args *[]string) (string, 
 
 		if wrapperTool.SourceFile == "" && strings.HasPrefix(arg, "--edition") {
 			wrapperTool.SourceFile = (*args)[i+1]
+			count += 1
 		}
 
 		if name == "" && arg == "--crate-name" {
@@ -353,7 +354,7 @@ func (wrapperTool *WrapperTool) extractNameMetaHashDir(args *[]string) (string, 
 			count += 1
 		}
 
-		if count >= 3 {
+		if count >= 4 {
 			break
 		}
 	}

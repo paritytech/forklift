@@ -11,7 +11,7 @@ func init() {
 var pullCmd = &cobra.Command{
 	Use:        "pull [flags] [project_dir]",
 	Short:      "Download cache artifacts",
-	Deprecated: "Use forklift as RUSTC_WRAPPER instead",
+	Deprecated: "Use forklift as RUSTC_WRAPPER/cargo wrapper instead",
 	Run: func(cmd *cobra.Command, args []string) {
 	},
 }

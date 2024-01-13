@@ -2,6 +2,7 @@ package Rpc
 
 import (
 	"forklift/FileManager/Models"
+	RpcModels "forklift/Rpc/Models"
 	log "github.com/sirupsen/logrus"
 	"net/rpc"
 	"os"
@@ -72,6 +73,20 @@ func (client *ForkliftRpcClient) CheckExternDeps(deps *[]string) string {
 func (client *ForkliftRpcClient) AddUpload(cacheItem Models.CacheItem) {
 	var result bool
 	err := client.rpcClient.Call("ForkliftRpc.AddUpload", cacheItem, &result)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func (client *ForkliftRpcClient) ReportStatus(crateName string, status RpcModels.CrateCacheStatus) {
+	var result bool
+
+	var cacheStatusReport = RpcModels.CrateCacheStatusReport{
+		CrateName:   crateName,
+		CacheStatus: status,
+	}
+
+	err := client.rpcClient.Call("ForkliftRpc.ReportStatus", &cacheStatusReport, &result)
 	if err != nil {
 		log.Fatal(err)
 	}

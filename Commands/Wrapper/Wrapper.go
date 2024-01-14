@@ -209,9 +209,9 @@ func calcChecksum2(wrapperTool *Rustc.WrapperTool) bool {
 func checksum(path string, hash hash.Hash, root bool) {
 	var entries, _ = os.ReadDir(path)
 
-	if !root && hasCargoToml(path) {
+	/*if !root && hasCargoToml(path) {
 		return
-	}
+	}*/
 
 	for _, entry := range entries {
 

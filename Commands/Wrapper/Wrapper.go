@@ -83,15 +83,13 @@ func Run(args []string) {
 		logger.Debugf("No rebuilt deps")
 	}
 
-	var useCache = false
-
 	// calc sources checksum
 	if wrapperTool.IsNeedProcessFromCache() {
-		useCache = calcChecksum2(wrapperTool)
+		calcChecksum2(wrapperTool)
 	}
 
 	// try get from cache
-	if useCache && wrapperTool.IsNeedProcessFromCache() && !gotRebuildDeps {
+	if wrapperTool.IsNeedProcessFromCache() && !gotRebuildDeps {
 
 		//var _, existsInStore = store.GetMetadata(wrapperTool.GetCachePackageName() + "_" + compressor.GetKey())
 
@@ -121,7 +119,7 @@ func Run(args []string) {
 		}
 		//}
 	} else {
-		logger.Debugf("No need to use cache for %s", wrapperTool.OutDir)
+		logger.Debugf("No need to use cache for %s", wrapperTool.CrateName)
 
 	}
 

@@ -85,7 +85,8 @@ func (wrapperTool *WrapperTool) IsNeedProcessFromCache() bool {
 		wrapperTool.CrateName != "___" &&
 		wrapperTool.CrateHash != "" &&
 		!strings.Contains(wrapperTool.OutDir, "/var/folders/") &&
-		!strings.Contains(wrapperTool.OutDir, "/tmp")
+		!strings.Contains(wrapperTool.OutDir, "/tmp") &&
+		wrapperTool.IsCratesIoCrate()
 }
 
 func (wrapperTool *WrapperTool) IsCratesIoCrate() bool {

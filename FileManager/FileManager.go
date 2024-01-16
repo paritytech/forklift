@@ -60,7 +60,7 @@ func ParseCacheRequest() []Models.CacheItem {
 				OutDir:              strings.TrimSpace(itemParts[5]),
 				CrateSourceChecksum: strings.TrimSpace(itemParts[6]),
 				RustCArgsHash:       strings.TrimSpace(itemParts[7]),
-				//CrateDepsChecksum:   strings.TrimSpace(itemParts[8]),
+				//CrateExternDepsChecksum:   strings.TrimSpace(itemParts[8]),
 			})
 		}
 	}

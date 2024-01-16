@@ -32,6 +32,8 @@ func Run(args []string) {
 	pprof.StartCPUProfile(profFile)
 	*/
 
+	logger.Errorf("wrapper args: %s\n", os.Args)
+
 	var rustcArgsOnly = args[1:]
 
 	wd, ok := os.LookupEnv("FORKLIFT_WORK_DIR")
@@ -65,11 +67,10 @@ func Run(args []string) {
 
 	//var cachePackageName = CacheStorage.CreateCachePackageName(crateName, crateHash, outDir, compressor.GetKey())
 
-	//logger.Tracef("wrapper args: %s\n", os.Args)
 	var flClient = Rpc.NewForkliftRpcClient()
 
 	//check deps
-	var deps = Rustc.GetExternDeps(&rustcArgsOnly)
+	var deps = Rustc.GetExternDeps(&rustcArgsOnly, true)
 	var rebuiltDep = flClient.CheckExternDeps(deps)
 	var gotRebuildDeps = true
 	if rebuiltDep == "" {

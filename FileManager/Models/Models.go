@@ -9,13 +9,14 @@ type TargetFsEntry struct {
 }
 
 type CacheItem struct {
-	Name                string
-	Version             string
-	HashInt             string
-	Hash                string
-	CachePackageName    string
-	OutDir              string
-	CrateSourceChecksum string
-	RustCArgsHash       string
-	CrateDepsChecksum   string
+	Name                    string
+	Version                 string
+	HashInt                 string
+	Hash                    string
+	CachePackageName        string
+	OutDir                  string
+	CrateSourceChecksum     string
+	RustCArgsHash           string
+	CrateExternDepsChecksum string
+	CrateNativeDepsChecksum string
 }

@@ -36,7 +36,7 @@ func CreateDepInfoCommand(args *[]string) []string {
 	return result
 }
 
-func GetExternDeps(args *[]string) *[]string {
+func GetExternDeps(args *[]string, basePathOnly bool) *[]string {
 	var result []string
 
 	for i := 0; i < len(*args); i++ {
@@ -44,11 +44,38 @@ func GetExternDeps(args *[]string) *[]string {
 
 			var parts = strings.Split((*args)[i+1], "=")
 
-			if len(parts) < 2 {
+			if len(parts) < 2 && basePathOnly {
 				result = append(result, parts[0])
-			} else {
+			} else if len(parts) < 2 && !basePathOnly {
+			} else if basePathOnly {
 				result = append(result, filepath.Base(parts[1]))
+			} else {
+				result = append(result, parts[1])
 			}
+
+			i++
+		}
+	}
+
+	return &result
+}
+
+func GetNativeDeps(args *[]string, basePathOnly bool) *[]string {
+	var result []string
+
+	for i := 0; i < len(*args); i++ {
+		if (*args)[i] == "-L" {
+
+			var parts = strings.Split((*args)[i+1], "=")
+
+			if len(parts) < 2 {
+				continue
+			}
+
+			if parts[0] != "native" {
+				continue
+			}
+			result = append(result, parts[1])
 
 			i++
 		}

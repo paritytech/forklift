@@ -32,7 +32,7 @@ func Run(args []string) {
 	pprof.StartCPUProfile(profFile)
 	*/
 
-	logger.Errorf("wrapper args: %s\n", os.Args)
+	//logger.Errorf("wrapper args: %s\n", os.Args)
 
 	var rustcArgsOnly = args[1:]
 
@@ -92,17 +92,6 @@ func Run(args []string) {
 	// try get from cache
 	if wrapperTool.IsNeedProcessFromCache() && !gotRebuildDeps {
 
-		//var _, existsInStore = store.GetMetadata(wrapperTool.GetCachePackageName() + "_" + compressor.GetKey())
-
-		/*
-			var needDownload = true
-
-			if !existsInStore {
-				logger.Debugf("%s does not exist in storage\n", wrapperTool.GetCachePackageName())
-				needDownload = false
-			}*/
-
-		//if needDownload {
 		var f = store.Download(wrapperTool.GetCachePackageName() + "_" + compressor.GetKey())
 		if f != nil {
 			Tar.UnPack(WorkDir, compressor.Decompress(f))
@@ -118,7 +107,6 @@ func Run(args []string) {
 			logger.Debugf("%s does not exist in storage\n", wrapperTool.GetCachePackageName())
 			flClient.ReportStatus(wrapperTool.CrateName, Models.CacheMiss)
 		}
-		//}
 	} else {
 		logger.Debugf("No need to use cache for %s", wrapperTool.CrateName)
 

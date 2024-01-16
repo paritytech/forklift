@@ -11,7 +11,6 @@ import (
 	"forklift/FileManager/Models"
 	log "github.com/sirupsen/logrus"
 	"io"
-	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
@@ -132,40 +131,42 @@ func (wrapperTool *WrapperTool) GetNativeDepsChecksum() string {
 
 	return ""
 
-	if wrapperTool.CrateNativeDepsChecksum != "" {
+	/*
+		if wrapperTool.CrateNativeDepsChecksum != "" {
+			return wrapperTool.CrateNativeDepsChecksum
+		}
+
+		var deps = GetNativeDeps(wrapperTool.rustcArgs, false)
+
+		if len(*deps) == 0 {
+			wrapperTool.CrateNativeDepsChecksum = "none"
+			return wrapperTool.CrateNativeDepsChecksum
+		}
+
+		var sha = sha1.New()
+
+		for _, dep := range *deps {
+
+			filepath.Walk(dep, func(path string, info fs.FileInfo, err error) error {
+				var data, err2 = os.Open(path)
+				//log.Errorf("Try read native dep file: %s", path)
+				var shaS = sha1.New()
+				var mwriter = io.MultiWriter(sha, shaS)
+				if err2 != nil {
+					log.Panic(err2)
+				}
+				io.Copy(mwriter, data)
+
+				log.Errorf("%s : %s", path, fmt.Sprintf("%x", shaS.Sum(nil)))
+
+				return nil
+			})
+
+		}
+
+		wrapperTool.CrateNativeDepsChecksum = fmt.Sprintf("%x", sha.Sum(nil))
 		return wrapperTool.CrateNativeDepsChecksum
-	}
-
-	var deps = GetNativeDeps(wrapperTool.rustcArgs, false)
-
-	if len(*deps) == 0 {
-		wrapperTool.CrateNativeDepsChecksum = "none"
-		return wrapperTool.CrateNativeDepsChecksum
-	}
-
-	var sha = sha1.New()
-
-	for _, dep := range *deps {
-
-		filepath.Walk(dep, func(path string, info fs.FileInfo, err error) error {
-			var data, err2 = os.Open(path)
-			//log.Errorf("Try read native dep file: %s", path)
-			var shaS = sha1.New()
-			var mwriter = io.MultiWriter(sha, shaS)
-			if err2 != nil {
-				log.Panic(err2)
-			}
-			io.Copy(mwriter, data)
-
-			log.Errorf("%s : %s", path, fmt.Sprintf("%x", shaS.Sum(nil)))
-
-			return nil
-		})
-
-	}
-
-	wrapperTool.CrateNativeDepsChecksum = fmt.Sprintf("%x", sha.Sum(nil))
-	return wrapperTool.CrateNativeDepsChecksum
+	*/
 }
 
 func (wrapperTool *WrapperTool) GetCachePackageName() string {

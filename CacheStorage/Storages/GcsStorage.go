@@ -102,7 +102,7 @@ func (driver *GcsStorage) GetMetadata(key string) (map[string]*string, bool) {
 	return metadata, true
 }
 
-func (driver *GcsStorage) Upload(key string, reader *io.Reader, metadata map[string]*string) {
+func (driver *GcsStorage) Upload(key string, reader *io.Reader, metadata map[string]*string) error {
 	var gcpMetadata = make(map[string]string, len(metadata))
 
 	for key, value := range metadata {
@@ -116,22 +116,24 @@ func (driver *GcsStorage) Upload(key string, reader *io.Reader, metadata map[str
 	_, err := io.Copy(gcsWriter, *reader)
 	if err != nil {
 		log.Errorf("Unable to write data to bucket %q, file %q: %v", driver.bucket, key, err)
-		return
+		return err
 	}
 
 	if err := gcsWriter.Close(); err != nil {
 		log.Errorf("Unable to close bucket %q, file %q: %v", driver.bucket, key, err)
-		return
+		return err
 	}
+
+	return nil
 }
 
-func (driver *GcsStorage) Download(key string) io.Reader {
+func (driver *GcsStorage) Download(key string) (io.Reader, error) {
 	var gcsReader, err = driver.client.Bucket(driver.bucket).Object(key).NewReader(driver.context)
 	if err != nil {
 		log.Errorf("Unable to open file from bucket %q, file %q: %v", driver.bucket, key, err)
-		return nil
+		return nil, err
 	}
 	defer gcsReader.Close()
 
-	return gcsReader
+	return gcsReader, nil
 }

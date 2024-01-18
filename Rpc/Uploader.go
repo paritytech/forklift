@@ -80,8 +80,6 @@ func (uploader *Uploader) upload() {
 			}
 		}
 
-		log.Debugf("%s", crateArtifactsFiles)
-
 		if len(crateArtifactsFiles) > 0 {
 			var reader, sha = Tar.Pack(crateArtifactsFiles)
 
@@ -92,13 +90,22 @@ func (uploader *Uploader) upload() {
 			metaMap["sha1-artifact"] = &shaLocal
 
 			var compressed = uploader.compressor.Compress(reader)
-			uploader.storage.Upload(name+"_"+uploader.compressor.GetKey(), &compressed, metaMap)
 
-			marshal, _ := json.Marshal(metaMap)
-			log.Infof("Uploaded %s, metadata: %s", wrapperTool.GetCachePackageName(), marshal)
+			var retries = 3
+			var err error
+			for retries > 0 {
+				err = uploader.storage.Upload(name+"_"+uploader.compressor.GetKey(), &compressed, metaMap)
+				if err == nil {
+					marshal, _ := json.Marshal(metaMap)
+					log.Infof("Uploaded %s, metadata: %s", wrapperTool.GetCachePackageName(), marshal)
+					break
+				}
+				retries--
+			}
+			log.Errorf("Failed to upload artifact for '%s-%s', error: %s", wrapperTool.GetCachePackageName(), wrapperTool.CrateHash, err)
 
 		} else {
-			log.Tracef("No entries for %s-%s\n", wrapperTool.GetCachePackageName(), wrapperTool.CrateHash)
+			log.Tracef("No entries for '%s-%s'\n", wrapperTool.GetCachePackageName(), wrapperTool.CrateHash)
 		}
 	}
 

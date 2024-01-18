@@ -9,6 +9,8 @@ const (
 	CacheUsed
 	CacheMiss
 	DependencyRebuilt
+	CacheUsedWithRetry
+	CacheFetchFailed
 )
 
 type CrateCacheStatusReport struct {
@@ -17,13 +19,23 @@ type CrateCacheStatusReport struct {
 }
 
 type ForkliftCacheStatusReport struct {
-	TotalCrates       int
-	FromCache         int
-	CacheMiss         int
-	DependencyRebuilt int
-	CacheMissCrates   []string
+	TotalCrates        int
+	CacheUsed          int
+	CacheMiss          int
+	DependencyRebuilt  int
+	CacheUsedWithRetry int
+	CacheFetchFailed   int
+	CacheMissCrates    []string
 }
 
 func (s ForkliftCacheStatusReport) String() string {
-	return fmt.Sprintf("Cache report:\nTotal crates processed: %d\nFrom cache: %d\nCache miss: %d\nDependency rebuilt: %d\n", s.TotalCrates, s.FromCache, s.CacheMiss, s.DependencyRebuilt)
+	return fmt.Sprintf(
+		"Cache report:\n"+
+			"Total crates processed: %d\n"+
+			"From cache: %d\n"+
+			"From cache with retry: %d\n"+
+			"Cache miss: %d\n"+
+			"Dependency rebuilt: %d\n"+
+			"Cacge package fetch fail: %d\n",
+		s.TotalCrates, s.CacheUsed, s.CacheUsedWithRetry, s.CacheMiss, s.DependencyRebuilt, s.CacheFetchFailed)
 }

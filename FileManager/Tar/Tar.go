@@ -100,7 +100,7 @@ func PackFile(tarWriter *tar.Writer, path string, hash hash.Hash) {
 }
 
 // UnPack -	Unpack forklift tar archive
-func UnPack(path string, reader io.Reader) {
+func UnPack(path string, reader io.Reader) error {
 
 	tr := tar.NewReader(reader)
 
@@ -110,24 +110,28 @@ func UnPack(path string, reader io.Reader) {
 			break // End of archive
 		}
 		if err != nil {
-			log.Fatalln(err)
+			log.Errorf("failed to read tar header: %s", err)
+			return err
 		}
 
 		filePath := filepath.Join(path, header.Name)
 
 		err = os.MkdirAll(filepath.Dir(filePath), 0777)
 		if err != nil {
-			log.Fatalf("mkdirall %s", err)
+			log.Errorf("UnPack MkdirAll %s", err)
+			return err
 		}
 
 		f, err := os.Create(filePath)
 
 		if err != nil {
-			log.Fatalf("%s", err)
+			log.Errorf("UnPack os.Create error: %s", err)
+			return err
 		}
 
 		if w, err := io.Copy(f, tr); err != nil {
-			log.Fatalln(err)
+			log.Errorf("UnPack io.Copy error: %s", err)
+			return err
 		} else {
 			log.Tracef("Unpacked %s written: %d", filePath, w)
 		}
@@ -135,4 +139,6 @@ func UnPack(path string, reader io.Reader) {
 		f.Close()
 		os.Chmod(filePath, 0777)
 	}
+
+	return nil
 }

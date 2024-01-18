@@ -25,7 +25,8 @@ func (storage *FsStorage) GetMetadata(key string) (map[string]*string, bool) {
 	return nil, err == nil
 }
 
-func (storage *FsStorage) Upload(key string, reader *io.Reader, _ map[string]*string) {
+func (storage *FsStorage) Upload(key string, reader *io.Reader, _ map[string]*string) error {
+
 	var file, err = os.Create(filepath.Join(storage.dir, key))
 	if err != nil {
 		log.Fatalln("Unable to create file", err)
@@ -34,20 +35,24 @@ func (storage *FsStorage) Upload(key string, reader *io.Reader, _ map[string]*st
 
 	_, err2 := io.Copy(file, *reader)
 	if err2 != nil {
-		return
+		return err
 	}
+
+	return nil
 }
 
-func (storage *FsStorage) Download(key string) io.Reader {
+func (storage *FsStorage) Download(key string) (io.Reader, error) {
+
 	var path = filepath.Join(storage.dir, key)
 	var _, errStat = os.Stat(path)
 	if errStat != nil {
-		return nil
+		return nil, errStat
 	}
 
 	var file, err = os.Open(path)
 	if err != nil {
-		log.Fatalln("Unable to open file", err)
+		log.Errorf("Unable to open file", err)
+		return nil, err
 	}
 	defer file.Close()
 
@@ -55,8 +60,9 @@ func (storage *FsStorage) Download(key string) io.Reader {
 
 	_, err2 := io.Copy(&buf, file)
 	if err2 != nil {
-		log.Fatalln("Unable to read file", err)
+		log.Errorf("Unable to read file", err)
+		return nil, err2
 	}
 
-	return &buf
+	return &buf, nil
 }

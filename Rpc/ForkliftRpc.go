@@ -65,16 +65,19 @@ func (server *ForkliftRpc) ReportStatus(report *RpcModels.CrateCacheStatusReport
 	server.reportLock.Lock()
 	defer server.reportLock.Unlock()
 
+	server.StatusReport.TotalCrates++
+
 	switch report.CacheStatus {
 	case RpcModels.CacheUsed:
-		server.StatusReport.TotalCrates++
-		server.StatusReport.FromCache++
+		server.StatusReport.CacheUsed++
 	case RpcModels.CacheMiss:
-		server.StatusReport.TotalCrates++
 		server.StatusReport.CacheMiss++
 	case RpcModels.DependencyRebuilt:
-		server.StatusReport.TotalCrates++
 		server.StatusReport.DependencyRebuilt++
+	case RpcModels.CacheUsedWithRetry:
+		server.StatusReport.CacheUsedWithRetry++
+	case RpcModels.CacheFetchFailed:
+		server.StatusReport.CacheFetchFailed++
 	}
 
 	*result = true

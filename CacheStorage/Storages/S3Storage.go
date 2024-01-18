@@ -80,7 +80,7 @@ func (storage *S3Storage) GetMetadata(key string) (map[string]*string, bool) {
 	return metadata, true
 }
 
-func (storage *S3Storage) Upload(key string, reader *io.Reader, metadata map[string]*string) {
+func (storage *S3Storage) Upload(key string, reader *io.Reader, metadata map[string]*string) error {
 	uploader := s3manager.NewUploader(storage.session)
 
 	var normalizedMetadata = make(map[string]*string, len(metadata))
@@ -95,11 +95,14 @@ func (storage *S3Storage) Upload(key string, reader *io.Reader, metadata map[str
 		Metadata: normalizedMetadata,
 	})
 	if err != nil {
-		log.Fatalf("failed to upload file %s\n%s\n", key, err)
+		log.Errorln("failed to upload file %s\n%s\n", key, err)
+		return err
 	}
+
+	return nil
 }
 
-func (storage *S3Storage) Download(key string) io.Reader {
+func (storage *S3Storage) Download(key string) (io.Reader, error) {
 	downloader := s3manager.NewDownloader(storage.session)
 
 	buf := aws.NewWriteAtBuffer([]byte{})
@@ -116,19 +119,21 @@ func (storage *S3Storage) Download(key string) io.Reader {
 			case "NotFound":
 			case s3.ErrCodeNoSuchBucket:
 				log.Debugf("bucket '%s' does not exist, error:%s", storage.bucket, err)
+				return nil, nil
 			case s3.ErrCodeNoSuchKey:
 				log.Debugf("object with key '%s' does not exist in bucket '%s', error: %s", key, storage.bucket, err)
+				return nil, nil
 			}
 		} else {
-			log.Debugf("failed to get head for '%s', %s", key, err)
+			log.Errorf("failed to get head for '%s', %s", key, err)
+			return nil, err
 		}
-		return nil
 	}
 
 	if n == 0 {
 		log.Errorf("received 0 bytes for '%s', but no error", key)
-		return nil
+		return nil, nil
 	}
 
-	return bytes.NewBuffer(buf.Bytes())
+	return bytes.NewBuffer(buf.Bytes()), nil
 }

@@ -26,14 +26,6 @@ var WorkDir string
 
 func Run(args []string) {
 
-	/*os.MkdirAll("prof", os.ModePerm)
-	var filename = fmt.Sprintf("prof/mem.prof.%d", os.Getpid())
-	var profFile, _ = os.Create(filename)
-	pprof.StartCPUProfile(profFile)
-	*/
-
-	//logger.Errorf("wrapper args: %s\n", os.Args)
-
 	var rustcArgsOnly = args[1:]
 
 	wd, ok := os.LookupEnv("FORKLIFT_WORK_DIR")
@@ -92,24 +84,47 @@ func Run(args []string) {
 	// try get from cache
 	if wrapperTool.IsNeedProcessFromCache() && !gotRebuildDeps {
 
-		var f = store.Download(wrapperTool.GetCachePackageName() + "_" + compressor.GetKey())
-		if f != nil {
-			Tar.UnPack(WorkDir, compressor.Decompress(f))
-			logger.Infof("Downloaded artifacts for %s\n", wrapperTool.GetCachePackageName())
+		success := false
+		var retries = 3
 
-			io.Copy(os.Stderr, wrapperTool.ReadStderrFile())
+		for retries > 0 {
+			f, err := store.Download(wrapperTool.GetCachePackageName() + "_" + compressor.GetKey())
+			if f == nil && err == nil {
+				logger.Debugf("%s does not exist in storage\n", wrapperTool.GetCachePackageName())
+				flClient.ReportStatus(wrapperTool.CrateName, Models.CacheMiss)
+				success = true
+				break
+			}
+			if err != nil {
+				retries--
+				continue
+			}
 
-			//pprof.StopCPUProfile()
-			//profFile.Close()
-			flClient.ReportStatus(wrapperTool.CrateName, Models.CacheUsed)
-			return
-		} else {
-			logger.Debugf("%s does not exist in storage\n", wrapperTool.GetCachePackageName())
-			flClient.ReportStatus(wrapperTool.CrateName, Models.CacheMiss)
+			err = Tar.UnPack(WorkDir, compressor.Decompress(f))
+			if err != nil {
+				retries--
+				success = false
+				continue
+			} else {
+				logger.Infof("Downloaded and unpacked artifacts for %s\n", wrapperTool.GetCachePackageName())
+
+				io.Copy(os.Stderr, wrapperTool.ReadStderrFile())
+				flClient.ReportStatus(wrapperTool.CrateName, Models.CacheUsed)
+
+				if retries < 3 {
+					flClient.ReportStatus(wrapperTool.CrateName, Models.CacheUsedWithRetry)
+				}
+
+				return
+			}
 		}
+		if !success {
+			logger.Errorf("Failed to pull artifacts for %s\n", wrapperTool.GetCachePackageName())
+			flClient.ReportStatus(wrapperTool.CrateName, Models.CacheFetchFailed)
+		}
+
 	} else {
 		logger.Debugf("No need to use cache for %s", wrapperTool.CrateName)
-
 	}
 
 	// execute rustc

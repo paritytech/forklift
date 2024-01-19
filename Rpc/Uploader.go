@@ -98,7 +98,7 @@ func (uploader *Uploader) upload() {
 				if err == nil {
 					marshal, _ := json.Marshal(metaMap)
 					log.Infof("Uploaded %s, metadata: %s", wrapperTool.GetCachePackageName(), marshal)
-					break
+					return
 				}
 				retries--
 			}

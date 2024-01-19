@@ -98,11 +98,13 @@ func (uploader *Uploader) upload() {
 				if err == nil {
 					marshal, _ := json.Marshal(metaMap)
 					log.Infof("Uploaded %s, metadata: %s", wrapperTool.GetCachePackageName(), marshal)
-					return
+					break
 				}
 				retries--
 			}
-			log.Errorf("Failed to upload artifact for '%s-%s', error: %s", wrapperTool.GetCachePackageName(), wrapperTool.CrateHash, err)
+			if retries == 0 {
+				log.Errorf("Failed to upload artifact for '%s-%s', error: %s", wrapperTool.GetCachePackageName(), wrapperTool.CrateHash, err)
+			}
 
 		} else {
 			log.Tracef("No entries for '%s-%s'\n", wrapperTool.GetCachePackageName(), wrapperTool.CrateHash)

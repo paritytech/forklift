@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"forklift/CliTools"
 	"github.com/klauspost/compress/zstd"
-	log "github.com/sirupsen/logrus"
 	"io"
 )
 
@@ -22,39 +21,40 @@ func NewZStdCompressor(params *map[string]string) *ZStdCompressor {
 	}
 }
 
-func (compressor *ZStdCompressor) Compress(input io.Reader) io.Reader {
+func (compressor *ZStdCompressor) Compress(input io.Reader) (io.Reader, error) {
 	var buf bytes.Buffer
 	var writer, err = zstd.NewWriter(&buf, zstd.WithEncoderLevel(zstd.EncoderLevelFromZstd(compressor.level)))
 	if err != nil {
-		log.Fatalf("NewWriter error %s\n", err)
+		return nil, NewForkliftCompressorError("NewWriter error", err)
 	}
 
-	var _, err2 = io.Copy(writer, input)
-	if err2 != nil {
-		log.Fatalf("Copy error %s\n", err2)
+	_, err = io.Copy(writer, input)
+	if err != nil {
+		return nil, NewForkliftCompressorError("io.copy error", err)
 	}
 
-	if err := writer.Close(); err != nil {
-		log.Fatalf("w.Close error %s\n", err)
+	if err = writer.Close(); err != nil {
+		return nil, err
+		//log.Fatalf("w.Close error %s\n", err)
 	}
 
-	return &buf
+	return &buf, nil
 }
 
-func (compressor *ZStdCompressor) Decompress(input io.Reader) io.Reader {
+func (compressor *ZStdCompressor) Decompress(input io.Reader) (io.Reader, error) {
 	var buf bytes.Buffer
 
 	var reader, err = zstd.NewReader(input)
 	if err != nil {
-		log.Fatalf("NewReader error %s\n", err)
+		return nil, NewForkliftCompressorError("NewReader error", err)
 	}
 
-	var _, err2 = io.Copy(&buf, reader)
-	if err2 != nil {
-		log.Fatalf("Read error %s\n", err2)
+	_, err = io.Copy(&buf, reader)
+	if err != nil {
+		return nil, NewForkliftCompressorError("io.copy error", err)
 	}
 
-	return &buf
+	return &buf, nil
 }
 
 func (compressor *ZStdCompressor) GetKey() string {

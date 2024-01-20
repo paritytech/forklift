@@ -53,7 +53,14 @@ func (uploader *Uploader) upload() {
 		}
 
 		var wrapperTool = Rustc.NewWrapperToolFromCacheItem(uploader.workDir, item)
-		log.Debugf("Processing %s %s %s\n", wrapperTool.CrateName, wrapperTool.CrateHash, wrapperTool.OutDir)
+		var logger = log.WithFields(log.Fields{
+			"crate": wrapperTool.CrateName,
+			"hash":  wrapperTool.CrateHash,
+			"task":  "uploader",
+		})
+		wrapperTool.Logger = logger
+
+		logger.Debugf("Processing %s %s %s\n", wrapperTool.CrateName, wrapperTool.CrateHash, wrapperTool.OutDir)
 
 		var crateArtifactsFiles = []string{
 			path.Join("target", "forklift", fmt.Sprintf("%s-%s", wrapperTool.GetCachePackageName(), "stderr")),
@@ -72,7 +79,7 @@ func (uploader *Uploader) upload() {
 			if artifact.Artifact != "" {
 				if strings.Contains(artifact.Artifact, "tmp/") ||
 					strings.Contains(artifact.Artifact, "/var/folders/") {
-					log.Debugf("Temporary artifact folder `%s` detected, skip", artifact.Artifact)
+					logger.Debugf("Temporary artifact folder `%s` detected, skip", artifact.Artifact)
 					return
 				}
 				var relPath, _ = filepath.Rel(uploader.workDir, artifact.Artifact)
@@ -89,25 +96,34 @@ func (uploader *Uploader) upload() {
 			var shaLocal = fmt.Sprintf("%x", sha.Sum(nil))
 			metaMap["sha1-artifact"] = &shaLocal
 
-			var compressed = uploader.compressor.Compress(reader)
-
 			var retries = 3
-			var err error
+
 			for retries > 0 {
+
+				var compressed, err = uploader.compressor.Compress(reader)
+				if err != nil {
+					logger.Errorf("compression error: %s", err)
+					retries--
+					continue
+				}
+
 				err = uploader.storage.Upload(name+"_"+uploader.compressor.GetKey(), &compressed, metaMap)
 				if err == nil {
 					marshal, _ := json.Marshal(metaMap)
-					log.Infof("Uploaded %s, metadata: %s", wrapperTool.GetCachePackageName(), marshal)
+					logger.Infof("Uploaded %s, metadata: %s", wrapperTool.GetCachePackageName(), marshal)
 					break
+				} else {
+					logger.Errorf("upload error: %s", err)
+					retries--
 				}
-				retries--
+
 			}
 			if retries == 0 {
-				log.Errorf("Failed to upload artifact for '%s-%s', error: %s", wrapperTool.GetCachePackageName(), wrapperTool.CrateHash, err)
+				logger.Errorf("Failed to upload artifact for '%s, %s'", wrapperTool.GetCachePackageName(), wrapperTool.CrateHash)
 			}
 
 		} else {
-			log.Tracef("No entries for '%s-%s'\n", wrapperTool.GetCachePackageName(), wrapperTool.CrateHash)
+			logger.Tracef("No entries for '%s-%s'\n", wrapperTool.GetCachePackageName(), wrapperTool.CrateHash)
 		}
 	}
 

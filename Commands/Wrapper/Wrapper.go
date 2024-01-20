@@ -52,7 +52,12 @@ func Run(args []string) {
 
 	var wrapperTool = Rustc.NewWrapperToolFromArgs(WorkDir, &rustcArgsOnly)
 
-	var logger = wrapperTool.Logger
+	var logger = log.WithFields(log.Fields{
+		"crate": wrapperTool.CrateName,
+		"hash":  wrapperTool.CrateHash,
+		"task":  "wrapper",
+	})
+	wrapperTool.Logger = logger
 
 	store, _ := Storages.GetStorageDriver(Lib.AppConfig)
 	compressor, _ := Compressors.GetCompressor(Lib.AppConfig)
@@ -96,12 +101,21 @@ func Run(args []string) {
 				break
 			}
 			if err != nil {
+				logger.Errorf("download error: %s\n", err)
 				retries--
 				continue
 			}
 
-			err = Tar.UnPack(WorkDir, compressor.Decompress(f))
+			decompressed, err := compressor.Decompress(f)
 			if err != nil {
+				logger.Errorf("decompression error: %s\n", err)
+				retries--
+				continue
+			}
+
+			err = Tar.UnPack(WorkDir, decompressed)
+			if err != nil {
+				logger.Errorf("unpack error: %s\n", err)
 				retries--
 				success = false
 				continue

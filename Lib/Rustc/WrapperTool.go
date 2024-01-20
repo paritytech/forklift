@@ -45,7 +45,6 @@ func NewWrapperToolFromArgs(workDir string, rustArgs *[]string) *WrapperTool {
 
 	wrapper.GetExternDepsChecksum()
 	wrapper.GetNativeDepsChecksum()
-	wrapper.createLogger()
 
 	var osWorkDir, _ = os.Getwd()
 	wrapper.osWorkDir = osWorkDir
@@ -65,8 +64,6 @@ func NewWrapperToolFromCacheItem(workDir string, item Models.CacheItem) *Wrapper
 	wrapper.CrateExternDepsChecksum = item.CrateExternDepsChecksum
 	wrapper.CrateNativeDepsChecksum = item.CrateNativeDepsChecksum
 
-	wrapper.createLogger()
-
 	return &wrapper
 }
 
@@ -77,13 +74,6 @@ func GetArgsHash(args *[]string) string {
 	}
 
 	return fmt.Sprintf("%x", sha.Sum(nil))
-}
-
-func (wrapperTool *WrapperTool) createLogger() {
-	wrapperTool.Logger = log.WithFields(log.Fields{
-		"crate": wrapperTool.CrateName,
-		"hash":  wrapperTool.CrateHash,
-	})
 }
 
 func (wrapperTool *WrapperTool) IsNeedProcessFromCache() bool {
@@ -117,7 +107,7 @@ func (wrapperTool *WrapperTool) GetExternDepsChecksum() string {
 	for _, dep := range *deps {
 		var data, err = os.Open(dep)
 		if err != nil {
-			log.Panic(err)
+			wrapperTool.Logger.Errorf("%s", err)
 		}
 		io.Copy(sha, data)
 	}

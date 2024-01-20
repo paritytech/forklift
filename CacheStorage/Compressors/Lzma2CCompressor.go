@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"forklift/CliTools"
 	"github.com/jamespfennell/xz"
-	log "github.com/sirupsen/logrus"
 	"io"
 )
 
@@ -24,33 +23,33 @@ func NewLzma2CCompressor(params *map[string]string) *Lzma2CCompressor {
 	}
 }
 
-func (compressor *Lzma2CCompressor) Compress(input io.Reader) io.Reader {
+func (compressor *Lzma2CCompressor) Compress(input io.Reader) (io.Reader, error) {
 	var buf = bytes.Buffer{}
 	var writer = xz.NewWriterLevel(&buf, compressor.level)
 
-	var _, err2 = io.Copy(writer, input)
-	if err2 != nil {
-		log.Fatalf("Copy error %s\n", err2)
+	var _, err = io.Copy(writer, input)
+	if err != nil {
+		return nil, NewForkliftCompressorError("io.copy error", err)
 	}
 
-	if err := writer.Close(); err != nil {
-		log.Fatalf("w.Close error %s\n", err)
+	if err = writer.Close(); err != nil {
+		return nil, NewForkliftCompressorError("writer.Close error", err)
 	}
 
-	return &buf
+	return &buf, nil
 }
 
-func (compressor *Lzma2CCompressor) Decompress(input io.Reader) io.Reader {
+func (compressor *Lzma2CCompressor) Decompress(input io.Reader) (io.Reader, error) {
 	var buf bytes.Buffer
 
 	var reader = xz.NewReader(input)
 
-	var _, err2 = io.Copy(&buf, reader)
-	if err2 != nil {
-		log.Fatalf("Read error %s\n", err2)
+	var _, err = io.Copy(&buf, reader)
+	if err != nil {
+		return nil, NewForkliftCompressorError("io.copy error", err)
 	}
 
-	return &buf
+	return &buf, nil
 }
 
 func (compressor *Lzma2CCompressor) GetKey() string {

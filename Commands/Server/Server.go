@@ -4,6 +4,7 @@ import (
 	"forklift/CacheStorage/Compressors"
 	"forklift/CacheStorage/Storages"
 	"forklift/Lib"
+	"forklift/Lib/Logging"
 	"forklift/Rpc"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -26,6 +27,7 @@ func Run(args []string) {
 	}
 
 	log.SetLevel(logLevel)
+	log.SetFormatter(&Logging.ForkliftTextFormatter{Indentation: 4, TaskPrefix: "Server"})
 
 	if isJobInBlacklist() {
 		log.Infof("Job is blacklisted, bypassing forklift")

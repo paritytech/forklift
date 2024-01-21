@@ -9,8 +9,10 @@ import (
 	"forklift/CacheStorage/Storages"
 	"forklift/FileManager/Models"
 	"forklift/FileManager/Tar"
+	"forklift/Lib/Logging"
 	"forklift/Lib/Rustc"
 	log "github.com/sirupsen/logrus"
+	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -45,6 +47,12 @@ func (uploader *Uploader) Start(queue chan Models.CacheItem, threads int) {
 }
 
 func (uploader *Uploader) upload() {
+	var l = log.Logger{
+		Out:       os.Stdout,
+		Formatter: &Logging.ForkliftTextFormatter{Indentation: 1, TaskPrefix: "Uploader"},
+		Level:     log.GetLevel(),
+	}
+
 	for {
 		item, more := <-uploader.uploads
 		if !more {
@@ -53,11 +61,11 @@ func (uploader *Uploader) upload() {
 		}
 
 		var wrapperTool = Rustc.NewWrapperToolFromCacheItem(uploader.workDir, item)
-		var logger = log.WithFields(log.Fields{
+		var logger = l.WithFields(log.Fields{
 			"crate": wrapperTool.CrateName,
 			"hash":  wrapperTool.CrateHash,
-			"task":  "uploader",
 		})
+
 		wrapperTool.Logger = logger
 
 		logger.Debugf("Processing %s %s %s\n", wrapperTool.CrateName, wrapperTool.CrateHash, wrapperTool.OutDir)
@@ -102,20 +110,21 @@ func (uploader *Uploader) upload() {
 
 				var compressed, err = uploader.compressor.Compress(reader)
 				if err != nil {
-					logger.Errorf("compression error: %s", err)
+					logger.Warningf("compression error: %s", err)
 					retries--
 					continue
 				}
 
 				err = uploader.storage.Upload(name+"_"+uploader.compressor.GetKey(), &compressed, metaMap)
-				if err == nil {
-					marshal, _ := json.Marshal(metaMap)
-					logger.Infof("Uploaded %s, metadata: %s", wrapperTool.GetCachePackageName(), marshal)
-					break
-				} else {
-					logger.Errorf("upload error: %s", err)
+				if err != nil {
+					logger.Warningf("upload error: %s", err)
 					retries--
+					continue
 				}
+
+				marshal, _ := json.Marshal(metaMap)
+				logger.Infof("Uploaded %s, metadata: %s", wrapperTool.GetCachePackageName(), marshal)
+				break
 
 			}
 			if retries == 0 {

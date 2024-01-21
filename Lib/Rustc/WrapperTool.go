@@ -107,7 +107,7 @@ func (wrapperTool *WrapperTool) GetExternDepsChecksum() string {
 	for _, dep := range *deps {
 		var data, err = os.Open(dep)
 		if err != nil {
-			wrapperTool.Logger.Errorf("%s", err)
+			//wrapperTool.Logger.Errorf("%s", err)
 		}
 		io.Copy(sha, data)
 	}

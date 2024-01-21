@@ -62,9 +62,9 @@ func (storage *S3Storage) GetMetadata(key string) (map[string]*string, bool) {
 			case "NotFound":
 				return nil, false
 			case s3.ErrCodeNoSuchBucket:
-				log.Printf("bucket %s does not exist\n", storage.bucket)
+				log.Tracef("bucket %s does not exist\n", storage.bucket)
 			case s3.ErrCodeNoSuchKey:
-				log.Printf("object with key %s does not exist in bucket %s\n", key, storage.bucket)
+				log.Tracef("object with key %s does not exist in bucket %s\n", key, storage.bucket)
 			}
 		} else {
 			log.Fatalf("failed to get head for file %s\n%s", key, err)
@@ -95,7 +95,6 @@ func (storage *S3Storage) Upload(key string, reader *io.Reader, metadata map[str
 		Metadata: normalizedMetadata,
 	})
 	if err != nil {
-		log.Errorln("failed to upload file %s\n%s\n", key, err)
 		return err
 	}
 
@@ -118,14 +117,13 @@ func (storage *S3Storage) Download(key string) (io.Reader, error) {
 			switch awsErr.Code() {
 			case "NotFound":
 			case s3.ErrCodeNoSuchBucket:
-				log.Debugf("bucket '%s' does not exist, error:%s", storage.bucket, err)
+				log.Tracef("bucket '%s' does not exist, error:%s", storage.bucket, err)
 				return nil, nil
 			case s3.ErrCodeNoSuchKey:
-				log.Debugf("object with key '%s' does not exist in bucket '%s', error: %s", key, storage.bucket, err)
+				log.Tracef("object with key '%s' does not exist in bucket '%s', error: %s", key, storage.bucket, err)
 				return nil, nil
 			}
 		} else {
-			log.Errorf("failed to get head for '%s', %s", key, err)
 			return nil, err
 		}
 	}

@@ -8,6 +8,7 @@ import (
 	"forklift/CacheStorage/Storages"
 	"forklift/FileManager/Tar"
 	"forklift/Lib"
+	"forklift/Lib/Logging"
 	"forklift/Lib/Rustc"
 	"forklift/Rpc"
 	"forklift/Rpc/Models"
@@ -20,8 +21,6 @@ import (
 	"path/filepath"
 )
 
-var logger = log.WithFields(log.Fields{})
-
 var WorkDir string
 
 func Run(args []string) {
@@ -31,7 +30,7 @@ func Run(args []string) {
 	wd, ok := os.LookupEnv("FORKLIFT_WORK_DIR")
 
 	if !ok || wd == "" {
-		logger.Fatalln("No `FORKLIFT_WORK_DIR` specified!")
+		log.Fatalln("No `FORKLIFT_WORK_DIR` specified!")
 		return
 	}
 
@@ -45,17 +44,19 @@ func Run(args []string) {
 	logLevel, err := log.ParseLevel(Lib.AppConfig.General.LogLevel)
 	if err != nil {
 		logLevel = log.InfoLevel
-		log.Debugf("unknown log level (verbose) `%s`, using default `info`\n", Lib.AppConfig.General.LogLevel)
+		log.Debugf("unknown log level (verbose) `%s`, using default `info`", Lib.AppConfig.General.LogLevel)
 	}
-
-	log.SetLevel(logLevel)
-
 	var wrapperTool = Rustc.NewWrapperToolFromArgs(WorkDir, &rustcArgsOnly)
 
-	var logger = log.WithFields(log.Fields{
+	var l = log.Logger{
+		Out:       os.Stdout,
+		Formatter: &Logging.ForkliftTextFormatter{Indentation: 1, TaskPrefix: "Wrapper"},
+		Level:     logLevel,
+	}
+
+	var logger = l.WithFields(log.Fields{
 		"crate": wrapperTool.CrateName,
 		"hash":  wrapperTool.CrateHash,
-		"task":  "wrapper",
 	})
 	wrapperTool.Logger = logger
 
@@ -89,51 +90,50 @@ func Run(args []string) {
 	// try get from cache
 	if wrapperTool.IsNeedProcessFromCache() && !gotRebuildDeps {
 
-		success := false
 		var retries = 3
 
 		for retries > 0 {
 			f, err := store.Download(wrapperTool.GetCachePackageName() + "_" + compressor.GetKey())
 			if f == nil && err == nil {
-				logger.Debugf("%s does not exist in storage\n", wrapperTool.GetCachePackageName())
+				logger.Debugf("%s does not exist in storage", wrapperTool.GetCachePackageName())
 				flClient.ReportStatus(wrapperTool.CrateName, Models.CacheMiss)
-				success = true
 				break
 			}
 			if err != nil {
-				logger.Errorf("download error: %s\n", err)
+				logger.Warningf("download error: %s", err)
 				retries--
 				continue
 			}
 
 			decompressed, err := compressor.Decompress(f)
 			if err != nil {
-				logger.Errorf("decompression error: %s\n", err)
+				logger.Warningf("decompression error: %s", err)
 				retries--
 				continue
 			}
 
 			err = Tar.UnPack(WorkDir, decompressed)
 			if err != nil {
-				logger.Errorf("unpack error: %s\n", err)
+				logger.Warningf("unpack error: %s", err)
 				retries--
-				success = false
 				continue
 			} else {
-				logger.Infof("Downloaded and unpacked artifacts for %s\n", wrapperTool.GetCachePackageName())
+				logger.Infof("Downloaded and unpacked artifacts for %s", wrapperTool.GetCachePackageName())
 
 				io.Copy(os.Stderr, wrapperTool.ReadStderrFile())
 				flClient.ReportStatus(wrapperTool.CrateName, Models.CacheUsed)
 
-				if retries < 3 {
+				if retries == 3 {
+					flClient.ReportStatus(wrapperTool.CrateName, Models.CacheUsed)
+				} else {
 					flClient.ReportStatus(wrapperTool.CrateName, Models.CacheUsedWithRetry)
 				}
 
 				return
 			}
 		}
-		if !success {
-			logger.Errorf("Failed to pull artifacts for %s\n", wrapperTool.GetCachePackageName())
+		if retries <= 0 {
+			logger.Errorf("Failed to pull artifacts for %s", wrapperTool.GetCachePackageName())
 			flClient.ReportStatus(wrapperTool.CrateName, Models.CacheFetchFailed)
 		}
 

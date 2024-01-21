@@ -48,7 +48,7 @@ func (uploader *Uploader) Start(queue chan Models.CacheItem, threads int) {
 
 func (uploader *Uploader) upload() {
 	var l = log.Logger{
-		Out:       os.Stdout,
+		Out:       os.Stderr,
 		Formatter: &Logging.ForkliftTextFormatter{Indentation: 1, TaskPrefix: "Uploader"},
 		Level:     log.GetLevel(),
 	}

@@ -49,7 +49,7 @@ func Run(args []string) {
 	var wrapperTool = Rustc.NewWrapperToolFromArgs(WorkDir, &rustcArgsOnly)
 
 	var l = log.Logger{
-		Out:       os.Stdout,
+		Out:       os.Stderr,
 		Formatter: &Logging.ForkliftTextFormatter{Indentation: 1, TaskPrefix: "Wrapper"},
 		Level:     logLevel,
 	}

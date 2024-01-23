@@ -78,6 +78,7 @@ func (server *ForkliftRpc) ReportStatus(report *RpcModels.CrateCacheStatusReport
 		server.StatusReport.CacheUsedWithRetry++
 	case RpcModels.CacheFetchFailed:
 		server.StatusReport.CacheFetchFailed++
+	case RpcModels.Undefined:
 	}
 
 	*result = true

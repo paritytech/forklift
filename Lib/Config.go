@@ -1,5 +1,7 @@
 package Lib
 
+import log "github.com/sirupsen/logrus"
+
 var AppConfig = ForkliftConfig{
 	Storage:     ForkliftStorage{},
 	Compression: ForkliftCompression{},
@@ -26,6 +28,7 @@ type ForkliftCompression struct {
 type ForkliftGeneral struct {
 	Params          map[string]string
 	LogLevel        string
+	LogrusLogLevel  log.Level
 	ThreadsCount    int
 	JobNameVariable string
 	JobsBlacklist   []string

@@ -2,17 +2,6 @@ package Models
 
 import "fmt"
 
-type CrateCacheStatus int
-
-const (
-	Undefined CrateCacheStatus = iota
-	CacheUsed
-	CacheMiss
-	DependencyRebuilt
-	CacheUsedWithRetry
-	CacheFetchFailed
-)
-
 type CrateCacheStatusReport struct {
 	CacheStatus CrateCacheStatus
 	CrateName   string

@@ -6,8 +6,6 @@ import (
 	"forklift/Lib"
 	"forklift/Lib/Logging"
 	"forklift/Rpc"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"os"
 	"os/exec"
 	"regexp"
@@ -15,22 +13,10 @@ import (
 
 func Run(args []string) {
 
-	var err = viper.Unmarshal(&Lib.AppConfig)
-	if err != nil {
-		log.Errorln(err)
-	}
-
-	logLevel, err := log.ParseLevel(Lib.AppConfig.General.LogLevel)
-	if err != nil {
-		logLevel = log.InfoLevel
-		log.Debugf("unknown log level (verbose) `%s`, using default `info`\n", Lib.AppConfig.General.LogLevel)
-	}
-
-	log.SetLevel(logLevel)
-	log.SetFormatter(&Logging.ForkliftTextFormatter{Indentation: 4, TaskPrefix: "Server"})
+	var logger = Logging.CreateLogger("Server", 4, nil)
 
 	if isJobInBlacklist() {
-		log.Infof("Job is blacklisted, bypassing forklift")
+		logger.Infof("Job is blacklisted, bypassing forklift")
 		BypassForklift()
 		return
 	}
@@ -39,7 +25,7 @@ func Run(args []string) {
 
 	// set RUSTC_WRAPPER env var
 	if existingVar, ok := os.LookupEnv("RUSTC_WRAPPER"); ok {
-		log.Infof("RUSTC_WRAPPER is already set: %s", existingVar)
+		logger.Infof("RUSTC_WRAPPER is already set: %s", existingVar)
 	} else {
 		//var flExecPath, _ = os.Executable()
 		//flExecPath, _ = filepath.EvalSymlinks(flExecPath)
@@ -48,7 +34,7 @@ func Run(args []string) {
 
 	// set FORKLIFT_WORK_DIR env var
 	if existingVar, ok := os.LookupEnv("FORKLIFT_WORK_DIR"); ok {
-		log.Infof("FORKLIFT_WORK_DIR is already set: %s", existingVar)
+		logger.Infof("FORKLIFT_WORK_DIR is already set: %s", existingVar)
 		flWorkDir = existingVar
 	} else {
 		var wd, _ = os.Getwd()
@@ -67,7 +53,7 @@ func Run(args []string) {
 	if threadsCount <= 0 {
 		threadsCount = 2
 	}
-	log.Infof("Uploader threads: %d", threadsCount)
+	logger.Infof("Uploader threads: %d", threadsCount)
 	uploader.Start(forkliftRpc.Uploads, threadsCount)
 
 	go rpcServer.Start(flWorkDir, forkliftRpc)
@@ -78,53 +64,57 @@ func Run(args []string) {
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 
-	err = cmd.Run()
+	var err = cmd.Run()
 
 	close(forkliftRpc.Uploads)
 	uploader.Wait()
 
-	log.Infof("Uploader finish")
+	logger.Infof("Uploader finish")
 
-	log.Infof("%s", forkliftRpc.StatusReport)
+	logger.Infof("%s", forkliftRpc.StatusReport)
 
 	rpcServer.Stop()
 	<-rpcServer.Channel
 
 	if err != nil {
-		log.Errorf("Cargo finished with error: %s", err)
+		logger.Errorf("Cargo finished with error: %s", err)
 		os.Exit(1)
 	} else {
-		log.Infof("Cargo finished successfully")
+		logger.Infof("Cargo finished successfully")
 	}
 }
 
 func isJobInBlacklist() bool {
+	var logger = Logging.CreateLogger("Server", 4, nil)
+
 	if Lib.AppConfig.General.JobNameVariable == "" {
-		log.Debugf("JobNameVariable is not set")
+		logger.Debugf("JobNameVariable is not set")
 		return false
 	}
 
 	currentJobName, ok := os.LookupEnv(Lib.AppConfig.General.JobNameVariable)
 	if !ok {
-		log.Debugf("JobNameVariable '%s' is not set", Lib.AppConfig.General.JobNameVariable)
+		logger.Debugf("JobNameVariable '%s' is not set", Lib.AppConfig.General.JobNameVariable)
 		return false
 	}
-	log.Infof("Current job name is '%s'", currentJobName)
+	logger.Infof("Current job name is '%s'", currentJobName)
 
 	for _, blacklistedJobRegex := range Lib.AppConfig.General.JobsBlacklist {
 		match, _ := regexp.MatchString(blacklistedJobRegex, currentJobName)
 
 		if match {
-			log.Infof("Job %s is blacklisted by '%s'", currentJobName, blacklistedJobRegex)
+			logger.Infof("Job %s is blacklisted by '%s'", currentJobName, blacklistedJobRegex)
 			return true
 		}
 	}
 
-	log.Debugf("Job %s is not blacklisted", currentJobName)
+	logger.Debugf("Job %s is not blacklisted", currentJobName)
 	return false
 }
 
 func BypassForklift() {
+
+	var logger = Logging.CreateLogger("Server", 4, nil)
 
 	cmd := exec.Command(os.Args[1], os.Args[2:]...)
 	cmd.Stdout = os.Stdout
@@ -133,7 +123,7 @@ func BypassForklift() {
 
 	err := cmd.Run()
 	if err != nil {
-		log.Errorf("Finished with error: %s", err)
+		logger.Errorf("Finished with error: %s", err)
 		os.Exit(1)
 	}
 }

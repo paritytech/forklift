@@ -49,6 +49,7 @@ func main() {
 		logLevel = log.InfoLevel
 		log.Debugf("unknown log level (verbose) `%s`, using default `info`\n", Lib.AppConfig.General.LogLevel)
 	}
+	Lib.AppConfig.General.LogrusLogLevel = logLevel
 	log.SetLevel(logLevel)
 
 	//log.Debugf("Checking for blacklisted jobs")

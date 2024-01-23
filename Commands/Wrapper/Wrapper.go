@@ -2,8 +2,8 @@ package Wrapper
 
 import (
 	"bytes"
-	"crypto/sha1"
-	"fmt"
+	"errors"
+	"forklift/CacheStorage"
 	"forklift/CacheStorage/Compressors"
 	"forklift/CacheStorage/Storages"
 	"forklift/FileManager/Tar"
@@ -13,8 +13,6 @@ import (
 	"forklift/Rpc"
 	"forklift/Rpc/Models"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
-	"hash"
 	"io"
 	"os"
 	"os/exec"
@@ -36,25 +34,9 @@ func Run(args []string) {
 
 	WorkDir = wd
 
-	err := viper.Unmarshal(&Lib.AppConfig)
-	if err != nil {
-		log.Errorln(err)
-	}
-
-	logLevel, err := log.ParseLevel(Lib.AppConfig.General.LogLevel)
-	if err != nil {
-		logLevel = log.InfoLevel
-		log.Debugf("unknown log level (verbose) `%s`, using default `info`", Lib.AppConfig.General.LogLevel)
-	}
 	var wrapperTool = Rustc.NewWrapperToolFromArgs(WorkDir, &rustcArgsOnly)
 
-	var l = log.Logger{
-		Out:       os.Stderr,
-		Formatter: &Logging.ForkliftTextFormatter{Indentation: 1, TaskPrefix: "Wrapper"},
-		Level:     logLevel,
-	}
-
-	var logger = l.WithFields(log.Fields{
+	logger := Logging.CreateLogger("Wrapper", 1, log.Fields{
 		"crate": wrapperTool.CrateName,
 		"hash":  wrapperTool.CrateHash,
 	})
@@ -62,8 +44,6 @@ func Run(args []string) {
 
 	store, _ := Storages.GetStorageDriver(Lib.AppConfig)
 	compressor, _ := Compressors.GetCompressor(Lib.AppConfig)
-
-	//var cachePackageName = CacheStorage.CreateCachePackageName(crateName, crateHash, outDir, compressor.GetKey())
 
 	var flClient = Rpc.NewForkliftRpcClient()
 
@@ -121,7 +101,6 @@ func Run(args []string) {
 				logger.Infof("Downloaded and unpacked artifacts for %s", wrapperTool.GetCachePackageName())
 
 				io.Copy(os.Stderr, wrapperTool.ReadStderrFile())
-				flClient.ReportStatus(wrapperTool.CrateName, Models.CacheUsed)
 
 				if retries == 3 {
 					flClient.ReportStatus(wrapperTool.CrateName, Models.CacheUsed)
@@ -142,7 +121,29 @@ func Run(args []string) {
 	}
 
 	// execute rustc
-	logger.Debugf("executing rustc")
+	logger.Infof("Executing rustc")
+	var artifacts, rustcError = ExecuteRustc(wrapperTool)
+
+	if rustcError != nil {
+		logger.Errorf("Rustc finished with error: %s", rustcError)
+		var exitError *exec.ExitError
+		if errors.As(rustcError, &exitError) {
+			os.Exit(exitError.ExitCode())
+		}
+		os.Exit(1)
+	}
+	logger.Debugf("Finished rustc")
+
+	// register rebuilt artifacts
+	RegisterRebuiltArtifacts(artifacts, flClient)
+
+	if wrapperTool.IsNeedProcessFromCache() {
+		flClient.AddUpload(wrapperTool.ToCacheItem())
+	}
+}
+
+// ExecuteRustc - execute rustc and process output
+func ExecuteRustc(wrapperTool *Rustc.WrapperTool) (*[]CacheStorage.RustcArtifact, error) {
 
 	cmd := exec.Command(os.Args[1], os.Args[2:]...)
 
@@ -157,17 +158,23 @@ func Run(args []string) {
 
 	rustcStdin2 := bytes.Buffer{}
 	stdinWriter := io.MultiWriter(&rustcStdin2, &rustcStdin)
-
 	cmd.Stdin = &rustcStdin
 	io.Copy(stdinWriter, os.Stdin)
 
 	var runErr = cmd.Run()
+	if runErr != nil {
+		return nil, runErr
+	}
 
 	wrapperTool.WriteIOStreamFile(&rustcStdout, "stdout")
 	artifacts := wrapperTool.WriteStderrFile(&rustcStderr)
 	wrapperTool.WriteIOStreamFile(&rustcStdin2, "stdin")
 
-	// register rebuilt artifacts path
+	return artifacts, nil
+}
+
+// RegisterRebuiltArtifacts - register rebuilt artifacts
+func RegisterRebuiltArtifacts(artifacts *[]CacheStorage.RustcArtifact, flClient *Rpc.ForkliftRpcClient) {
 	var artifactsPaths = make([]string, 0)
 	for _, artifact := range *artifacts {
 		var abs = filepath.Base(artifact.Artifact)
@@ -175,92 +182,4 @@ func Run(args []string) {
 		artifactsPaths = append(artifactsPaths, abs)
 	}
 	flClient.RegisterExternDeps(&artifactsPaths)
-
-	if runErr != nil {
-		if serr, ok := err.(*exec.ExitError); ok {
-			os.Exit(serr.ExitCode())
-		}
-		os.Exit(1)
-	}
-
-	logger.Debugf("Finished rustc")
-
-	if wrapperTool.IsNeedProcessFromCache() {
-		flClient.AddUpload(wrapperTool.ToCacheItem())
-		//wrapperTool.WriteToItemCacheFile()
-	}
-}
-
-func hasCargoToml(path string) bool {
-	var cargoTomls, err = filepath.Glob(filepath.Join(path, "Cargo.toml"))
-	if err != nil {
-		log.Panicf("Error: %s", err)
-	}
-	//log.Debugf("cargo tomls: %d", len(cargoTomls))
-	return len(cargoTomls) > 0
-}
-
-func calcChecksum2(wrapperTool *Rustc.WrapperTool) bool {
-
-	var path = wrapperTool.SourceFile
-
-	path = filepath.Dir(path)
-
-	for {
-		if hasCargoToml(path) {
-			break
-		} else {
-			path = filepath.Dir(path)
-		}
-	}
-
-	wrapperTool.Logger.Tracef("Cargo.toml found in %s", path)
-
-	var sha = sha1.New()
-	checksum(path, sha, true)
-	wrapperTool.CrateSourceChecksum = fmt.Sprintf("%x", sha.Sum(nil))
-	return true
-}
-
-func checksum(path string, hash hash.Hash, root bool) {
-	var entries, _ = os.ReadDir(path)
-
-	/*if !root && hasCargoToml(path) {
-		return
-	}*/
-
-	for _, entry := range entries {
-
-		if root && needIgnore(entry.Name()) {
-			continue
-		}
-
-		if entry.IsDir() {
-			checksum(filepath.Join(path, entry.Name()), hash, false)
-		} else {
-			var file, _ = os.Open(filepath.Join(path, entry.Name()))
-			io.Copy(hash, file)
-			file.Close()
-		}
-	}
-}
-
-// needIgnore returns true if entryName should be ignored
-func needIgnore(entryName string) bool {
-	var ignorePatterns = []string{
-		".git",
-		".idea",
-		".vscode",
-		".cargo",
-		"target",
-		".forklift",
-	}
-
-	for _, pattern := range ignorePatterns {
-		if pattern == entryName {
-			return true
-		}
-	}
-
-	return false
 }

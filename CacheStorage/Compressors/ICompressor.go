@@ -24,6 +24,6 @@ func NewForkliftCompressorError(message string, err error) *ForkliftCompressorEr
 	}
 }
 
-func (fce *ForkliftCompressorError) String() string {
+func (fce *ForkliftCompressorError) Error() string {
 	return fmt.Sprintf("Compressor error: %s, inner error: %v", fce.Message, fce.Err)
 }

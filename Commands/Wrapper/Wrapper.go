@@ -137,7 +137,7 @@ func TryUseCache(wrapperTool *Rustc.WrapperTool, logger *log.Entry, cacheUsageRe
 		if f == nil && err == nil {
 			logger.Debugf("%s does not exist in storage", wrapperTool.GetCachePackageName())
 			cacheUsageReport.Status = CacheUsage.CacheMiss
-			return true
+			return false
 		}
 		if err != nil {
 			logger.Warningf("download error: %s", err)

@@ -8,10 +8,11 @@ import (
 	"forklift/CacheStorage/Storages"
 	"forklift/FileManager/Tar"
 	"forklift/Lib"
+	"forklift/Lib/Diagnostic/Time"
 	"forklift/Lib/Logging"
 	"forklift/Lib/Rustc"
 	"forklift/Rpc"
-	"forklift/Rpc/Models"
+	"forklift/Rpc/Models/CacheUsage"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"os"
@@ -42,12 +43,15 @@ func Run(args []string) {
 	})
 	wrapperTool.Logger = logger
 
-	store, _ := Storages.GetStorageDriver(Lib.AppConfig)
-	compressor, _ := Compressors.GetCompressor(Lib.AppConfig)
-
 	var flClient = Rpc.NewForkliftRpcClient()
 
-	//check deps
+	var cacheUsageReport = CacheUsage.StatusReport{
+		CrateName: wrapperTool.CrateName,
+	}
+
+	// Real work starts here
+
+	// check deps
 	var deps = Rustc.GetExternDeps(&rustcArgsOnly, true)
 	var rebuiltDep = flClient.CheckExternDeps(deps)
 	var gotRebuildDeps = true
@@ -55,91 +59,140 @@ func Run(args []string) {
 		gotRebuildDeps = false
 	}
 
+	if !wrapperTool.IsNeedProcessFromCache() {
+		logger.Debugf("No need to use cache for %s", wrapperTool.CrateName)
+		var rustcError = BypassRustc()
+		if rustcError != nil {
+			var exitError *exec.ExitError
+			if errors.As(rustcError, &exitError) {
+				os.Exit(exitError.ExitCode())
+			}
+			os.Exit(1)
+		}
+		return
+	}
+
 	if gotRebuildDeps {
 		logger.Debugf("Got rebuilt dep: %s", rebuiltDep)
-		flClient.ReportStatus(wrapperTool.CrateName, Models.DependencyRebuilt)
+		cacheUsageReport.Status = CacheUsage.DependencyRebuilt
+		//flClient.ReportStatus(wrapperTool.CrateName, CacheUsage.DependencyRebuilt)
 	} else {
 		logger.Debugf("No rebuilt deps")
 	}
 
 	// calc sources checksum
-	if wrapperTool.IsNeedProcessFromCache() {
-		calcChecksum2(wrapperTool)
-	}
+	//if wrapperTool.IsNeedProcessFromCache() {
+	calcChecksum2(wrapperTool)
+	//}
 
+	var cacheHit = false
 	// try get from cache
-	if wrapperTool.IsNeedProcessFromCache() && !gotRebuildDeps {
-
-		var retries = 3
-
-		for retries > 0 {
-			f, err := store.Download(wrapperTool.GetCachePackageName() + "_" + compressor.GetKey())
-			if f == nil && err == nil {
-				logger.Debugf("%s does not exist in storage", wrapperTool.GetCachePackageName())
-				flClient.ReportStatus(wrapperTool.CrateName, Models.CacheMiss)
-				break
-			}
-			if err != nil {
-				logger.Warningf("download error: %s", err)
-				retries--
-				continue
-			}
-
-			decompressed, err := compressor.Decompress(f)
-			if err != nil {
-				logger.Warningf("decompression error: %s", err)
-				retries--
-				continue
-			}
-
-			err = Tar.UnPack(WorkDir, decompressed)
-			if err != nil {
-				logger.Warningf("unpack error: %s", err)
-				retries--
-				continue
-			} else {
-				logger.Infof("Downloaded and unpacked artifacts for %s", wrapperTool.GetCachePackageName())
-
-				io.Copy(os.Stderr, wrapperTool.ReadStderrFile())
-
-				if retries == 3 {
-					flClient.ReportStatus(wrapperTool.CrateName, Models.CacheUsed)
-				} else {
-					flClient.ReportStatus(wrapperTool.CrateName, Models.CacheUsedWithRetry)
-				}
-
-				return
-			}
-		}
-		if retries <= 0 {
-			logger.Errorf("Failed to pull artifacts for %s", wrapperTool.GetCachePackageName())
-			flClient.ReportStatus(wrapperTool.CrateName, Models.CacheFetchFailed)
-		}
-
-	} else {
-		logger.Debugf("No need to use cache for %s", wrapperTool.CrateName)
+	if !gotRebuildDeps {
+		cacheHit = TryUseCache(wrapperTool, logger, &cacheUsageReport)
 	}
 
-	// execute rustc
-	logger.Infof("Executing rustc")
-	var artifacts, rustcError = ExecuteRustc(wrapperTool)
+	if !cacheHit {
+		// execute rustc
+		Time.Start("rustc")
+		logger.Infof("Executing rustc")
+		cacheUsageReport.RustcTime += Time.Stop("rustc")
+		var artifacts, rustcError = ExecuteRustc(wrapperTool)
 
-	if rustcError != nil {
-		logger.Errorf("Rustc finished with error: %s", rustcError)
-		var exitError *exec.ExitError
-		if errors.As(rustcError, &exitError) {
-			os.Exit(exitError.ExitCode())
+		if rustcError != nil {
+			logger.Errorf("Rustc finished with error: %s", rustcError)
+			var exitError *exec.ExitError
+			if errors.As(rustcError, &exitError) {
+				os.Exit(exitError.ExitCode())
+			}
+			os.Exit(1)
 		}
-		os.Exit(1)
-	}
-	logger.Debugf("Finished rustc")
+		logger.Debugf("Finished rustc")
 
-	// register rebuilt artifacts
-	RegisterRebuiltArtifacts(artifacts, flClient)
+		// register rebuilt artifacts
+		RegisterRebuiltArtifacts(artifacts, flClient)
 
-	if wrapperTool.IsNeedProcessFromCache() {
+		//if wrapperTool.IsNeedProcessFromCache() {
 		flClient.AddUpload(wrapperTool.ToCacheItem())
+		//}
 	}
+
+	//if wrapperTool.IsNeedProcessFromCache() {
+	flClient.ReportStatusObject(cacheUsageReport)
+	//}
+}
+
+// TryUseCache - try to use cache, return false if failed
+func TryUseCache(wrapperTool *Rustc.WrapperTool, logger *log.Entry, cacheUsageReport *CacheUsage.StatusReport) bool {
+
+	store, _ := Storages.GetStorageDriver(Lib.AppConfig)
+	compressor, _ := Compressors.GetCompressor(Lib.AppConfig)
+
+	var retries = 3
+	for retries > 0 {
+		// try download
+		Time.Start("download")
+		f, err := store.Download(wrapperTool.GetCachePackageName() + "_" + compressor.GetKey())
+		cacheUsageReport.DownloadTime += Time.Stop("download")
+
+		if f == nil && err == nil {
+			logger.Debugf("%s does not exist in storage", wrapperTool.GetCachePackageName())
+			cacheUsageReport.Status = CacheUsage.CacheMiss
+			return true
+		}
+		if err != nil {
+			logger.Warningf("download error: %s", err)
+			retries--
+			continue
+		}
+
+		// try decompress
+		Time.Start("decompress")
+		decompressed, err := compressor.Decompress(f)
+		cacheUsageReport.DecompressTime += Time.Stop("decompress")
+		if err != nil {
+			logger.Warningf("decompression error: %s", err)
+			retries--
+			continue
+		}
+
+		// try unpack
+		Time.Start("unpack")
+		err = Tar.UnPack(WorkDir, decompressed)
+		cacheUsageReport.UnpackTime += Time.Stop("unpack")
+		if err != nil {
+			logger.Warningf("unpack error: %s", err)
+			retries--
+			continue
+		} else {
+
+			io.Copy(os.Stderr, wrapperTool.ReadStderrFile())
+			logger.Infof("Downloaded and unpacked artifacts for %s", wrapperTool.GetCachePackageName())
+
+			if retries == 3 {
+				cacheUsageReport.Status = CacheUsage.CacheHit
+			} else {
+				cacheUsageReport.Status = CacheUsage.CacheHitWithRetry
+			}
+
+			return true
+		}
+	}
+	if retries <= 0 {
+		logger.Errorf("Failed to pull artifacts for %s", wrapperTool.GetCachePackageName())
+		cacheUsageReport.Status = CacheUsage.CacheFetchFailed
+	}
+	return false
+}
+
+func BypassRustc() error {
+	var rustcArgsOnly = os.Args[2:]
+	var cmd = exec.Command(os.Args[1], rustcArgsOnly...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	var rustcError = cmd.Run()
+
+	return rustcError
 }
 
 // ExecuteRustc - execute rustc and process output

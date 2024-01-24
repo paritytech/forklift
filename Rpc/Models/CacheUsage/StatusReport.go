@@ -1,0 +1,57 @@
+package CacheUsage
+
+import (
+	"fmt"
+	"time"
+)
+
+type StatusReport struct {
+	Status         Status
+	CrateName      string
+	DownloadTime   time.Duration
+	DecompressTime time.Duration
+	UnpackTime     time.Duration
+	RustcTime      time.Duration
+}
+
+type ForkliftCacheStatusReport struct {
+	TotalCrates         int
+	CacheUsed           int
+	CacheMiss           int
+	DependencyRebuilt   int
+	CacheUsedWithRetry  int
+	CacheFetchFailed    int
+	CacheMissCrates     []string
+	TotalForkliftTime   time.Duration
+	TotalDownloadTime   time.Duration
+	TotalDecompressTime time.Duration
+	TotalUnpackTime     time.Duration
+	TotalRustcTime      time.Duration
+}
+
+func (s ForkliftCacheStatusReport) String() string {
+	return fmt.Sprintf(
+		"Cache report:\n"+
+			"      Total crates processed: %d\n"+
+			"      Cache hit:              %d\n"+
+			"      Cache hit with retry:   %d\n"+
+			"      Cache miss:             %d\n"+
+			"      Dependency rebuilt:     %d\n"+
+			"      Cache fetch fail:       %d\n"+
+			"      Total forklift time:    %s\n"+
+			"      Download time:          %s\n"+
+			"      Decompress time:        %s\n"+
+			"      Unpack time:            %s\n"+
+			"      Rustc time:             %s\n",
+		s.TotalCrates,
+		s.CacheUsed,
+		s.CacheUsedWithRetry,
+		s.CacheMiss,
+		s.DependencyRebuilt,
+		s.CacheFetchFailed,
+		s.TotalForkliftTime,
+		s.TotalDownloadTime.Truncate(time.Millisecond),
+		s.TotalDecompressTime.Truncate(time.Millisecond),
+		s.TotalUnpackTime.Truncate(time.Millisecond),
+		s.TotalRustcTime.Truncate(time.Millisecond))
+}

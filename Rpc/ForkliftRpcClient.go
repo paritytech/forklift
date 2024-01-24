@@ -2,7 +2,7 @@ package Rpc
 
 import (
 	"forklift/FileManager/Models"
-	RpcModels "forklift/Rpc/Models"
+	CacheUsage "forklift/Rpc/Models/CacheUsage"
 	log "github.com/sirupsen/logrus"
 	"net/rpc"
 	"os"
@@ -78,16 +78,25 @@ func (client *ForkliftRpcClient) AddUpload(cacheItem Models.CacheItem) {
 	}
 }
 
-func (client *ForkliftRpcClient) ReportStatus(crateName string, status RpcModels.CrateCacheStatus) {
+func (client *ForkliftRpcClient) ReportStatus(crateName string, status CacheUsage.Status) {
 	var result bool
 
-	var cacheStatusReport = RpcModels.CrateCacheStatusReport{
-		CrateName:   crateName,
-		CacheStatus: status,
+	var cacheStatusReport = CacheUsage.StatusReport{
+		CrateName: crateName,
+		Status:    status,
 	}
 
 	err := client.rpcClient.Call("ForkliftRpc.ReportStatus", &cacheStatusReport, &result)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+	}
+}
+
+func (client *ForkliftRpcClient) ReportStatusObject(report CacheUsage.StatusReport) {
+	var result bool
+
+	err := client.rpcClient.Call("ForkliftRpc.ReportStatus", &report, &result)
+	if err != nil {
+		log.Error(err)
 	}
 }

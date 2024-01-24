@@ -27,9 +27,6 @@ func NewForkliftServer() *ForkliftRpcServer {
 
 // Stop - stop rpc server
 func (server *ForkliftRpcServer) Stop() {
-	if isStopRequested {
-		return
-	}
 	server.isStopRequested = true
 	err := server.socket.Close()
 	if err != nil {
@@ -62,23 +59,15 @@ func (server *ForkliftRpcServer) Start(workDir string, forkliftRpc *ForkliftRpc)
 		log.Fatalln(err)
 	}
 
-	var controlRpc = NewControlRpc()
-	err = server.goRpcServer.Register(controlRpc)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
 	server.socket, err = net.Listen("unix", "forklift.sock")
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	for !controlRpc.IsStopRequested() && !server.isStopRequested {
+	for !server.isStopRequested {
 		var con, e = server.socket.Accept()
 		if e == nil {
 			go server.goRpcServer.ServeConn(con)
 		}
 	}
-
-	server.Channel <- true
 }

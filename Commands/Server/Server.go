@@ -74,7 +74,6 @@ func Run(args []string) {
 	logger.Infof("%s", forkliftRpc.StatusReport)
 
 	rpcServer.Stop()
-	<-rpcServer.Channel
 
 	if err != nil {
 		logger.Errorf("Cargo finished with error: %s", err)
@@ -84,6 +83,7 @@ func Run(args []string) {
 	}
 }
 
+// isJobInBlacklist - check if current job is in blacklist
 func isJobInBlacklist() bool {
 	var logger = Logging.CreateLogger("Server", 4, nil)
 
@@ -112,6 +112,7 @@ func isJobInBlacklist() bool {
 	return false
 }
 
+// BypassForklift - bypass forklift
 func BypassForklift() {
 
 	var logger = Logging.CreateLogger("Server", 4, nil)

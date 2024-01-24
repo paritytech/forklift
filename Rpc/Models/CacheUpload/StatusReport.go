@@ -1,22 +1,28 @@
-package Models
+package CacheUpload
 
-import "fmt"
+import (
+	"time"
+)
 
-type CrateCacheStatusReport struct {
-	CacheStatus CrateCacheStatus
-	CrateName   string
+type StatusReport struct {
+	Status       Status
+	CrateName    string
+	UploadTime   time.Duration
+	CompressTime time.Duration
+	PackTime     time.Duration
 }
 
 type ForkliftCacheStatusReport struct {
-	TotalCrates        int
-	CacheUsed          int
-	CacheMiss          int
-	DependencyRebuilt  int
-	CacheUsedWithRetry int
-	CacheFetchFailed   int
-	CacheMissCrates    []string
+	Total             int
+	Uploaded          int
+	UploadedWithRetry int
+	Failed            int
+	TotalUploadTime   time.Duration
+	TotalCompressTime time.Duration
+	TotalPackTime     time.Duration
 }
 
+/*
 func (s ForkliftCacheStatusReport) String() string {
 	return fmt.Sprintf(
 		"Cache report:\n"+
@@ -27,4 +33,4 @@ func (s ForkliftCacheStatusReport) String() string {
 			"      Dependency rebuilt: %d\n"+
 			"      Cache package fetch fail: %d\n",
 		s.TotalCrates, s.CacheUsed, s.CacheUsedWithRetry, s.CacheMiss, s.DependencyRebuilt, s.CacheFetchFailed)
-}
+}*/

@@ -2,7 +2,7 @@ package Rpc
 
 import (
 	"forklift/FileManager/Models"
-	RpcModels "forklift/Rpc/Models"
+	CacheUsage "forklift/Rpc/Models/CacheUsage"
 	log "github.com/sirupsen/logrus"
 	"sync"
 )
@@ -12,7 +12,7 @@ type ForkliftRpc struct {
 	Uploads       chan Models.CacheItem
 	depsCheckLock sync.RWMutex
 	reportLock    sync.RWMutex
-	StatusReport  RpcModels.ForkliftCacheStatusReport
+	StatusReport  CacheUsage.ForkliftCacheStatusReport
 }
 
 func NewForkliftRpc() *ForkliftRpc {
@@ -21,7 +21,7 @@ func NewForkliftRpc() *ForkliftRpc {
 		Extern:        make(map[string]bool),
 		Uploads:       uploads,
 		depsCheckLock: sync.RWMutex{},
-		StatusReport:  RpcModels.ForkliftCacheStatusReport{},
+		StatusReport:  CacheUsage.ForkliftCacheStatusReport{},
 	}
 	return &srv
 }
@@ -60,26 +60,29 @@ func (server *ForkliftRpc) AddUpload(cacheItem Models.CacheItem, result *bool) e
 	return nil
 }
 
-func (server *ForkliftRpc) ReportStatus(report *RpcModels.CrateCacheStatusReport, result *bool) error {
-
+func (server *ForkliftRpc) ReportStatus(report *CacheUsage.StatusReport, result *bool) error {
 	server.reportLock.Lock()
 	defer server.reportLock.Unlock()
 
 	server.StatusReport.TotalCrates++
 
-	switch report.CacheStatus {
-	case RpcModels.CacheUsed:
+	switch report.Status {
+	case CacheUsage.CacheHit:
 		server.StatusReport.CacheUsed++
-	case RpcModels.CacheMiss:
+	case CacheUsage.CacheMiss:
 		server.StatusReport.CacheMiss++
-	case RpcModels.DependencyRebuilt:
+	case CacheUsage.DependencyRebuilt:
 		server.StatusReport.DependencyRebuilt++
-	case RpcModels.CacheUsedWithRetry:
+	case CacheUsage.CacheHitWithRetry:
 		server.StatusReport.CacheUsedWithRetry++
-	case RpcModels.CacheFetchFailed:
+	case CacheUsage.CacheFetchFailed:
 		server.StatusReport.CacheFetchFailed++
-	case RpcModels.Undefined:
+	case CacheUsage.Undefined:
 	}
+
+	server.StatusReport.TotalDownloadTime += report.DownloadTime
+	server.StatusReport.TotalDecompressTime += report.DecompressTime
+	server.StatusReport.TotalUnpackTime += report.UnpackTime
 
 	*result = true
 	return nil

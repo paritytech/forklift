@@ -39,4 +39,5 @@ type ForkliftGeneral struct {
 type ForkliftMetrics struct {
 	Enabled      bool
 	PushEndpoint string
+	ExtraLabels  map[string]string
 }

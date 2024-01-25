@@ -29,6 +29,7 @@ func main() {
 	viper.SetDefault("general.params", map[string]string{})
 	viper.SetDefault("general.threadsCount", 0)
 	viper.SetDefault("metrics.enabled", false)
+	viper.SetDefault("metrics.extraLabels", map[string]string{})
 
 	log.SetFormatter(&log.TextFormatter{})
 
@@ -52,8 +53,6 @@ func main() {
 	}
 	Lib.AppConfig.General.LogrusLogLevel = logLevel
 	log.SetLevel(logLevel)
-
-	//log.Debugf("Checking for blacklisted jobs")
 
 	if len(os.Args) > 1 &&
 		(strings.Contains(os.Args[1], "rustc") || strings.Contains(os.Args[1], "clippy-driver")) {

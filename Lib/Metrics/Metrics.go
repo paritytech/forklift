@@ -13,7 +13,7 @@ import (
 func PushMetrics(
 	usageReport *CacheUsage.ForkliftCacheStatusReport,
 	uploadReport *CacheUpload.ForkliftCacheStatusReport,
-	commonLabels map[string]string) {
+	extraLabels map[string]string) {
 
 	var logger = Logging.CreateLogger("Server", 4, nil)
 
@@ -30,8 +30,8 @@ func PushMetrics(
 
 	_, err := client.Write(context.Background(), &promwrite.WriteRequest{
 		TimeSeries: append(
-			createUsageTimeSeries(usageReport, commonLabels),
-			createUploadTimeSeries(uploadReport, commonLabels)...),
+			createUsageTimeSeries(usageReport, extraLabels),
+			createUploadTimeSeries(uploadReport, extraLabels)...),
 	})
 
 	if err != nil {
@@ -41,12 +41,12 @@ func PushMetrics(
 	}
 }
 
-func createUploadTimeSeries(report *CacheUpload.ForkliftCacheStatusReport, commonLabels map[string]string) []promwrite.TimeSeries {
+func createUploadTimeSeries(report *CacheUpload.ForkliftCacheStatusReport, extraLabels map[string]string) []promwrite.TimeSeries {
 	var timeNow = time.Now()
 
 	var cacheHitBase = NewIndicator("forklift_wrapper_caching_cache_hit")
 	cacheHitBase.Time = timeNow
-	cacheHitBase.SetLabels(commonLabels)
+	cacheHitBase.SetLabels(extraLabels)
 
 	var timeSeries = []promwrite.TimeSeries{
 		// upload
@@ -54,55 +54,55 @@ func createUploadTimeSeries(report *CacheUpload.ForkliftCacheStatusReport, commo
 			map[string]string{
 				"status": "uploaded",
 			},
-			commonLabels,
+			extraLabels,
 		).ToTimeSeries(),
 		NewIndicatorFull("forklift_uploader_uploading_status", timeNow, float64(report.UploadedWithRetry),
 			map[string]string{
 				"status": "warning",
 			},
-			commonLabels,
+			extraLabels,
 		).ToTimeSeries(),
 		NewIndicatorFull("forklift_uploader_uploading_status", timeNow, float64(report.Failed),
 			map[string]string{
 				"status": "fail",
 			},
-			commonLabels,
+			extraLabels,
 		).ToTimeSeries(),
 
 		// time
 		NewIndicatorFull("forklift_uploader_uploading_time_total", timeNow, float64(report.TotalUploaderWorkTime.Milliseconds()),
 			map[string]string{},
-			commonLabels,
+			extraLabels,
 		).ToTimeSeries(),
 		NewIndicatorFull("forklift_uploader_uploading_time_task", timeNow, float64(report.TotalPackTime.Milliseconds()),
 			map[string]string{
 				"task": "pack",
 			},
-			commonLabels,
+			extraLabels,
 		).ToTimeSeries(),
 		NewIndicatorFull("forklift_uploader_uploading_time_task", timeNow, float64(report.TotalCompressTime.Milliseconds()),
 			map[string]string{
 				"task": "compress",
 			},
-			commonLabels,
+			extraLabels,
 		).ToTimeSeries(),
 		NewIndicatorFull("forklift_uploader_uploading_time_task", timeNow, float64(report.TotalUploadTime.Milliseconds()),
 			map[string]string{
 				"task": "upload",
 			},
-			commonLabels,
+			extraLabels,
 		).ToTimeSeries(),
 	}
 
 	return timeSeries
 }
 
-func createUsageTimeSeries(report *CacheUsage.ForkliftCacheStatusReport, commonLabels map[string]string) []promwrite.TimeSeries {
+func createUsageTimeSeries(report *CacheUsage.ForkliftCacheStatusReport, extraLabels map[string]string) []promwrite.TimeSeries {
 	var timeNow = time.Now()
 
 	var cacheHitBase = NewIndicator("forklift_wrapper_caching_cache_hit")
 	cacheHitBase.Time = timeNow
-	cacheHitBase.SetLabels(commonLabels)
+	cacheHitBase.SetLabels(extraLabels)
 
 	var timeSeries = []promwrite.TimeSeries{
 		// hit
@@ -110,13 +110,13 @@ func createUsageTimeSeries(report *CacheUsage.ForkliftCacheStatusReport, commonL
 			map[string]string{
 				"status": "hit",
 			},
-			commonLabels,
+			extraLabels,
 		).ToTimeSeries(),
 		NewIndicatorFull("forklift_wrapper_caching_cache_hit", timeNow, float64(report.CacheHitWithRetry),
 			map[string]string{
 				"status": "warning",
 			},
-			commonLabels,
+			extraLabels,
 		).ToTimeSeries(),
 
 		// miss
@@ -124,25 +124,25 @@ func createUsageTimeSeries(report *CacheUsage.ForkliftCacheStatusReport, commonL
 			map[string]string{
 				"status": "miss",
 			},
-			commonLabels,
+			extraLabels,
 		).ToTimeSeries(),
 		NewIndicatorFull("forklift_wrapper_caching_cache_miss", timeNow, float64(report.CacheFetchFailed),
 			map[string]string{
 				"status": "fail",
 			},
-			commonLabels,
+			extraLabels,
 		).ToTimeSeries(),
 		NewIndicatorFull("forklift_wrapper_caching_cache_miss", timeNow, float64(report.DependencyRebuilt),
 			map[string]string{
 				"status": "dep_rebuilt",
 			},
-			commonLabels,
+			extraLabels,
 		).ToTimeSeries(),
 
 		// timeNow total
 		NewIndicatorFull("forklift_wrapper_caching_time_total", timeNow, float64(report.TotalForkliftTime.Milliseconds()),
 			map[string]string{},
-			commonLabels,
+			extraLabels,
 		).ToTimeSeries(),
 
 		// timeNow tasks
@@ -150,25 +150,25 @@ func createUsageTimeSeries(report *CacheUsage.ForkliftCacheStatusReport, commonL
 			map[string]string{
 				"task": "download",
 			},
-			commonLabels,
+			extraLabels,
 		).ToTimeSeries(),
 		NewIndicatorFull("forklift_wrapper_caching_time_task", timeNow, float64(report.TotalDecompressTime.Milliseconds()),
 			map[string]string{
 				"task": "decompress",
 			},
-			commonLabels,
+			extraLabels,
 		).ToTimeSeries(),
 		NewIndicatorFull("forklift_wrapper_caching_time_task", timeNow, float64(report.TotalUnpackTime.Milliseconds()),
 			map[string]string{
 				"task": "unpack",
 			},
-			commonLabels,
+			extraLabels,
 		).ToTimeSeries(),
 		NewIndicatorFull("forklift_wrapper_caching_time_task", timeNow, float64(report.TotalRustcTime.Milliseconds()),
 			map[string]string{
 				"task": "rustc",
 			},
-			commonLabels,
+			extraLabels,
 		).ToTimeSeries(),
 	}
 

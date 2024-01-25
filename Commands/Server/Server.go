@@ -81,20 +81,20 @@ func Run(args []string) {
 	logger.Infof("%s", forkliftRpc.StatusReport)
 	logger.Infof("%s", uploader.StatusReport)
 
-	var commonLabels = map[string]string{}
-
-	if currentJobName := getCurrentJobName(); currentJobName != "" {
-		commonLabels["job_name"] = currentJobName
-	}
-
-	Metrics.PushMetrics(&forkliftRpc.StatusReport, &uploader.StatusReport, commonLabels)
+	var extraLabels = Lib.AppConfig.Metrics.ExtraLabels
+	extraLabels["storage"] = Lib.AppConfig.Storage.Type
+	extraLabels["compressor"] = compressor.GetKey()
 
 	rpcServer.Stop()
 
 	if err != nil {
+		extraLabels["job_result"] = "fail"
+		Metrics.PushMetrics(&forkliftRpc.StatusReport, &uploader.StatusReport, extraLabels)
 		logger.Errorf("Cargo finished with error: %s", err)
 		os.Exit(1)
 	} else {
+		extraLabels["job_result"] = "success"
+		Metrics.PushMetrics(&forkliftRpc.StatusReport, &uploader.StatusReport, extraLabels)
 		logger.Infof("Cargo finished successfully")
 	}
 }

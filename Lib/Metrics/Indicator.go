@@ -20,7 +20,7 @@ func NewIndicator(name string) *Indicator {
 	}
 }
 
-func NewIndicatorFull(name string, time time.Time, value float64, labels map[string]string, commonLabels map[string]string) *Indicator {
+func NewIndicatorFull(name string, time time.Time, value float64, labels map[string]string, extraLabels map[string]string) *Indicator {
 	var indicator = &Indicator{
 		Name:  name,
 		Time:  time,
@@ -28,8 +28,7 @@ func NewIndicatorFull(name string, time time.Time, value float64, labels map[str
 	}
 
 	indicator.SetLabels(labels)
-	indicator.
-		AddLabels(commonLabels)
+	indicator.AddLabels(extraLabels)
 
 	return indicator
 }

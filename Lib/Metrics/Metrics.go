@@ -71,26 +71,24 @@ func createUploadTimeSeries(report *CacheUpload.ForkliftCacheStatusReport, commo
 
 		// time
 		NewIndicatorFull("forklift_uploader_uploading_time_total", timeNow, float64(report.TotalUploaderWorkTime.Milliseconds()),
-			map[string]string{
-				"status": "fail",
-			},
+			map[string]string{},
 			commonLabels,
 		).ToTimeSeries(),
 		NewIndicatorFull("forklift_uploader_uploading_time_task", timeNow, float64(report.TotalPackTime.Milliseconds()),
 			map[string]string{
-				"status": "pack",
+				"task": "pack",
 			},
 			commonLabels,
 		).ToTimeSeries(),
 		NewIndicatorFull("forklift_uploader_uploading_time_task", timeNow, float64(report.TotalCompressTime.Milliseconds()),
 			map[string]string{
-				"status": "compress",
+				"task": "compress",
 			},
 			commonLabels,
 		).ToTimeSeries(),
 		NewIndicatorFull("forklift_uploader_uploading_time_task", timeNow, float64(report.TotalUploadTime.Milliseconds()),
 			map[string]string{
-				"status": "upload",
+				"task": "upload",
 			},
 			commonLabels,
 		).ToTimeSeries(),

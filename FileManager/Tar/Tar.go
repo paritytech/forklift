@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"crypto/sha1"
+	"errors"
 	log "github.com/sirupsen/logrus"
 	"hash"
 	"io"
@@ -13,7 +14,7 @@ import (
 )
 
 // Pack - Pack forklift tar archive
-func Pack(fsEntries []string) (io.Reader, hash.Hash) {
+func Pack(fsEntries []string) (io.Reader, hash.Hash, error) {
 
 	var buf bytes.Buffer
 	tw := tar.NewWriter(&buf)
@@ -25,7 +26,7 @@ func Pack(fsEntries []string) (io.Reader, hash.Hash) {
 		log.Tracef("packing %s", fsEntry)
 		var info, e = os.Stat(fsEntry)
 		if e != nil {
-			log.Error(e)
+			return nil, nil, e
 		}
 		if info.IsDir() {
 			PackDirectory(tw, fsEntry, sha)
@@ -35,10 +36,10 @@ func Pack(fsEntries []string) (io.Reader, hash.Hash) {
 	}
 
 	if buf.Len() <= 0 {
-		return nil, nil
+		return nil, nil, errors.New("empty archive")
 	}
 
-	return &buf, sha
+	return &buf, sha, nil
 }
 
 func PackDirectory(tarWriter *tar.Writer, dirPath string, hash hash.Hash) {

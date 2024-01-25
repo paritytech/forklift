@@ -5,29 +5,35 @@ import (
 	"time"
 )
 
-var timers = make(map[string]time.Time)
-var lock sync.RWMutex
-
 type ForkliftTimer struct {
+	timers map[string]time.Time
+	lock   sync.RWMutex
 }
 
-func Start(name string) {
-	lock.Lock()
-	defer lock.Unlock()
-
-	timers[name] = time.Now()
+func NewForkliftTimer() *ForkliftTimer {
+	return &ForkliftTimer{
+		timers: make(map[string]time.Time),
+		lock:   sync.RWMutex{},
+	}
 }
 
-func Stop(name string) time.Duration {
-	lock.Lock()
-	defer lock.Unlock()
+func (timer *ForkliftTimer) Start(name string) {
+	timer.lock.Lock()
+	defer timer.lock.Unlock()
 
-	var start = timers[name]
-	delete(timers, name)
+	timer.timers[name] = time.Now()
+}
+
+func (timer *ForkliftTimer) Stop(name string) time.Duration {
+	timer.lock.Lock()
+	defer timer.lock.Unlock()
+
+	var start = timer.timers[name]
+	delete(timer.timers, name)
 	return time.Since(start)
 }
 
-func (ft *ForkliftTimer) MeasureTime(worker func()) time.Duration {
+func (timer *ForkliftTimer) MeasureTime(worker func()) time.Duration {
 	var start = time.Now()
 	worker()
 	return time.Since(start)

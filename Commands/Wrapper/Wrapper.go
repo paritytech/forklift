@@ -26,6 +26,8 @@ func Run(args []string) {
 
 	var rustcArgsOnly = args[1:]
 
+	var timer = Time.NewForkliftTimer()
+
 	wd, ok := os.LookupEnv("FORKLIFT_WORK_DIR")
 
 	if !ok || wd == "" {
@@ -93,9 +95,9 @@ func Run(args []string) {
 
 	if !cacheHit {
 		// execute rustc
-		Time.Start("rustc")
+		timer.Start("rustc")
 		logger.Infof("Executing rustc")
-		cacheUsageReport.RustcTime += Time.Stop("rustc")
+		cacheUsageReport.RustcTime += timer.Stop("rustc")
 		var artifacts, rustcError = ExecuteRustc(wrapperTool)
 
 		if rustcError != nil {
@@ -124,15 +126,17 @@ func Run(args []string) {
 // TryUseCache - try to use cache, return false if failed
 func TryUseCache(wrapperTool *Rustc.WrapperTool, logger *log.Entry, cacheUsageReport *CacheUsage.StatusReport) bool {
 
+	var timer = Time.NewForkliftTimer()
+
 	store, _ := Storages.GetStorageDriver(Lib.AppConfig)
 	compressor, _ := Compressors.GetCompressor(Lib.AppConfig)
 
 	var retries = 3
 	for retries > 0 {
 		// try download
-		Time.Start("download")
+		timer.Start("download")
 		f, err := store.Download(wrapperTool.GetCachePackageName() + "_" + compressor.GetKey())
-		cacheUsageReport.DownloadTime += Time.Stop("download")
+		cacheUsageReport.DownloadTime += timer.Stop("download")
 
 		if f == nil && err == nil {
 			logger.Debugf("%s does not exist in storage", wrapperTool.GetCachePackageName())
@@ -146,9 +150,9 @@ func TryUseCache(wrapperTool *Rustc.WrapperTool, logger *log.Entry, cacheUsageRe
 		}
 
 		// try decompress
-		Time.Start("decompress")
+		timer.Start("decompress")
 		decompressed, err := compressor.Decompress(f)
-		cacheUsageReport.DecompressTime += Time.Stop("decompress")
+		cacheUsageReport.DecompressTime += timer.Stop("decompress")
 		if err != nil {
 			logger.Warningf("decompression error: %s", err)
 			retries--
@@ -156,9 +160,9 @@ func TryUseCache(wrapperTool *Rustc.WrapperTool, logger *log.Entry, cacheUsageRe
 		}
 
 		// try unpack
-		Time.Start("unpack")
+		timer.Start("unpack")
 		err = Tar.UnPack(WorkDir, decompressed)
-		cacheUsageReport.UnpackTime += Time.Stop("unpack")
+		cacheUsageReport.UnpackTime += timer.Stop("unpack")
 		if err != nil {
 			logger.Warningf("unpack error: %s", err)
 			retries--

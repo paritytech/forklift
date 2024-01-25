@@ -46,7 +46,7 @@ func (storage *FsStorage) Download(key string) (io.Reader, error) {
 	var path = filepath.Join(storage.dir, key)
 	var _, errStat = os.Stat(path)
 	if errStat != nil {
-		return nil, errStat
+		return nil, nil
 	}
 
 	var file, err = os.Open(path)

@@ -9,8 +9,10 @@ import (
 	"forklift/CacheStorage/Storages"
 	"forklift/FileManager/Models"
 	"forklift/FileManager/Tar"
+	"forklift/Lib/Diagnostic/Time"
 	"forklift/Lib/Logging"
 	"forklift/Lib/Rustc"
+	"forklift/Rpc/Models/CacheUpload"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"path"
@@ -22,17 +24,19 @@ import (
 type Uploader struct {
 	sync.WaitGroup
 
-	workDir    string
-	uploads    chan Models.CacheItem
-	compressor Compressors.ICompressor
-	storage    Storages.IStorage
+	workDir      string
+	uploads      chan Models.CacheItem
+	compressor   Compressors.ICompressor
+	storage      Storages.IStorage
+	StatusReport CacheUpload.ForkliftCacheStatusReport
 }
 
 func NewUploader(workDir string, storage Storages.IStorage, compressor Compressors.ICompressor) *Uploader {
 	var uploader = &Uploader{
-		workDir:    workDir,
-		compressor: compressor,
-		storage:    storage,
+		workDir:      workDir,
+		compressor:   compressor,
+		storage:      storage,
+		StatusReport: CacheUpload.ForkliftCacheStatusReport{},
 	}
 	return uploader
 }
@@ -76,8 +80,6 @@ func (uploader *Uploader) upload() {
 			//path.Join("target", "forklift", fmt.Sprintf("%s-%s", wrapperTool.GetCachePackageName(), "stdin")),
 		}
 
-		//crateArtifactsFiles = append(crateArtifactsFiles, FileManager.FindBuildFiles(wrapperTool.CrateHash)...)
-
 		var stderrFile = wrapperTool.ReadStderrFile()
 		fileScanner := bufio.NewScanner(stderrFile)
 		fileScanner.Split(bufio.ScanLines)
@@ -87,7 +89,7 @@ func (uploader *Uploader) upload() {
 			if artifact.Artifact != "" {
 				if strings.Contains(artifact.Artifact, "tmp/") ||
 					strings.Contains(artifact.Artifact, "/var/folders/") {
-					logger.Debugf("Temporary artifact folder `%s` detected, skip", artifact.Artifact)
+					logger.Tracef("Temporary artifact folder `%s` detected, skip", artifact.Artifact)
 					return
 				}
 				var relPath, _ = filepath.Rel(uploader.workDir, artifact.Artifact)
@@ -96,44 +98,95 @@ func (uploader *Uploader) upload() {
 		}
 
 		if len(crateArtifactsFiles) > 0 {
-			var reader, sha = Tar.Pack(crateArtifactsFiles)
-
-			var name = wrapperTool.GetCachePackageName()
-
-			var metaMap = wrapperTool.CreateMetadata()
-			var shaLocal = fmt.Sprintf("%x", sha.Sum(nil))
-			metaMap["sha1-artifact"] = &shaLocal
-
-			var retries = 3
-
-			for retries > 0 {
-
-				var compressed, err = uploader.compressor.Compress(reader)
-				if err != nil {
-					logger.Warningf("compression error: %s", err)
-					retries--
-					continue
-				}
-
-				err = uploader.storage.Upload(name+"_"+uploader.compressor.GetKey(), &compressed, metaMap)
-				if err != nil {
-					logger.Warningf("upload error: %s", err)
-					retries--
-					continue
-				}
-
-				marshal, _ := json.Marshal(metaMap)
-				logger.Infof("Uploaded %s, metadata: %s", wrapperTool.GetCachePackageName(), marshal)
-				break
-
-			}
-			if retries == 0 {
-				logger.Errorf("Failed to upload artifact for '%s, %s'", wrapperTool.GetCachePackageName(), wrapperTool.CrateHash)
-			}
-
+			var report = uploader.TryUpload(wrapperTool, crateArtifactsFiles, logger)
+			uploader.CollectReport(&report)
 		} else {
 			logger.Tracef("No entries for '%s-%s'\n", wrapperTool.GetCachePackageName(), wrapperTool.CrateHash)
 		}
 	}
+
+}
+
+// TryUpload -	Upload crate artifacts to cache
+func (uploader *Uploader) TryUpload(
+	wrapperTool *Rustc.WrapperTool,
+	crateArtifactsFiles []string,
+	logger *log.Entry) CacheUpload.StatusReport {
+
+	var timer = Time.NewForkliftTimer()
+
+	timer.Start("uploader work time")
+
+	var name = wrapperTool.GetCachePackageName()
+	var metaMap = wrapperTool.CreateMetadata()
+
+	var statusReport = CacheUpload.StatusReport{}
+	statusReport.CrateName = wrapperTool.CrateName
+
+	var retries = 3
+	for retries > 0 {
+
+		timer.Start("Pack time")
+		var reader, sha, err = Tar.Pack(crateArtifactsFiles)
+		var shaLocal = fmt.Sprintf("%x", sha.Sum(nil))
+		metaMap["sha1-artifact"] = &shaLocal
+		statusReport.PackTime += timer.Stop("Pack time")
+		if err != nil {
+			logger.Errorf("pack error: %s", err)
+			retries--
+			continue
+		}
+
+		timer.Start("Compress time")
+		compressed, err := uploader.compressor.Compress(reader)
+		statusReport.CompressTime += timer.Stop("Compress time")
+		if err != nil {
+			logger.Warningf("compression error: %s", err)
+			retries--
+			continue
+		}
+
+		timer.Start("Upload time")
+		err = uploader.storage.Upload(name+"_"+uploader.compressor.GetKey(), &compressed, metaMap)
+		statusReport.UploadTime += timer.Stop("Upload time")
+		if err != nil {
+			logger.Warningf("upload error: %s", err)
+			retries--
+			continue
+		}
+
+		marshal, _ := json.Marshal(metaMap)
+		logger.Infof("Uploaded %s, metadata: %s", wrapperTool.GetCachePackageName(), marshal)
+		statusReport.Status = CacheUpload.Uploaded
+		statusReport.WorkTime += timer.Stop("uploader work time")
+		return statusReport
+	}
+
+	logger.Errorf("Failed to upload artifact for '%s, %s'", wrapperTool.GetCachePackageName(), wrapperTool.CrateHash)
+	statusReport.Status = CacheUpload.Failed
+	statusReport.WorkTime += timer.Stop("uploader work time")
+
+	return statusReport
+}
+
+func (uploader *Uploader) CollectReport(report *CacheUpload.StatusReport) {
+
+	switch report.Status {
+	case CacheUpload.Uploaded:
+		uploader.StatusReport.Uploaded++
+	case CacheUpload.Failed:
+		uploader.StatusReport.Failed++
+	case CacheUpload.UploadedWithRetry:
+		uploader.StatusReport.UploadedWithRetry++
+	default:
+	}
+
+	uploader.StatusReport.Total++
+
+	uploader.StatusReport.TotalPackTime += report.PackTime
+	uploader.StatusReport.TotalCompressTime += report.CompressTime
+	uploader.StatusReport.TotalUploadTime += report.UploadTime
+
+	uploader.StatusReport.TotalUploaderWorkTime += report.WorkTime
 
 }

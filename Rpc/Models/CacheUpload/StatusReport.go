@@ -1,36 +1,46 @@
 package CacheUpload
 
 import (
+	"fmt"
 	"time"
 )
 
 type StatusReport struct {
 	Status       Status
 	CrateName    string
+	WorkTime     time.Duration
 	UploadTime   time.Duration
 	CompressTime time.Duration
 	PackTime     time.Duration
 }
 
 type ForkliftCacheStatusReport struct {
-	Total             int
-	Uploaded          int
-	UploadedWithRetry int
-	Failed            int
-	TotalUploadTime   time.Duration
-	TotalCompressTime time.Duration
-	TotalPackTime     time.Duration
+	Total                 int
+	Uploaded              int
+	UploadedWithRetry     int
+	Failed                int
+	TotalUploaderWorkTime time.Duration
+	TotalUploadTime       time.Duration
+	TotalCompressTime     time.Duration
+	TotalPackTime         time.Duration
 }
 
-/*
 func (s ForkliftCacheStatusReport) String() string {
 	return fmt.Sprintf(
-		"Cache report:\n"+
-			"      Total crates processed: %d\n"+
-			"      From cache: %d\n"+
-			"      From cache with retry: %d\n"+
-			"      Cache miss: %d\n"+
-			"      Dependency rebuilt: %d\n"+
-			"      Cache package fetch fail: %d\n",
-		s.TotalCrates, s.CacheHit, s.CacheHitWithRetry, s.CacheMiss, s.DependencyRebuilt, s.CacheFetchFailed)
-}*/
+		"Cache upload report:\n"+
+			"      Total uploads: %d\n"+
+			"      Uploaded:      %d\n"+
+			"      With retry:    %d\n"+
+			"      Failed:        %d\n"+
+			"      Pack time:     %s\n"+
+			"      Compress time: %s\n"+
+			"      Upload time:   %s\n",
+		s.Total,
+		s.Uploaded,
+		s.UploadedWithRetry,
+		s.Failed,
+		s.TotalPackTime.Truncate(time.Millisecond),
+		s.TotalCompressTime.Truncate(time.Millisecond),
+		s.TotalUploadTime.Truncate(time.Millisecond),
+	)
+}

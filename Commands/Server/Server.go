@@ -16,8 +16,9 @@ import (
 func Run(args []string) {
 
 	var logger = Logging.CreateLogger("Server", 4, nil)
+	var timer = Time.NewForkliftTimer()
 
-	Time.Start("Total time")
+	timer.Start("Total time")
 
 	if isJobInBlacklist() {
 		logger.Infof("Job is blacklisted, bypassing forklift")
@@ -75,13 +76,18 @@ func Run(args []string) {
 
 	logger.Infof("Uploader finish")
 
-	forkliftRpc.StatusReport.TotalForkliftTime += Time.Stop("Total time")
+	forkliftRpc.StatusReport.TotalForkliftTime += timer.Stop("Total time")
 
 	logger.Infof("%s", forkliftRpc.StatusReport)
+	logger.Infof("%s", uploader.StatusReport)
 
-	Metrics.PushMetrics(&forkliftRpc.StatusReport, map[string]string{
-		"job_name": "smth 1/3",
-	})
+	var commonLabels = map[string]string{}
+
+	if currentJobName := getCurrentJobName(); currentJobName != "" {
+		commonLabels["job_name"] = currentJobName
+	}
+
+	Metrics.PushMetrics(&forkliftRpc.StatusReport, &uploader.StatusReport, commonLabels)
 
 	rpcServer.Stop()
 

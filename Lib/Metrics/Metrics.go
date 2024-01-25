@@ -4,12 +4,16 @@ import (
 	"context"
 	"forklift/Lib"
 	"forklift/Lib/Logging"
+	"forklift/Rpc/Models/CacheUpload"
 	"forklift/Rpc/Models/CacheUsage"
 	promwrite "github.com/castai/promwrite"
 	"time"
 )
 
-func PushMetrics(report *CacheUsage.ForkliftCacheStatusReport, commonLabels map[string]string) {
+func PushMetrics(
+	usageReport *CacheUsage.ForkliftCacheStatusReport,
+	uploadReport *CacheUpload.ForkliftCacheStatusReport,
+	commonLabels map[string]string) {
 
 	var logger = Logging.CreateLogger("Server", 4, nil)
 
@@ -22,21 +26,80 @@ func PushMetrics(report *CacheUsage.ForkliftCacheStatusReport, commonLabels map[
 		return
 	}
 
-	//var _ = createTimeSeries(report, commonLabels)
 	var client = promwrite.NewClient(Lib.AppConfig.Metrics.PushEndpoint)
 
 	_, err := client.Write(context.Background(), &promwrite.WriteRequest{
-		TimeSeries: createTimeSeries(report, commonLabels),
+		TimeSeries: append(
+			createUsageTimeSeries(usageReport, commonLabels),
+			createUploadTimeSeries(uploadReport, commonLabels)...),
 	})
 
 	if err != nil {
 		logger.Errorf("Failed to write metrics: %s", err)
 	} else {
-		logger.Infof("Metrics sent to %s", Lib.AppConfig.Metrics.PushEndpoint)
+		logger.Infof("Metrics sent")
 	}
 }
 
-func createTimeSeries(report *CacheUsage.ForkliftCacheStatusReport, commonLabels map[string]string) []promwrite.TimeSeries {
+func createUploadTimeSeries(report *CacheUpload.ForkliftCacheStatusReport, commonLabels map[string]string) []promwrite.TimeSeries {
+	var timeNow = time.Now()
+
+	var cacheHitBase = NewIndicator("forklift_wrapper_caching_cache_hit")
+	cacheHitBase.Time = timeNow
+	cacheHitBase.SetLabels(commonLabels)
+
+	var timeSeries = []promwrite.TimeSeries{
+		// upload
+		NewIndicatorFull("forklift_uploader_uploading_status", timeNow, float64(report.Uploaded),
+			map[string]string{
+				"status": "uploaded",
+			},
+			commonLabels,
+		).ToTimeSeries(),
+		NewIndicatorFull("forklift_uploader_uploading_status", timeNow, float64(report.UploadedWithRetry),
+			map[string]string{
+				"status": "warning",
+			},
+			commonLabels,
+		).ToTimeSeries(),
+		NewIndicatorFull("forklift_uploader_uploading_status", timeNow, float64(report.Failed),
+			map[string]string{
+				"status": "fail",
+			},
+			commonLabels,
+		).ToTimeSeries(),
+
+		// time
+		NewIndicatorFull("forklift_uploader_uploading_time_total", timeNow, float64(report.TotalUploaderWorkTime.Milliseconds()),
+			map[string]string{
+				"status": "fail",
+			},
+			commonLabels,
+		).ToTimeSeries(),
+		NewIndicatorFull("forklift_uploader_uploading_time_task", timeNow, float64(report.TotalPackTime.Milliseconds()),
+			map[string]string{
+				"status": "pack",
+			},
+			commonLabels,
+		).ToTimeSeries(),
+		NewIndicatorFull("forklift_uploader_uploading_time_task", timeNow, float64(report.TotalCompressTime.Milliseconds()),
+			map[string]string{
+				"status": "compress",
+			},
+			commonLabels,
+		).ToTimeSeries(),
+		NewIndicatorFull("forklift_uploader_uploading_time_task", timeNow, float64(report.TotalUploadTime.Milliseconds()),
+			map[string]string{
+				"status": "upload",
+			},
+			commonLabels,
+		).ToTimeSeries(),
+	}
+
+	return timeSeries
+}
+
+func createUsageTimeSeries(report *CacheUsage.ForkliftCacheStatusReport, commonLabels map[string]string) []promwrite.TimeSeries {
 	var timeNow = time.Now()
 
 	var cacheHitBase = NewIndicator("forklift_wrapper_caching_cache_hit")

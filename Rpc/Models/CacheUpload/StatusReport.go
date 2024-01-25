@@ -32,5 +32,5 @@ func (s ForkliftCacheStatusReport) String() string {
 			"      Cache miss: %d\n"+
 			"      Dependency rebuilt: %d\n"+
 			"      Cache package fetch fail: %d\n",
-		s.TotalCrates, s.CacheUsed, s.CacheUsedWithRetry, s.CacheMiss, s.DependencyRebuilt, s.CacheFetchFailed)
+		s.TotalCrates, s.CacheHit, s.CacheHitWithRetry, s.CacheMiss, s.DependencyRebuilt, s.CacheFetchFailed)
 }*/

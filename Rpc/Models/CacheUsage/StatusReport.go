@@ -16,10 +16,10 @@ type StatusReport struct {
 
 type ForkliftCacheStatusReport struct {
 	TotalCrates         int
-	CacheUsed           int
+	CacheHit            int
 	CacheMiss           int
 	DependencyRebuilt   int
-	CacheUsedWithRetry  int
+	CacheHitWithRetry   int
 	CacheFetchFailed    int
 	CacheMissCrates     []string
 	TotalForkliftTime   time.Duration
@@ -44,8 +44,8 @@ func (s ForkliftCacheStatusReport) String() string {
 			"      Unpack time:            %s\n"+
 			"      Rustc time:             %s\n",
 		s.TotalCrates,
-		s.CacheUsed,
-		s.CacheUsedWithRetry,
+		s.CacheHit,
+		s.CacheHitWithRetry,
 		s.CacheMiss,
 		s.DependencyRebuilt,
 		s.CacheFetchFailed,

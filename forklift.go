@@ -28,6 +28,7 @@ func main() {
 	viper.SetDefault("compression.type", "none")
 	viper.SetDefault("general.params", map[string]string{})
 	viper.SetDefault("general.threadsCount", 0)
+	viper.SetDefault("metrics.enabled", false)
 
 	log.SetFormatter(&log.TextFormatter{})
 

@@ -68,13 +68,13 @@ func (server *ForkliftRpc) ReportStatus(report *CacheUsage.StatusReport, result 
 
 	switch report.Status {
 	case CacheUsage.CacheHit:
-		server.StatusReport.CacheUsed++
+		server.StatusReport.CacheHit++
 	case CacheUsage.CacheMiss:
 		server.StatusReport.CacheMiss++
 	case CacheUsage.DependencyRebuilt:
 		server.StatusReport.DependencyRebuilt++
 	case CacheUsage.CacheHitWithRetry:
-		server.StatusReport.CacheUsedWithRetry++
+		server.StatusReport.CacheHitWithRetry++
 	case CacheUsage.CacheFetchFailed:
 		server.StatusReport.CacheFetchFailed++
 	case CacheUsage.Undefined:

@@ -4,7 +4,9 @@ import (
 	"forklift/CacheStorage/Compressors"
 	"forklift/CacheStorage/Storages"
 	"forklift/Lib"
+	"forklift/Lib/Diagnostic/Time"
 	"forklift/Lib/Logging"
+	"forklift/Lib/Metrics"
 	"forklift/Rpc"
 	"os"
 	"os/exec"
@@ -14,6 +16,8 @@ import (
 func Run(args []string) {
 
 	var logger = Logging.CreateLogger("Server", 4, nil)
+
+	Time.Start("Total time")
 
 	if isJobInBlacklist() {
 		logger.Infof("Job is blacklisted, bypassing forklift")
@@ -71,7 +75,13 @@ func Run(args []string) {
 
 	logger.Infof("Uploader finish")
 
+	forkliftRpc.StatusReport.TotalForkliftTime += Time.Stop("Total time")
+
 	logger.Infof("%s", forkliftRpc.StatusReport)
+
+	Metrics.PushMetrics(&forkliftRpc.StatusReport, map[string]string{
+		"job_name": "smth 1/3",
+	})
 
 	rpcServer.Stop()
 
@@ -83,21 +93,32 @@ func Run(args []string) {
 	}
 }
 
-// isJobInBlacklist - check if current job is in blacklist
-func isJobInBlacklist() bool {
+func getCurrentJobName() string {
 	var logger = Logging.CreateLogger("Server", 4, nil)
 
 	if Lib.AppConfig.General.JobNameVariable == "" {
 		logger.Debugf("JobNameVariable is not set")
-		return false
+		return ""
 	}
 
 	currentJobName, ok := os.LookupEnv(Lib.AppConfig.General.JobNameVariable)
 	if !ok {
 		logger.Debugf("JobNameVariable '%s' is not set", Lib.AppConfig.General.JobNameVariable)
+		return ""
+	}
+
+	return currentJobName
+}
+
+// isJobInBlacklist - check if current job is in blacklist
+func isJobInBlacklist() bool {
+	var logger = Logging.CreateLogger("Server", 4, nil)
+
+	var currentJobName = getCurrentJobName()
+
+	if currentJobName == "" {
 		return false
 	}
-	logger.Infof("Current job name is '%s'", currentJobName)
 
 	for _, blacklistedJobRegex := range Lib.AppConfig.General.JobsBlacklist {
 		match, _ := regexp.MatchString(blacklistedJobRegex, currentJobName)

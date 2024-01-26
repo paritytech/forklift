@@ -97,8 +97,8 @@ func Run(args []string) {
 		// execute rustc
 		timer.Start("rustc")
 		logger.Infof("Executing rustc")
-		cacheUsageReport.RustcTime += timer.Stop("rustc")
 		var artifacts, rustcError = ExecuteRustc(wrapperTool)
+		cacheUsageReport.RustcTime += timer.Stop("rustc")
 
 		if rustcError != nil {
 			logger.Errorf("Rustc finished with error: %s", rustcError)

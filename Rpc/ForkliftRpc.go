@@ -85,6 +85,9 @@ func (server *ForkliftRpc) ReportStatus(report *CacheUsage.StatusReport, result 
 	server.StatusReport.TotalUnpackTime += report.UnpackTime
 	server.StatusReport.TotalRustcTime += report.RustcTime
 
+	server.StatusReport.TotalDownloadSize += report.DownloadSize
+	server.StatusReport.AverageDownloadSpeedBps += report.DownloadSpeedBps
+
 	*result = true
 	return nil
 }

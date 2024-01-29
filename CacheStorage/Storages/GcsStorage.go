@@ -1,11 +1,13 @@
 package Storages
 
 import (
+	"bytes"
 	"cloud.google.com/go/storage"
 	"context"
 	"encoding/base64"
 	"errors"
 	"forklift/CliTools"
+	"forklift/Lib/Diagnostic/Time"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/api/option"
 	"io"
@@ -102,7 +104,7 @@ func (driver *GcsStorage) GetMetadata(key string) (map[string]*string, bool) {
 	return metadata, true
 }
 
-func (driver *GcsStorage) Upload(key string, reader *io.Reader, metadata map[string]*string) error {
+func (driver *GcsStorage) Upload(key string, reader *io.Reader, metadata map[string]*string) (*UploadResult, error) {
 	var gcpMetadata = make(map[string]string, len(metadata))
 
 	for key, value := range metadata {
@@ -113,27 +115,52 @@ func (driver *GcsStorage) Upload(key string, reader *io.Reader, metadata map[str
 	gcsWriter.Metadata = gcpMetadata
 	defer gcsWriter.Close()
 
-	_, err := io.Copy(gcsWriter, *reader)
+	var timer = Time.NewForkliftTimer()
+	timer.Start("upload")
+	n, err := io.Copy(gcsWriter, *reader)
 	if err != nil {
 		log.Errorf("Unable to write data to bucket %q, file %q: %v", driver.bucket, key, err)
-		return err
+		return nil, err
 	}
+	var duration = timer.Stop("upload")
 
 	if err := gcsWriter.Close(); err != nil {
 		log.Errorf("Unable to close bucket %q, file %q: %v", driver.bucket, key, err)
-		return err
+		return nil, err
 	}
 
-	return nil
+	return &UploadResult{
+		StorageResult: StorageResult{
+			BytesCount: n,
+			Duration:   duration,
+			SpeedBps:   int64(float64(n) / duration.Seconds()),
+		},
+	}, nil
 }
 
-func (driver *GcsStorage) Download(key string) (io.Reader, error) {
+func (driver *GcsStorage) Download(key string) (*DownloadResult, error) {
+	var timer = Time.NewForkliftTimer()
 	var gcsReader, err = driver.client.Bucket(driver.bucket).Object(key).NewReader(driver.context)
+
 	if err != nil {
 		log.Errorf("Unable to open file from bucket %q, file %q: %v", driver.bucket, key, err)
 		return nil, err
 	}
 	defer gcsReader.Close()
 
-	return gcsReader, nil
+	var buf = bytes.Buffer{}
+
+	timer.Start("copy")
+	bytesWritten, err := io.Copy(&buf, gcsReader)
+	var duration = timer.Stop("copy")
+
+	var result = DownloadResult{
+		Data: bytes.NewBuffer(buf.Bytes()),
+	}
+
+	result.BytesCount = bytesWritten
+	result.Duration = duration
+	result.SpeedBps = int64(float64(bytesWritten) / duration.Seconds())
+
+	return &result, nil
 }

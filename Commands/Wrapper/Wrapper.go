@@ -135,10 +135,9 @@ func TryUseCache(wrapperTool *Rustc.WrapperTool, logger *log.Entry, cacheUsageRe
 	for retries > 0 {
 		// try download
 		timer.Start("download")
-		f, err := store.Download(wrapperTool.GetCachePackageName() + "_" + compressor.GetKey())
+		downloadResult, err := store.Download(wrapperTool.GetCachePackageName() + "_" + compressor.GetKey())
 		cacheUsageReport.DownloadTime += timer.Stop("download")
-
-		if f == nil && err == nil {
+		if downloadResult == nil && err == nil {
 			logger.Debugf("%s does not exist in storage", wrapperTool.GetCachePackageName())
 			cacheUsageReport.Status = CacheUsage.CacheMiss
 			return false
@@ -148,10 +147,12 @@ func TryUseCache(wrapperTool *Rustc.WrapperTool, logger *log.Entry, cacheUsageRe
 			retries--
 			continue
 		}
+		cacheUsageReport.DownloadSize += downloadResult.BytesCount
+		cacheUsageReport.DownloadSpeedBps += downloadResult.SpeedBps
 
 		// try decompress
 		timer.Start("decompress")
-		decompressed, err := compressor.Decompress(f)
+		decompressed, err := compressor.Decompress(downloadResult.Data)
 		cacheUsageReport.DecompressTime += timer.Stop("decompress")
 		if err != nil {
 			logger.Warningf("decompression error: %s", err)

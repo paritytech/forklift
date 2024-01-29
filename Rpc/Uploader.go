@@ -147,13 +147,15 @@ func (uploader *Uploader) TryUpload(
 		}
 
 		timer.Start("Upload time")
-		err = uploader.storage.Upload(name+"_"+uploader.compressor.GetKey(), &compressed, metaMap)
+		uploadResult, err := uploader.storage.Upload(name+"_"+uploader.compressor.GetKey(), &compressed, metaMap)
 		statusReport.UploadTime += timer.Stop("Upload time")
 		if err != nil {
 			logger.Warningf("upload error: %s", err)
 			retries--
 			continue
 		}
+		statusReport.UploadSize += uploadResult.BytesCount
+		statusReport.UploadSpeedBps += uploadResult.SpeedBps
 
 		marshal, _ := json.Marshal(metaMap)
 		logger.Infof("Uploaded %s, metadata: %s", wrapperTool.GetCachePackageName(), marshal)
@@ -188,5 +190,9 @@ func (uploader *Uploader) CollectReport(report *CacheUpload.StatusReport) {
 	uploader.StatusReport.TotalUploadTime += report.UploadTime
 
 	uploader.StatusReport.TotalUploaderWorkTime += report.WorkTime
+
+	uploader.StatusReport.TotalUploadSize += report.UploadSize
+	uploader.StatusReport.AverageUploadSpeedBps += report.UploadSpeedBps
+	//= int64(float64(uploader.StatusReport.TotalUploadSize) / uploader.StatusReport.TotalUploadTime.Seconds())
 
 }

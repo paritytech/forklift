@@ -77,6 +77,9 @@ func Run(args []string) {
 	logger.Infof("Uploader finish")
 
 	forkliftRpc.StatusReport.TotalForkliftTime += timer.Stop("Total time")
+	forkliftRpc.StatusReport.AverageDownloadSpeedBps = int64(float64(forkliftRpc.StatusReport.TotalDownloadSize) / forkliftRpc.StatusReport.TotalDownloadTime.Seconds())
+
+	uploader.StatusReport.AverageUploadSpeedBps = int64(float64(uploader.StatusReport.TotalUploadSize) / uploader.StatusReport.TotalUploadTime.Seconds())
 
 	logger.Infof("%s", forkliftRpc.StatusReport)
 	logger.Infof("%s", uploader.StatusReport)

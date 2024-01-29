@@ -18,10 +18,10 @@ func (storage *NullStorage) GetMetadata(_ string) (map[string]*string, bool) {
 	return nil, false
 }
 
-func (storage *NullStorage) Upload(key string, reader *io.Reader, _ map[string]*string) error {
-	return nil
+func (storage *NullStorage) Upload(_ string, _ *io.Reader, _ map[string]*string) (*UploadResult, error) {
+	return nil, nil
 }
 
-func (storage *NullStorage) Download(key string) (io.Reader, error) {
+func (storage *NullStorage) Download(string) (*DownloadResult, error) {
 	return nil, nil
 }

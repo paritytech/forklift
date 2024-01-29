@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"forklift/CliTools"
+	"forklift/Lib/Diagnostic/Time"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -80,14 +81,20 @@ func (storage *S3Storage) GetMetadata(key string) (map[string]*string, bool) {
 	return metadata, true
 }
 
-func (storage *S3Storage) Upload(key string, reader *io.Reader, metadata map[string]*string) error {
+func (storage *S3Storage) Upload(key string, reader *io.Reader, metadata map[string]*string) (*UploadResult, error) {
 	uploader := s3manager.NewUploader(storage.session)
+
+	var buf = bytes.Buffer{}
+	var n, _ = io.Copy(&buf, *reader)
 
 	var normalizedMetadata = make(map[string]*string, len(metadata))
 	for key, value := range metadata {
 		normalizedMetadata[strings.ToLower(key)] = value
 	}
 
+	var timer = Time.NewForkliftTimer()
+
+	timer.Start("upload")
 	_, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket:   aws.String(storage.bucket),
 		Key:      aws.String(key),
@@ -95,21 +102,33 @@ func (storage *S3Storage) Upload(key string, reader *io.Reader, metadata map[str
 		Metadata: normalizedMetadata,
 	})
 	if err != nil {
-		return err
+		return nil, err
+	}
+	var duration = timer.Stop("upload")
+
+	var uploadResult = UploadResult{
+		StorageResult: StorageResult{
+			BytesCount: n,
+			Duration:   duration,
+			SpeedBps:   int64(float64(n) / duration.Seconds()),
+		},
 	}
 
-	return nil
+	return &uploadResult, nil
 }
 
-func (storage *S3Storage) Download(key string) (io.Reader, error) {
-	downloader := s3manager.NewDownloader(storage.session)
+func (storage *S3Storage) Download(key string) (*DownloadResult, error) {
+	var timer = Time.NewForkliftTimer()
 
+	downloader := s3manager.NewDownloader(storage.session)
 	buf := aws.NewWriteAtBuffer([]byte{})
 
+	timer.Start("download")
 	n, err := downloader.Download(buf, &s3.GetObjectInput{
 		Bucket: aws.String(storage.bucket),
 		Key:    aws.String(key),
 	})
+	var duration = timer.Stop("download")
 
 	if err != nil {
 		var awsErr awserr.Error
@@ -133,5 +152,12 @@ func (storage *S3Storage) Download(key string) (io.Reader, error) {
 		return nil, nil
 	}
 
-	return bytes.NewBuffer(buf.Bytes()), nil
+	var result = DownloadResult{
+		Data: bytes.NewBuffer(buf.Bytes()),
+	}
+	result.BytesCount = n
+	result.Duration = duration
+	result.SpeedBps = int64(float64(n) / duration.Seconds())
+
+	return &result, nil
 }

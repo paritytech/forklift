@@ -6,27 +6,31 @@ import (
 )
 
 type StatusReport struct {
-	Status         Status
-	CrateName      string
-	DownloadTime   time.Duration
-	DecompressTime time.Duration
-	UnpackTime     time.Duration
-	RustcTime      time.Duration
+	Status           Status
+	CrateName        string
+	DownloadTime     time.Duration
+	DecompressTime   time.Duration
+	UnpackTime       time.Duration
+	RustcTime        time.Duration
+	DownloadSize     int64
+	DownloadSpeedBps int64
 }
 
 type ForkliftCacheStatusReport struct {
-	TotalCrates         int
-	CacheHit            int
-	CacheMiss           int
-	DependencyRebuilt   int
-	CacheHitWithRetry   int
-	CacheFetchFailed    int
-	CacheMissCrates     []string
-	TotalForkliftTime   time.Duration
-	TotalDownloadTime   time.Duration
-	TotalDecompressTime time.Duration
-	TotalUnpackTime     time.Duration
-	TotalRustcTime      time.Duration
+	TotalCrates             int
+	CacheHit                int
+	CacheMiss               int
+	DependencyRebuilt       int
+	CacheHitWithRetry       int
+	CacheFetchFailed        int
+	CacheMissCrates         []string
+	TotalForkliftTime       time.Duration
+	TotalDownloadTime       time.Duration
+	TotalDecompressTime     time.Duration
+	TotalUnpackTime         time.Duration
+	TotalRustcTime          time.Duration
+	TotalDownloadSize       int64
+	AverageDownloadSpeedBps int64
 }
 
 func (s ForkliftCacheStatusReport) String() string {
@@ -42,7 +46,9 @@ func (s ForkliftCacheStatusReport) String() string {
 			"      Download time:          %s\n"+
 			"      Decompress time:        %s\n"+
 			"      Unpack time:            %s\n"+
-			"      Rustc time:             %s\n",
+			"      Rustc time:             %s\n"+
+			"      Total download size:    %d bytes\n"+
+			"      Average download speed: %d bps\n",
 		s.TotalCrates,
 		s.CacheHit,
 		s.CacheHitWithRetry,
@@ -53,5 +59,8 @@ func (s ForkliftCacheStatusReport) String() string {
 		s.TotalDownloadTime.Truncate(time.Millisecond),
 		s.TotalDecompressTime.Truncate(time.Millisecond),
 		s.TotalUnpackTime.Truncate(time.Millisecond),
-		s.TotalRustcTime.Truncate(time.Millisecond))
+		s.TotalRustcTime.Truncate(time.Millisecond),
+		s.TotalDownloadSize,
+		s.AverageDownloadSpeedBps,
+	)
 }

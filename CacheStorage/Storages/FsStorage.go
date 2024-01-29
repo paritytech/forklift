@@ -3,6 +3,7 @@ package Storages
 import (
 	"bytes"
 	"forklift/CliTools"
+	"forklift/Lib/Diagnostic/Time"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"os"
@@ -25,7 +26,7 @@ func (storage *FsStorage) GetMetadata(key string) (map[string]*string, bool) {
 	return nil, err == nil
 }
 
-func (storage *FsStorage) Upload(key string, reader *io.Reader, _ map[string]*string) error {
+func (storage *FsStorage) Upload(key string, reader *io.Reader, _ map[string]*string) (*UploadResult, error) {
 
 	var file, err = os.Create(filepath.Join(storage.dir, key))
 	if err != nil {
@@ -33,15 +34,27 @@ func (storage *FsStorage) Upload(key string, reader *io.Reader, _ map[string]*st
 	}
 	defer file.Close()
 
-	_, err2 := io.Copy(file, *reader)
-	if err2 != nil {
-		return err
-	}
+	var timer = Time.NewForkliftTimer()
 
-	return nil
+	timer.Start("write")
+	n, err2 := io.Copy(file, *reader)
+	if err2 != nil {
+		return nil, err
+	}
+	var duration = timer.Stop("write")
+
+	return &UploadResult{
+		StorageResult{
+			BytesCount: n,
+			Duration:   duration,
+			SpeedBps:   int64(float64(n) / duration.Seconds()),
+		},
+	}, nil
 }
 
-func (storage *FsStorage) Download(key string) (io.Reader, error) {
+func (storage *FsStorage) Download(key string) (*DownloadResult, error) {
+
+	var timer = Time.NewForkliftTimer()
 
 	var path = filepath.Join(storage.dir, key)
 	var _, errStat = os.Stat(path)
@@ -58,11 +71,22 @@ func (storage *FsStorage) Download(key string) (io.Reader, error) {
 
 	var buf bytes.Buffer
 
-	_, err2 := io.Copy(&buf, file)
+	timer.Start("read")
+	bytesWritten, err2 := io.Copy(&buf, file)
+	var duration = timer.Stop("read")
+
 	if err2 != nil {
 		log.Errorf("Unable to read file", err)
 		return nil, err2
 	}
 
-	return &buf, nil
+	var result = DownloadResult{
+		Data: &buf,
+	}
+
+	result.BytesCount = bytesWritten
+	result.Duration = duration
+	result.SpeedBps = int64(float64(bytesWritten) / duration.Seconds())
+
+	return &result, nil
 }

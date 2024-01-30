@@ -92,6 +92,16 @@ func createUploadTimeSeries(report *CacheUpload.ForkliftCacheStatusReport, extra
 			},
 			extraLabels,
 		).ToTimeSeries(),
+
+		// network
+		NewIndicatorFull("forklift_uploader_uploading_network_downloaded", timeNow, float64(report.TotalUploadSize),
+			map[string]string{},
+			extraLabels,
+		).ToTimeSeries(),
+		NewIndicatorFull("forklift_uploader_uploading_network_avg_speed", timeNow, float64(report.AverageUploadSpeedBps),
+			map[string]string{},
+			extraLabels,
+		).ToTimeSeries(),
 	}
 
 	return timeSeries
@@ -168,6 +178,15 @@ func createUsageTimeSeries(report *CacheUsage.ForkliftCacheStatusReport, extraLa
 			map[string]string{
 				"task": "rustc",
 			},
+			extraLabels,
+		).ToTimeSeries(),
+		// network
+		NewIndicatorFull("forklift_wrapper_caching_network_downloaded", timeNow, float64(report.TotalDownloadSize),
+			map[string]string{},
+			extraLabels,
+		).ToTimeSeries(),
+		NewIndicatorFull("forklift_wrapper_caching_network_avg_speed", timeNow, float64(report.AverageDownloadSpeedBps),
+			map[string]string{},
 			extraLabels,
 		).ToTimeSeries(),
 	}

@@ -12,8 +12,9 @@ func init() {
 }
 
 var startCmd = &cobra.Command{
-	Use:   "start",
-	Short: "Start detached forklift coordinator server for current location",
+	Use:        "start",
+	Deprecated: "Use `forklift cargo ...` instead",
+	Short:      "Start detached forklift coordinator server for current location",
 	Run: func(cmd *cobra.Command, args []string) {
 
 		var execPath, _ = os.Executable()

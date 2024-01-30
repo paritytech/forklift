@@ -38,16 +38,18 @@ var rootCmd = &cobra.Command{
 
 func Execute() {
 
-	rootCmd.PersistentFlags().StringVarP(&Lib.AppConfig.Storage.Type, "storage", "s", "s3", "Storage driver\nAvailable: s3, fs")
-	viper.BindPFlag("storage.type", rootCmd.PersistentFlags().Lookup("storage"))
+	/*
+		rootCmd.PersistentFlags().StringVarP(&Lib.AppConfig.Storage.Type, "storage", "s", "s3", "Storage driver\nAvailable: s3, fs")
+		viper.BindPFlag("storage.type", rootCmd.PersistentFlags().Lookup("storage"))
 
-	rootCmd.PersistentFlags().StringVarP(&Lib.AppConfig.Compression.Type, "compression", "c", "zstd", "Compression algorithm to use\nAvailable: none, xz")
-	viper.BindPFlag("compression.type", rootCmd.PersistentFlags().Lookup("compression"))
+		rootCmd.PersistentFlags().StringVarP(&Lib.AppConfig.Compression.Type, "compression", "c", "zstd", "Compression algorithm to use\nAvailable: none, xz")
+		viper.BindPFlag("compression.type", rootCmd.PersistentFlags().Lookup("compression"))
 
-	rootCmd.PersistentFlags().StringVarP(&Lib.AppConfig.General.LogLevel, "verbose", "v", "info", "Available: panic, fatal, error, warn, warning, info, debug, trace")
-	viper.BindPFlag("general.logLevel", rootCmd.PersistentFlags().Lookup("verbose"))
+		rootCmd.PersistentFlags().StringVarP(&Lib.AppConfig.General.LogLevel, "verbose", "v", "info", "Available: panic, fatal, error, warn, warning, info, debug, trace")
+		viper.BindPFlag("general.logLevel", rootCmd.PersistentFlags().Lookup("verbose"))
 
-	rootCmd.PersistentFlags().StringToStringVarP(&Lib.AppConfig.General.Params, "param", "p", map[string]string{}, "map of additional parameters\n ex: -p S3_BUCKET_NAME=my_bucket")
+		rootCmd.PersistentFlags().StringToStringVarP(&Lib.AppConfig.General.Params, "param", "p", map[string]string{}, "map of additional parameters\n ex: -p S3_BUCKET_NAME=my_bucket")
+	*/
 
 	if err := rootCmd.Execute(); err != nil {
 		log.Errorln(err)

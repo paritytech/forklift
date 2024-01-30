@@ -22,8 +22,6 @@ func main() {
 		viper.AddConfigPath(path.Join(wd, ".forklift"))
 	}
 
-	//viper.AddConfigPath("$HOME/.forklift") // call multiple times to add many search paths
-
 	viper.SetDefault("storage.type", "null")
 	viper.SetDefault("compression.type", "none")
 	viper.SetDefault("general.params", map[string]string{})
@@ -51,7 +49,6 @@ func main() {
 		logLevel = log.InfoLevel
 		log.Debugf("unknown log level (verbose) `%s`, using default `info`\n", Lib.AppConfig.General.LogLevel)
 	}
-	Lib.AppConfig.General.LogrusLogLevel = logLevel
 	log.SetLevel(logLevel)
 
 	if len(os.Args) > 1 &&

@@ -9,8 +9,9 @@ func init() {
 }
 
 var stopCmd = &cobra.Command{
-	Use:   "stop",
-	Short: "Stop forklift coordinator server for current location",
+	Use:        "stop",
+	Deprecated: "Use `forklift cargo ...` instead",
+	Short:      "Stop forklift coordinator server for current location",
 	Run: func(cmd *cobra.Command, args []string) {
 
 		/*

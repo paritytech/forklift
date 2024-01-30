@@ -98,7 +98,7 @@ func (storage *S3Storage) Upload(key string, reader *io.Reader, metadata map[str
 	_, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket:   aws.String(storage.bucket),
 		Key:      aws.String(key),
-		Body:     *reader,
+		Body:     &buf,
 		Metadata: normalizedMetadata,
 	})
 	if err != nil {

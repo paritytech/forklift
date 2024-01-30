@@ -128,14 +128,15 @@ func (uploader *Uploader) TryUpload(
 
 		timer.Start("Pack time")
 		var reader, sha, err = Tar.Pack(crateArtifactsFiles)
-		var shaLocal = fmt.Sprintf("%x", sha.Sum(nil))
-		metaMap["sha1-artifact"] = &shaLocal
 		statusReport.PackTime += timer.Stop("Pack time")
 		if err != nil {
 			logger.Errorf("pack error: %s", err)
 			retries--
 			continue
 		}
+
+		var shaLocal = fmt.Sprintf("%x", sha.Sum(nil))
+		metaMap["sha1-artifact"] = &shaLocal
 
 		timer.Start("Compress time")
 		compressed, err := uploader.compressor.Compress(reader)

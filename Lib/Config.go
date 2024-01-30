@@ -31,6 +31,7 @@ type ForkliftGeneral struct {
 	ThreadsCount    int
 	JobNameVariable string
 	JobsBlacklist   []string
+	PackageSuffix   string
 }
 
 type ForkliftMetrics struct {

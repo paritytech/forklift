@@ -9,7 +9,7 @@ import (
 	"forklift/CacheStorage"
 	"forklift/FileManager"
 	"forklift/FileManager/Models"
-	"forklift/Lib"
+	"forklift/Lib/Config"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"os"
@@ -180,8 +180,8 @@ func (wrapperTool *WrapperTool) GetCachePackageName() string {
 		wrapperTool.CrateName,
 		sha.Sum(nil))
 
-	if Lib.AppConfig.General.PackageSuffix != "" {
-		result += "_" + Lib.AppConfig.General.PackageSuffix
+	if Config.AppConfig.General.PackageSuffix != "" {
+		result += "_" + Config.AppConfig.General.PackageSuffix
 	}
 
 	wrapperTool.cachePackageName = result

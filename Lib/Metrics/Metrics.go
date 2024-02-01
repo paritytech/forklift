@@ -2,7 +2,7 @@ package Metrics
 
 import (
 	"context"
-	"forklift/Lib"
+	"forklift/Lib/Config"
 	"forklift/Lib/Logging"
 	"forklift/Rpc/Models/CacheUpload"
 	"forklift/Rpc/Models/CacheUsage"
@@ -17,16 +17,16 @@ func PushMetrics(
 
 	var logger = Logging.CreateLogger("Server", 4, nil)
 
-	if !Lib.AppConfig.Metrics.Enabled {
+	if !Config.AppConfig.Metrics.Enabled {
 		return
 	}
 
-	if Lib.AppConfig.Metrics.PushEndpoint == "" {
+	if Config.AppConfig.Metrics.PushEndpoint == "" {
 		logger.Error("Metrics push endpoint is not set")
 		return
 	}
 
-	var client = promwrite.NewClient(Lib.AppConfig.Metrics.PushEndpoint)
+	var client = promwrite.NewClient(Config.AppConfig.Metrics.PushEndpoint)
 
 	_, err := client.Write(context.Background(), &promwrite.WriteRequest{
 		TimeSeries: append(
@@ -94,7 +94,7 @@ func createUploadTimeSeries(report *CacheUpload.ForkliftCacheStatusReport, extra
 		).ToTimeSeries(),
 
 		// network
-		NewIndicatorFull("forklift_uploader_uploading_network_downloaded", timeNow, float64(report.TotalUploadSize),
+		NewIndicatorFull("forklift_uploader_uploading_network_uploaded_bytes", timeNow, float64(report.TotalUploadSize),
 			map[string]string{},
 			extraLabels,
 		).ToTimeSeries(),
@@ -181,7 +181,7 @@ func createUsageTimeSeries(report *CacheUsage.ForkliftCacheStatusReport, extraLa
 			extraLabels,
 		).ToTimeSeries(),
 		// network
-		NewIndicatorFull("forklift_wrapper_caching_network_downloaded", timeNow, float64(report.TotalDownloadSize),
+		NewIndicatorFull("forklift_wrapper_caching_network_downloaded_bytes", timeNow, float64(report.TotalDownloadSize),
 			map[string]string{},
 			extraLabels,
 		).ToTimeSeries(),

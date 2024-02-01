@@ -1,14 +1,4 @@
-package Lib
-
-var AppConfig = ForkliftConfig{
-	Storage:     ForkliftStorage{},
-	Compression: ForkliftCompression{},
-	General: ForkliftGeneral{
-		Params:   map[string]string{},
-		LogLevel: "",
-	},
-	Metrics: ForkliftMetrics{},
-}
+package Config
 
 type ForkliftConfig struct {
 	Storage     ForkliftStorage

@@ -3,7 +3,7 @@ package Server
 import (
 	"forklift/CacheStorage/Compressors"
 	"forklift/CacheStorage/Storages"
-	"forklift/Lib"
+	"forklift/Lib/Config"
 	"forklift/Lib/Diagnostic/Time"
 	"forklift/Lib/Logging"
 	"forklift/Lib/Metrics"
@@ -50,11 +50,11 @@ func Run(args []string) {
 	var rpcServer = Rpc.NewForkliftServer()
 	var forkliftRpc = Rpc.NewForkliftRpc()
 
-	var storage, _ = Storages.GetStorageDriver(Lib.AppConfig)
-	var compressor, _ = Compressors.GetCompressor(Lib.AppConfig)
+	var storage, _ = Storages.GetStorageDriver(Config.AppConfig)
+	var compressor, _ = Compressors.GetCompressor(Config.AppConfig)
 	var uploader = Rpc.NewUploader(".", storage, compressor)
 
-	var threadsCount = Lib.AppConfig.General.ThreadsCount
+	var threadsCount = Config.AppConfig.General.ThreadsCount
 	if threadsCount <= 0 {
 		threadsCount = 2
 	}
@@ -89,8 +89,8 @@ func Run(args []string) {
 	logger.Infof("%s", forkliftRpc.StatusReport)
 	logger.Infof("%s", uploader.StatusReport)
 
-	var extraLabels = Lib.AppConfig.Metrics.ExtraLabels
-	extraLabels["storage"] = Lib.AppConfig.Storage.Type
+	var extraLabels = Config.AppConfig.Metrics.ExtraLabels
+	extraLabels["storage"] = Config.AppConfig.Storage.Type
 	extraLabels["compressor"] = compressor.GetKey()
 
 	rpcServer.Stop()
@@ -110,14 +110,14 @@ func Run(args []string) {
 func getCurrentJobName() string {
 	var logger = Logging.CreateLogger("Server", 4, nil)
 
-	if Lib.AppConfig.General.JobNameVariable == "" {
+	if Config.AppConfig.General.JobNameVariable == "" {
 		logger.Debugf("JobNameVariable is not set")
 		return ""
 	}
 
-	currentJobName, ok := os.LookupEnv(Lib.AppConfig.General.JobNameVariable)
+	currentJobName, ok := os.LookupEnv(Config.AppConfig.General.JobNameVariable)
 	if !ok {
-		logger.Debugf("JobNameVariable '%s' is not set", Lib.AppConfig.General.JobNameVariable)
+		logger.Debugf("JobNameVariable '%s' is not set", Config.AppConfig.General.JobNameVariable)
 		return ""
 	}
 
@@ -134,7 +134,7 @@ func isJobInBlacklist() bool {
 		return false
 	}
 
-	for _, blacklistedJobRegex := range Lib.AppConfig.General.JobsBlacklist {
+	for _, blacklistedJobRegex := range Config.AppConfig.General.JobsBlacklist {
 		match, _ := regexp.MatchString(blacklistedJobRegex, currentJobName)
 
 		if match {

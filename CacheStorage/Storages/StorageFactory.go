@@ -2,11 +2,11 @@ package Storages
 
 import (
 	"fmt"
-	"forklift/Lib"
+	"forklift/Lib/Config"
 	"strings"
 )
 
-func GetStorageDriver(config Lib.ForkliftConfig) (IStorage, error) {
+func GetStorageDriver(config Config.ForkliftConfig) (IStorage, error) {
 
 	var name = config.Storage.Type
 	var params = &config.General.Params

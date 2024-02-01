@@ -7,7 +7,7 @@ import (
 	"forklift/CacheStorage/Compressors"
 	"forklift/CacheStorage/Storages"
 	"forklift/FileManager/Tar"
-	"forklift/Lib"
+	"forklift/Lib/Config"
 	"forklift/Lib/Diagnostic/Time"
 	"forklift/Lib/Logging"
 	"forklift/Lib/Rustc"
@@ -128,8 +128,8 @@ func TryUseCache(wrapperTool *Rustc.WrapperTool, logger *log.Entry, cacheUsageRe
 
 	var timer = Time.NewForkliftTimer()
 
-	store, _ := Storages.GetStorageDriver(Lib.AppConfig)
-	compressor, _ := Compressors.GetCompressor(Lib.AppConfig)
+	store, _ := Storages.GetStorageDriver(Config.AppConfig)
+	compressor, _ := Compressors.GetCompressor(Config.AppConfig)
 
 	var retries = 3
 	for retries > 0 {

@@ -19,6 +19,8 @@ import (
 	"strings"
 )
 
+const CachePackageVersion = "1"
+
 type WrapperTool struct {
 	rustcArgs               *[]string
 	Logger                  *log.Entry
@@ -45,7 +47,6 @@ func NewWrapperToolFromArgs(workDir string, rustArgs *[]string) *WrapperTool {
 	wrapper.rustcArgs = rustArgs
 
 	wrapper.GetExternDepsChecksum()
-	wrapper.GetNativeDepsChecksum()
 
 	var osWorkDir, _ = os.Getwd()
 	wrapper.osWorkDir = osWorkDir
@@ -118,48 +119,6 @@ func (wrapperTool *WrapperTool) GetExternDepsChecksum() string {
 	return wrapperTool.CrateExternDepsChecksum
 }
 
-func (wrapperTool *WrapperTool) GetNativeDepsChecksum() string {
-
-	return ""
-
-	/*
-		if wrapperTool.CrateNativeDepsChecksum != "" {
-			return wrapperTool.CrateNativeDepsChecksum
-		}
-
-		var deps = GetNativeDeps(wrapperTool.rustcArgs, false)
-
-		if len(*deps) == 0 {
-			wrapperTool.CrateNativeDepsChecksum = "none"
-			return wrapperTool.CrateNativeDepsChecksum
-		}
-
-		var sha = sha1.New()
-
-		for _, dep := range *deps {
-
-			filepath.Walk(dep, func(path string, info fs.FileInfo, err error) error {
-				var data, err2 = os.Open(path)
-				//log.Errorf("Try read native dep file: %s", path)
-				var shaS = sha1.New()
-				var mwriter = io.MultiWriter(sha, shaS)
-				if err2 != nil {
-					log.Panic(err2)
-				}
-				io.Copy(mwriter, data)
-
-				log.Errorf("%s : %s", path, fmt.Sprintf("%x", shaS.Sum(nil)))
-
-				return nil
-			})
-
-		}
-
-		wrapperTool.CrateNativeDepsChecksum = fmt.Sprintf("%x", sha.Sum(nil))
-		return wrapperTool.CrateNativeDepsChecksum
-	*/
-}
-
 func (wrapperTool *WrapperTool) GetCachePackageName() string {
 
 	if wrapperTool.cachePackageName != "" {
@@ -168,12 +127,12 @@ func (wrapperTool *WrapperTool) GetCachePackageName() string {
 
 	var sha = sha1.New()
 
+	sha.Write([]byte(CachePackageVersion))
 	sha.Write([]byte(wrapperTool.CrateHash))
 	sha.Write([]byte(wrapperTool.CrateSourceChecksum))
 	sha.Write([]byte(wrapperTool.OutDir))
 	sha.Write([]byte(wrapperTool.RustCArgsHash))
 	sha.Write([]byte(wrapperTool.GetExternDepsChecksum()))
-	sha.Write([]byte(wrapperTool.GetNativeDepsChecksum()))
 
 	var result = fmt.Sprintf(
 		"%s_%x",

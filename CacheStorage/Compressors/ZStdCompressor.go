@@ -3,7 +3,7 @@ package Compressors
 import (
 	"bytes"
 	"fmt"
-	"forklift/CliTools"
+	"forklift/Helpers"
 	"github.com/klauspost/compress/zstd"
 	"io"
 )
@@ -13,9 +13,8 @@ type ZStdCompressor struct {
 	level int
 }
 
-func NewZStdCompressor(params *map[string]string) *ZStdCompressor {
-	var compressionLevel = CliTools.ExtractParam[int64](params, "COMPRESSION_LEVEL", int64(3), true)
-	compressionLevel = CliTools.ExtractParam[int64](params, "ZSTD_COMPRESSION_LEVEL", compressionLevel, true)
+func NewZStdCompressor(params *map[string]interface{}) *ZStdCompressor {
+	var compressionLevel = Helpers.MapGet[int64](params, "compressionLevel", int64(3))
 	return &ZStdCompressor{
 		level: int(compressionLevel),
 	}

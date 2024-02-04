@@ -14,7 +14,7 @@ func main() {
 
 	log.SetFormatter(&log.TextFormatter{})
 
-	var err = Config.ViperInit()
+	var err = Config.Init()
 	if err != nil {
 		log.Errorln(err)
 		log.Infof("Config error, bypassing forklift: %s", err)

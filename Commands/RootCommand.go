@@ -3,7 +3,6 @@ package Commands
 import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"os"
 )
 
@@ -28,17 +27,6 @@ func Execute() {
 		log.Errorln(err)
 		os.Exit(1)
 	}
-}
-
-func mergeParams(params *map[string]string) {
-	/*var viperParams = viper.GetStringMapString("storage.params")
-	appendToMap(params, &viperParams)
-
-	viperParams = viper.GetStringMapString("compression.params")
-	appendToMap(params, &viperParams)*/
-
-	var viperParams = viper.GetStringMapString("general.params")
-	appendToMap(params, &viperParams)
 }
 
 func appendToMap(to *map[string]string, from *map[string]string) {

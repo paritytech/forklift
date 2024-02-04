@@ -3,7 +3,7 @@ package Storages
 import (
 	"bytes"
 	"errors"
-	"forklift/CliTools"
+	"forklift/Helpers"
 	"forklift/Lib/Diagnostic/Time"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -17,29 +17,30 @@ import (
 )
 
 type S3Storage struct {
-	session *session.Session
-	bucket  string
-	client  *s3.S3
+	session     *session.Session
+	bucket      string
+	client      *s3.S3
+	concurrency int
 }
 
-func NewS3Storage(params *map[string]string) *S3Storage {
+func NewS3Storage(params *map[string]interface{}) *S3Storage {
 	s3s := S3Storage{}
 
-	var bucketName = CliTools.ExtractParam(params, "BUCKET_NAME", "forklift", true)
-	bucketName = CliTools.ExtractParam(params, "S3_BUCKET_NAME", bucketName, true)
+	s3s.concurrency = Helpers.MapGet(params, "concurrency", 1)
 
+	var bucketName = Helpers.MapGet(params, "bucketName", "forklift")
 	s3s.bucket = bucketName
 
-	var staticCreds = credentials.NewStaticCredentials(
-		CliTools.ExtractParam(params, "S3_ACCESS_KEY_ID", "", true),
-		CliTools.ExtractParam(params, "S3_SECRET_ACCESS_KEY", "", true),
+	var staticCredentials = credentials.NewStaticCredentials(
+		Helpers.MapGet(params, "accessKeyId", ""),
+		Helpers.MapGet(params, "secretAccessKey", ""),
 		"",
 	)
 
 	s3s.session = session.Must(session.NewSession(&aws.Config{
-		DisableSSL:       aws.Bool(CliTools.ExtractParam(params, "S3_USE_SSL", true, true)),
-		Credentials:      staticCreds,
-		Endpoint:         aws.String(CliTools.ExtractParam(params, "S3_ENDPOINT_URL", "", true)),
+		DisableSSL:       aws.Bool(Helpers.MapGet(params, "useSsl", true)),
+		Credentials:      staticCredentials,
+		Endpoint:         aws.String(Helpers.MapGet(params, "endpointUrl", "")),
 		Region:           aws.String("auto"),
 		S3ForcePathStyle: aws.Bool(true),
 	}))
@@ -94,6 +95,7 @@ func (storage *S3Storage) Upload(key string, reader *io.Reader, metadata map[str
 
 	var timer = Time.NewForkliftTimer()
 
+	uploader.Concurrency = storage.concurrency
 	timer.Start("upload")
 	_, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket:   aws.String(storage.bucket),
@@ -122,6 +124,8 @@ func (storage *S3Storage) Download(key string) (*DownloadResult, error) {
 
 	downloader := s3manager.NewDownloader(storage.session)
 	buf := aws.NewWriteAtBuffer([]byte{})
+
+	downloader.Concurrency = storage.concurrency
 
 	timer.Start("download")
 	n, err := downloader.Download(buf, &s3.GetObjectInput{

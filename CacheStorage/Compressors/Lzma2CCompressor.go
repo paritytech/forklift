@@ -5,7 +5,7 @@ package Compressors
 import (
 	"bytes"
 	"fmt"
-	"forklift/CliTools"
+	"forklift/Helpers"
 	"github.com/jamespfennell/xz"
 	"io"
 )
@@ -15,9 +15,8 @@ type Lzma2CCompressor struct {
 	level int
 }
 
-func NewLzma2CCompressor(params *map[string]string) *Lzma2CCompressor {
-	var compressionLevel = CliTools.ExtractParam[int64](params, "COMPRESSION_LEVEL", int64(6), true)
-	compressionLevel = CliTools.ExtractParam[int64](params, "LZMA2_COMPRESSION_LEVEL", compressionLevel, true)
+func NewLzma2CCompressor(params *map[string]interface{}) *Lzma2CCompressor {
+	var compressionLevel = Helpers.MapGet[int64](params, "compressionLevel", int64(6))
 	return &Lzma2CCompressor{
 		level: int(compressionLevel),
 	}

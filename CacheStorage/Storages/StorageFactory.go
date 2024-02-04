@@ -9,17 +9,16 @@ import (
 func GetStorageDriver(config Config.ForkliftConfig) (IStorage, error) {
 
 	var name = config.Storage.Type
-	var params = &config.General.Params
 
 	switch strings.ToLower(name) {
 	case "s3":
-		var s = NewS3Storage(params)
+		var s = NewS3Storage(config.GetMap("storage.s3"))
 		return s, nil
 	case "gcs":
-		var s = NewGcsStorage(params)
+		var s = NewGcsStorage(config.GetMap("storage.gcs"))
 		return s, nil
 	case "fs":
-		var s = NewFsStorage(params)
+		var s = NewFsStorage(config.GetMap("storage.fs"))
 		return s, nil
 	case "null":
 		var s = NewNullStorage()

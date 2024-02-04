@@ -12,7 +12,6 @@ import (
 func GetCompressor(config Config.ForkliftConfig) (ICompressor, error) {
 
 	var name = config.Compression.Type
-	var params = &config.General.Params
 
 	switch strings.ToLower(name) {
 	case "none":
@@ -22,10 +21,10 @@ func GetCompressor(config Config.ForkliftConfig) (ICompressor, error) {
 		var s = &LzmaCompressor{}
 		return s, nil
 	case "lzma2":
-		var s = NewLzma2CCompressor(params)
+		var s = NewLzma2CCompressor(config.GetMap("compression.lzma2"))
 		return s, nil
 	case "zstd":
-		var s = NewZStdCompressor(params)
+		var s = NewZStdCompressor(config.GetMap("compression.zstd"))
 		return s, nil
 	default:
 		log.Fatalf("unsupported compressor `%s`\n", name)

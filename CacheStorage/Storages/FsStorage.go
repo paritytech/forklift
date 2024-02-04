@@ -2,7 +2,7 @@ package Storages
 
 import (
 	"bytes"
-	"forklift/CliTools"
+	"forklift/Helpers"
 	"forklift/Lib/Diagnostic/Time"
 	log "github.com/sirupsen/logrus"
 	"io"
@@ -14,9 +14,9 @@ type FsStorage struct {
 	dir string
 }
 
-func NewFsStorage(params *map[string]string) *FsStorage {
+func NewFsStorage(params *map[string]interface{}) *FsStorage {
 	fsStorage := FsStorage{
-		dir: CliTools.ExtractParam(params, "FS_DIR", "", true),
+		dir: Helpers.MapGet(params, "directory", ""),
 	}
 	return &fsStorage
 }

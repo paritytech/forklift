@@ -16,7 +16,6 @@ type ForkliftCompression struct {
 }
 
 type ForkliftGeneral struct {
-	Params          map[string]string
 	LogLevel        string
 	ThreadsCount    int
 	JobNameVariable string

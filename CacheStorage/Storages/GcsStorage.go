@@ -6,7 +6,7 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
-	"forklift/CliTools"
+	"forklift/Helpers"
 	"forklift/Lib/Diagnostic/Time"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/api/option"
@@ -22,24 +22,21 @@ type GcsStorage struct {
 	context context.Context
 }
 
-func NewGcsStorage(params *map[string]string) *GcsStorage {
+func NewGcsStorage(params *map[string]interface{}) *GcsStorage {
 
-	var bucketName = CliTools.ExtractParam(params, "BUCKET_NAME", "forklift", true)
-	bucketName = CliTools.ExtractParam(params, "S3_BUCKET_NAME", bucketName, true)
+	var bucketName = Helpers.MapGet(params, "bucketName", "forklift")
 
 	ctx := context.Background()
 
-	var credentialsFilePath = CliTools.ExtractParam(
+	var credentialsFilePath = Helpers.MapGet(
 		params,
 		"GCS_APPLICATION_CREDENTIALS",
-		"",
-		true)
+		"")
 
-	var credentialsJsonBase64 = CliTools.ExtractParam(
+	var credentialsJsonBase64 = Helpers.MapGet(
 		params,
 		"GCS_CREDENTIALS_JSON_BASE64",
-		"",
-		true)
+		"")
 
 	var credsOption option.ClientOption
 

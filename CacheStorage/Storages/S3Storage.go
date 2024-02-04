@@ -26,7 +26,7 @@ type S3Storage struct {
 func NewS3Storage(params *map[string]interface{}) *S3Storage {
 	s3s := S3Storage{}
 
-	s3s.concurrency = Helpers.MapGet(params, "concurrency", 1)
+	s3s.concurrency = int(Helpers.MapGet[int64](params, "concurrency", 1))
 
 	var bucketName = Helpers.MapGet(params, "bucketName", "forklift")
 	s3s.bucket = bucketName

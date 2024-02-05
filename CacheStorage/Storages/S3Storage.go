@@ -64,12 +64,12 @@ func (storage *S3Storage) GetMetadata(key string) (map[string]*string, bool) {
 			case "NotFound":
 				return nil, false
 			case s3.ErrCodeNoSuchBucket:
-				log.Tracef("bucket %s does not exist\n", storage.bucket)
+				log.Tracef("bucket %s does not exist", storage.bucket)
 			case s3.ErrCodeNoSuchKey:
-				log.Tracef("object with key %s does not exist in bucket %s\n", key, storage.bucket)
+				log.Tracef("object with key %s does not exist in bucket %s", key, storage.bucket)
 			}
 		} else {
-			log.Fatalf("failed to get head for file %s\n%s", key, err)
+			log.Fatalf("failed to get head for file %s, %s", key, err)
 		}
 	}
 

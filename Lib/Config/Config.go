@@ -112,7 +112,7 @@ func Init() error {
 	// home folder config
 	errGlobal := globalConfig.Load(file.Provider(path), toml.Parser())
 	if errGlobal != nil {
-		log.Infof("unable to load global config: %v\n", errGlobal)
+		log.Tracef("unable to load global config: %v\n", errGlobal)
 	}
 
 	// current folder config
@@ -124,7 +124,7 @@ func Init() error {
 		var pathLocal, _ = filepath.Abs(".forklift/config.toml")
 		errLocal := localConfig.Load(file.Provider(pathLocal), toml.Parser())
 		if errLocal != nil {
-			log.Infof("unable to load local config: %v\n", errLocal)
+			log.Tracef("unable to load local config: %v\n", errLocal)
 		}
 
 		if errGlobal != nil && errLocal != nil {

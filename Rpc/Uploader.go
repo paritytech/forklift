@@ -72,7 +72,7 @@ func (uploader *Uploader) upload() {
 
 		wrapperTool.Logger = logger
 
-		logger.Debugf("Processing %s %s %s\n", wrapperTool.CrateName, wrapperTool.CrateHash, wrapperTool.OutDir)
+		logger.Debugf("Processing %s %s %s", wrapperTool.CrateName, wrapperTool.CrateHash, wrapperTool.OutDir)
 
 		var crateArtifactsFiles = []string{
 			path.Join("target", "forklift", fmt.Sprintf("%s-%s", wrapperTool.GetCachePackageName(), "stderr")),

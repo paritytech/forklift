@@ -27,7 +27,7 @@ func GetCompressor(config Config.ForkliftConfig) (ICompressor, error) {
 		var s = NewZStdCompressor(config.GetMap("compression.zstd"))
 		return s, nil
 	default:
-		log.Fatalf("unsupported compressor `%s`\n", name)
+		log.Fatalf("unsupported compressor `%s`", name)
 		return nil, errors.New("unsupported compressor")
 	}
 }

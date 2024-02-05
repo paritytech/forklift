@@ -25,7 +25,7 @@ func main() {
 	logLevel, err := log.ParseLevel(Config.AppConfig.General.LogLevel)
 	if err != nil {
 		logLevel = log.InfoLevel
-		log.Debugf("unknown log level (verbose) `%s`, using default `info`\n", Config.AppConfig.General.LogLevel)
+		log.Debugf("unknown log level `%s`, using default `info`", Config.AppConfig.General.LogLevel)
 	}
 	log.SetLevel(logLevel)
 

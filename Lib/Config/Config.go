@@ -143,8 +143,8 @@ func Init() error {
 
 	// environment variables config
 	err = globalConfig.Load(env.Provider("FORKLIFT_", ".", func(s string) string {
-		return strings.Replace(strings.ToLower(
-			strings.TrimPrefix(s, "FORKLIFT_")), "_", ".", -1)
+		return strings.Replace(
+			strings.TrimPrefix(s, "FORKLIFT_"), "_", ".", -1)
 	}), nil)
 	if err != nil {
 		return errors.Join(errors.New("unable to load env"), err)

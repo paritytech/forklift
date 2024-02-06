@@ -22,6 +22,13 @@ var configCommand = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		_ = cmd.Help()
 	},
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		var err = Config.Init()
+		if err != nil {
+			logger.Errorf("Config error, bypassing: %s", err)
+			return
+		}
+	},
 }
 
 var configShowCommand = &cobra.Command{
@@ -34,7 +41,7 @@ var configShowCommand = &cobra.Command{
 }
 
 var configGetCommand = &cobra.Command{
-	Use:   "get",
+	Use:   "get <key>",
 	Short: "Gets value from config file by name e.g. `forklift config get storage.type`",
 	Run: func(cmd *cobra.Command, args []string) {
 		var value = Config.AppConfig.Get(args[0])
@@ -43,7 +50,7 @@ var configGetCommand = &cobra.Command{
 }
 
 var configDeleteCommand = &cobra.Command{
-	Use:     "delete",
+	Use:     "delete <key>",
 	Aliases: []string{"unset", "remove", "rm"},
 	Short:   "Unset value by name e.g. `forklift config delete general.threadsCount`",
 	Run: func(cmd *cobra.Command, args []string) {

@@ -13,6 +13,8 @@ import (
 
 var Version = "0.10.0"
 
+var logger = Logging.CreateLogger("forklift", 2, nil)
+
 var rootCmd = &cobra.Command{
 	Use:                   "forklift <something>",
 	Short:                 "Cargo cache management utility",
@@ -32,8 +34,6 @@ func Execute() {
 }
 
 func rootRun(cmd *cobra.Command, args []string) {
-
-	var logger = Logging.CreateLogger("forklift", 2, nil)
 
 	if bypass, ok := os.LookupEnv("FORKLIFT_BYPASS"); ok && bypass == "true" {
 		logger.Infof("FORKLIFT_BYPASS is set to 'true', bypassing forklift")

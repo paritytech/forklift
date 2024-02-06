@@ -1,16 +1,32 @@
-[storage]
-type = "s3"
+[general]
+loglevel = "info"
+packagesuffix = "some_suffix"
+threadscount = 10
+
 
 [compression]
 type = "zstd"
 
-[general]
-logLevel = "info"
-threadsCount = 0
+[compression.zstd]
+compressionLevel = 3
 
-[general.params]
-S3_ACCESS_KEY_ID = "key_id"
-S3_SECRET_ACCESS_KEY = "some_secret"
-S3_ENDPOINT_URL = "https://storage.googleapis.com"
-S3_BUCKET_NAME = "forklift-cache-bucket"
-COMPRESSION_LEVEL = "1"
+
+[storage]
+type = "fs"
+
+[storage.fs]
+directory = "/forklift_fs_storage/cargo"
+
+[storage.s3]
+accessKeyId = "ABCDEF1234567890"
+bucketName = "forklift"
+endpointUrl = "https://storage.googleapis.com"
+secretAccessKey = "very_secret_key"
+
+
+[metrics]
+enabled = false
+pushEndpoint = "https://my-prometheus/api/v1/write"
+
+[metrics.extraLabels]
+project_name = "cargo"

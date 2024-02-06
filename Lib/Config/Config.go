@@ -81,6 +81,7 @@ func (c *ForkliftConfig) Save() error {
 		return errors.Join(errors.New("unable to marshal config"), err)
 	}
 
+	_ = os.Mkdir(".forklift", 0755)
 	f, err := os.Create(".forklift/config.toml")
 	if err != nil {
 		return errors.Join(errors.New("unable to create config file"), err)

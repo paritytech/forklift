@@ -28,24 +28,8 @@ func Run(args []string) {
 
 	var flWorkDir string
 
-	// set RUSTC_WRAPPER env var
-	if existingVar, ok := os.LookupEnv("RUSTC_WRAPPER"); ok {
-		logger.Infof("RUSTC_WRAPPER is already set: %s", existingVar)
-	} else {
-		//var flExecPath, _ = os.Executable()
-		//flExecPath, _ = filepath.EvalSymlinks(flExecPath)
-		os.Setenv("RUSTC_WRAPPER", "forklift")
-	}
-
-	// set FORKLIFT_WORK_DIR env var
-	if existingVar, ok := os.LookupEnv("FORKLIFT_WORK_DIR"); ok {
-		logger.Infof("FORKLIFT_WORK_DIR is already set: %s", existingVar)
-		flWorkDir = existingVar
-	} else {
-		var wd, _ = os.Getwd()
-		os.Setenv("FORKLIFT_WORK_DIR", wd)
-		flWorkDir = wd
-	}
+	var wd, _ = os.Getwd()
+	flWorkDir = wd
 
 	var rpcServer = Rpc.NewForkliftServer()
 	var forkliftRpc = Rpc.NewForkliftRpc()
@@ -55,16 +39,20 @@ func Run(args []string) {
 	var uploader = Rpc.NewUploader(".", storage, compressor)
 
 	var threadsCount = Config.AppConfig.General.ThreadsCount
-	if threadsCount <= 0 {
-		threadsCount = 2
-	}
 	logger.Infof("Uploader threads: %d", threadsCount)
+
 	uploader.Start(forkliftRpc.Uploads, threadsCount)
 
-	go rpcServer.Start(flWorkDir, forkliftRpc)
+	go rpcServer.Start(forkliftRpc)
 
 	// execute cargo
 	cmd := exec.Command(os.Args[1], os.Args[2:]...)
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env,
+		"RUSTC_WRAPPER=forklift",
+		"FORKLIFT_WORK_DIR="+flWorkDir,
+		"FORKLIFT_SOCKET="+rpcServer.SocketAddress,
+	)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin

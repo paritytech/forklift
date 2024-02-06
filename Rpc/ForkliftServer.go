@@ -1,8 +1,8 @@
 package Rpc
 
 import (
+	"fmt"
 	log "github.com/sirupsen/logrus"
-	"io/fs"
 	"net"
 	"net/rpc"
 	"os"
@@ -14,6 +14,7 @@ type ForkliftRpcServer struct {
 	socket          net.Listener
 	isStopRequested bool
 	Channel         chan bool
+	SocketAddress   string
 }
 
 func NewForkliftServer() *ForkliftRpcServer {
@@ -21,6 +22,10 @@ func NewForkliftServer() *ForkliftRpcServer {
 		goRpcServer:     rpc.NewServer(),
 		isStopRequested: false,
 		Channel:         make(chan bool, 1),
+		SocketAddress: filepath.Join(
+			os.TempDir(),
+			fmt.Sprintf("forklift-%d.sock", os.Getpid()),
+		),
 	}
 	return &srv
 }
@@ -34,34 +39,19 @@ func (server *ForkliftRpcServer) Stop() {
 	}
 }
 
-func handleSigTerm() {
-
-}
-
 // Start - start rpc server
-func (server *ForkliftRpcServer) Start(workDir string, forkliftRpc *ForkliftRpc) {
+func (server *ForkliftRpcServer) Start(forkliftRpc *ForkliftRpc) {
 
-	//check for existing server
-	var stat, e = os.Stat(filepath.Join(workDir, "forklift.sock"))
-
-	if e == nil {
-		if stat.Mode().Type() == fs.ModeSocket {
-			log.Error("Forklift RpcServer is already running for this location")
-			server.Channel <- true
-			return
-		} else {
-			os.Remove("forklift.sock")
-		}
-	}
+	log.Infof("Starting server on %s", server.SocketAddress)
 
 	err := server.goRpcServer.Register(forkliftRpc)
 	if err != nil {
-		log.Fatalln(err)
+		log.Error("Format of service ForliftRpc is not correct. %s", err)
 	}
 
-	server.socket, err = net.Listen("unix", "forklift.sock")
+	server.socket, err = net.Listen("unix", server.SocketAddress)
 	if err != nil {
-		log.Fatalln(err)
+		log.Error("Listen error: %s", err)
 	}
 
 	for !server.isStopRequested {

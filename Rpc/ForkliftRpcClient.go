@@ -6,7 +6,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"net/rpc"
 	"os"
-	"path/filepath"
 )
 
 type ForkliftRpcClient struct {
@@ -15,22 +14,20 @@ type ForkliftRpcClient struct {
 
 func NewForkliftRpcClient() *ForkliftRpcClient {
 	var forkliftClient = &ForkliftRpcClient{}
-	var address string
 
-	wd, ok := os.LookupEnv("FORKLIFT_WORK_DIR")
+	socketAddress, ok := os.LookupEnv("FORKLIFT_SOCKET")
 
-	if !ok || wd == "" {
-		address = "forklift.sock"
-	} else {
-		address = filepath.Join(wd, "forklift.sock")
+	if !ok || socketAddress == "" {
+		log.Warnf("FORKLIFT_SOCKET is not set, trying to use default socket 'forklift.sock'")
+		socketAddress = "forklift.sock"
 	}
 
-	var _, e = os.Stat(address)
+	var _, e = os.Stat(socketAddress)
 	if e != nil {
-		log.Fatal("No socket at "+address, e)
+		log.Fatal("No socket at "+socketAddress, e)
 	}
 
-	var rpcClient, err = rpc.Dial("unix", address)
+	var rpcClient, err = rpc.Dial("unix", socketAddress)
 	if err != nil {
 		log.Fatal(err)
 	}

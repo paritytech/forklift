@@ -47,6 +47,12 @@ func Run(args []string) {
 
 	var flClient = Rpc.NewForkliftRpcClient()
 
+	err := flClient.Connect()
+	if err != nil {
+		log.Errorf("Failed to connect to forklift server: %s", err)
+		return
+	}
+
 	var cacheUsageReport = CacheUsage.StatusReport{
 		CrateName: wrapperTool.CrateName,
 	}

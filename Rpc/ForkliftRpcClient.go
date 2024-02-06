@@ -1,6 +1,7 @@
 package Rpc
 
 import (
+	"errors"
 	"forklift/FileManager/Models"
 	CacheUsage "forklift/Rpc/Models/CacheUsage"
 	log "github.com/sirupsen/logrus"
@@ -14,7 +15,10 @@ type ForkliftRpcClient struct {
 
 func NewForkliftRpcClient() *ForkliftRpcClient {
 	var forkliftClient = &ForkliftRpcClient{}
+	return forkliftClient
+}
 
+func (client *ForkliftRpcClient) Connect() error {
 	socketAddress, ok := os.LookupEnv("FORKLIFT_SOCKET")
 
 	if !ok || socketAddress == "" {
@@ -24,17 +28,17 @@ func NewForkliftRpcClient() *ForkliftRpcClient {
 
 	var _, e = os.Stat(socketAddress)
 	if e != nil {
-		log.Fatal("No socket at "+socketAddress, e)
+		return errors.Join(errors.New("no socket at "+socketAddress), e)
 	}
 
 	var rpcClient, err = rpc.Dial("unix", socketAddress)
 	if err != nil {
-		log.Fatal(err)
+		return errors.Join(errors.New("unable to connect to socket"), err)
 	}
 
-	forkliftClient.rpcClient = rpcClient
+	client.rpcClient = rpcClient
 
-	return forkliftClient
+	return nil
 }
 
 func (client *ForkliftRpcClient) RegisterExternDeps(deps *[]string) {

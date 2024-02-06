@@ -46,7 +46,7 @@ func (server *ForkliftRpcServer) Start(forkliftRpc *ForkliftRpc) {
 
 	err := server.goRpcServer.Register(forkliftRpc)
 	if err != nil {
-		log.Error("Format of service ForliftRpc is not correct. %s", err)
+		log.Error("Format of service ForkliftRpc is not correct. %s", err)
 	}
 
 	server.socket, err = net.Listen("unix", server.SocketAddress)

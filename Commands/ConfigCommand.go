@@ -11,6 +11,7 @@ func init() {
 	configCommand.AddCommand(configGetCommand)
 	configCommand.AddCommand(configSetCommand)
 	configCommand.AddCommand(configShowCommand)
+	configCommand.AddCommand(configDeleteCommand)
 
 	rootCmd.AddCommand(configCommand)
 }
@@ -41,10 +42,26 @@ var configGetCommand = &cobra.Command{
 	},
 }
 
+var configDeleteCommand = &cobra.Command{
+	Use:     "delete",
+	Aliases: []string{"unset", "remove", "rm"},
+	Short:   "Unset value by name e.g. `forklift config delete general.threadsCount`",
+	Run: func(cmd *cobra.Command, args []string) {
+		Config.AppConfig.Delete(args[0])
+
+		err := Config.AppConfig.Save()
+		if err != nil {
+			fmt.Printf("Error writing config: %v\n", err)
+			return
+		}
+	},
+}
+
 var configSetCommand = &cobra.Command{
 	Use: "set <name> <value> [type]",
-	Short: "Sets value from config file by name\n" +
-		"Available types: 'string', 'int', 'float', 'bool'\n" +
+	Short: "Sets value from config file by name" +
+		"." +
+		" Available types: 'string', 'int', 'float', 'bool'" +
 		" e.g. `forklift config set storage.type s3 string`",
 	Run: func(cmd *cobra.Command, args []string) {
 

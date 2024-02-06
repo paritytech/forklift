@@ -75,6 +75,10 @@ func (c *ForkliftConfig) Set(key string, value any) {
 	}
 }
 
+func (c *ForkliftConfig) Delete(key string) {
+	localConfig.Delete(key)
+}
+
 func (c *ForkliftConfig) Save() error {
 	marshalled, err := localConfig.Marshal(toml.Parser())
 	if err != nil {

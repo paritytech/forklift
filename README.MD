@@ -88,11 +88,12 @@ See `forklift config --help` for more info
 #### general
 `[general]`
 
-| key           | type   | description                                                      |
-|---------------|--------|------------------------------------------------------------------|
-| logLevel      | string | log level, `trace`,`debug`,`info`,`warn`,`error`, default `info` |
-| packageSuffix | string | suffix for all cache package names, default `""`                 |
-| threadsCount  | int    | number of threads for parallel uploads, default `2`              |
+| key           | type   | description                                                                 |
+|---------------|--------|-----------------------------------------------------------------------------|
+| logLevel      | string | log level, `trace`,`debug`,`info`,`warn`,`error`, `fatal`, default `info`   |
+| packageSuffix | string | suffix for all cache package names, default `""`                            |
+| threadsCount  | int    | number of threads for parallel uploads, default `2`                         |
+| quiet         | bool   | do not print any output, `logLevel` will be set to `fatal`, default `false` |
 
 #### storage
 `[storage]`

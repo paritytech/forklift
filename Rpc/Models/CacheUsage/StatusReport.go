@@ -35,7 +35,7 @@ type ForkliftCacheStatusReport struct {
 
 func (s ForkliftCacheStatusReport) String() string {
 	return fmt.Sprintf(
-		"Cache report:\n"+
+		"   Cache report:\n"+
 			"      Total crates processed: %d\n"+
 			"      Cache hit:              %d\n"+
 			"      Cache hit with retry:   %d\n"+

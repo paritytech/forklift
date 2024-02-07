@@ -1,6 +1,7 @@
 package Server
 
 import (
+	"fmt"
 	"forklift/CacheStorage/Compressors"
 	"forklift/CacheStorage/Storages"
 	"forklift/Lib/Config"
@@ -15,7 +16,7 @@ import (
 
 func Run(args []string) {
 
-	var logger = Logging.CreateLogger("Server", 4, nil)
+	var logger = Logging.CreateLogger("Server", 3, nil)
 	var timer = Time.NewForkliftTimer()
 
 	timer.Start("Total time")
@@ -39,7 +40,16 @@ func Run(args []string) {
 	var uploader = Rpc.NewUploader(".", storage, compressor)
 
 	var threadsCount = Config.AppConfig.General.ThreadsCount
-	logger.Infof("Uploader threads: %d", threadsCount)
+
+	if !Config.AppConfig.General.Quiet {
+		fmt.Printf(
+			"   Using forklift"+
+				", storage: %s, compressor: %s"+
+				", uploader threads: %d\n",
+			Config.AppConfig.Storage.Type,
+			Config.AppConfig.Compression.Type,
+			threadsCount)
+	}
 
 	uploader.Start(forkliftRpc.Uploads, threadsCount)
 
@@ -74,8 +84,10 @@ func Run(args []string) {
 		uploader.StatusReport.AverageUploadSpeedBps = int64(float64(uploader.StatusReport.AverageUploadSpeedBps) / float64(uploader.StatusReport.Total))
 	}
 
-	logger.Infof("%s", forkliftRpc.StatusReport)
-	logger.Infof("%s", uploader.StatusReport)
+	if !Config.AppConfig.General.Quiet {
+		fmt.Printf("%s\n", forkliftRpc.StatusReport)
+		fmt.Printf("%s\n", uploader.StatusReport)
+	}
 
 	var extraLabels = Config.AppConfig.Metrics.ExtraLabels
 	extraLabels["storage"] = Config.AppConfig.Storage.Type

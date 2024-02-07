@@ -22,6 +22,8 @@ var AppConfig = ForkliftConfig{
 	General: ForkliftGeneral{
 		LogLevel:     "info",
 		ThreadsCount: 2,
+
+		Quiet: false,
 	},
 	Metrics: ForkliftMetrics{
 		Enabled: false,

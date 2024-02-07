@@ -21,6 +21,7 @@ type ForkliftGeneral struct {
 	JobNameVariable string
 	JobsBlacklist   []string
 	PackageSuffix   string
+	Quiet           bool
 }
 
 type ForkliftMetrics struct {

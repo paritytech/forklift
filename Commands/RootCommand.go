@@ -53,6 +53,9 @@ func rootRun(cmd *cobra.Command, args []string) {
 		logLevel = log.InfoLevel
 		logger.Errorf("unknown log level `%s`, using default `info`", Config.AppConfig.General.LogLevel)
 	}
+	if Config.AppConfig.General.Quiet {
+		logLevel = log.FatalLevel
+	}
 	log.SetLevel(logLevel)
 
 	if len(args) == 0 {

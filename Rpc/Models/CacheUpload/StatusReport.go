@@ -31,16 +31,16 @@ type ForkliftCacheStatusReport struct {
 
 func (s ForkliftCacheStatusReport) String() string {
 	return fmt.Sprintf(
-		"Cache upload report:\n"+
-			"      Total uploads:        %d\n"+
-			"      Uploaded:             %d\n"+
-			"      With retry:           %d\n"+
-			"      Failed:               %d\n"+
-			"      Pack time:            %s\n"+
-			"      Compress time:        %s\n"+
-			"      Upload time:          %s\n"+
-			"      Uploaded size:        %d bytes\n"+
-			"      Average upload speed: %d bps\n",
+		"   Cache upload report:\n"+
+			"      Total uploads:          %d\n"+
+			"      Uploaded:               %d\n"+
+			"      With retry:             %d\n"+
+			"      Failed:                 %d\n"+
+			"      Pack time:              %s\n"+
+			"      Compress time:          %s\n"+
+			"      Upload time:            %s\n"+
+			"      Uploaded size:          %d bytes\n"+
+			"      Average upload speed:   %d bps\n",
 		s.Total,
 		s.Uploaded,
 		s.UploadedWithRetry,

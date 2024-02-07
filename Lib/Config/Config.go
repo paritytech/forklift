@@ -142,17 +142,17 @@ func Init() error {
 		return errors.Join(errors.New("unable to merge configs"), err)
 	}
 
-	if err := globalConfig.Unmarshal("", &AppConfig); err != nil {
-		return errors.Join(errors.New("unable to unmarshal config"), err)
-	}
-
 	// environment variables config
 	err = globalConfig.Load(env.Provider("FORKLIFT_", ".", func(s string) string {
 		return strings.Replace(
 			strings.TrimPrefix(s, "FORKLIFT_"), "_", ".", -1)
 	}), nil)
-	if err != nil {
+	/*if err != nil {
 		return errors.Join(errors.New("unable to load env"), err)
+	}*/
+
+	if err := globalConfig.Unmarshal("", &AppConfig); err != nil {
+		return errors.Join(errors.New("unable to unmarshal config"), err)
 	}
 
 	return nil

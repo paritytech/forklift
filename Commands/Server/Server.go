@@ -47,7 +47,7 @@ func Run(args []string) {
 				", storage: %s, compressor: %s"+
 				", uploader threads: %d\n",
 			Config.AppConfig.Storage.Type,
-			Config.AppConfig.Compression.Type,
+			compressor.GetKey(),
 			threadsCount)
 	}
 
@@ -97,7 +97,9 @@ func Run(args []string) {
 
 	if err != nil {
 		extraLabels["job_result"] = "fail"
-		Metrics.PushMetrics(&forkliftRpc.StatusReport, &uploader.StatusReport, extraLabels)
+		if (&forkliftRpc.StatusReport).TotalCrates > 0 {
+			Metrics.PushMetrics(&forkliftRpc.StatusReport, &uploader.StatusReport, extraLabels)
+		}
 		logger.Errorf("Cargo finished with error: %s", err)
 		os.Exit(1)
 	} else {

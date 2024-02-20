@@ -1,17 +1,12 @@
 package Logging
 
 import (
-	log "github.com/sirupsen/logrus"
-	"os"
+	log "forklift/Lib/Logging/ConsoleLogger"
 )
 
-func CreateLogger(name string, indentation int, fields log.Fields) *log.Entry {
+func CreateLogger(name string, indentation int, fields log.Fields) *log.Logger {
 
-	var l = log.Logger{
-		Out:       os.Stderr,
-		Formatter: &ForkliftTextFormatter{Indentation: indentation, TaskPrefix: name},
-		Level:     log.GetLevel(),
-	}
+	var l = log.NewLoggerWithFormatter(name, &log.TextFormatter{Indentation: indentation})
 
 	if fields == nil {
 		fields = log.Fields{}

@@ -5,7 +5,7 @@ import (
 	"forklift/Commands/Wrapper"
 	"forklift/Lib/Config"
 	"forklift/Lib/Logging"
-	log "github.com/sirupsen/logrus"
+	log "forklift/Lib/Logging/ConsoleLogger"
 	"github.com/spf13/cobra"
 	"os"
 	"strings"
@@ -13,7 +13,7 @@ import (
 
 var Version = "0.10.0"
 
-var logger = Logging.CreateLogger("forklift", 2, nil)
+var logger = Logging.CreateLogger("forklift", 4, nil)
 
 var rootCmd = &cobra.Command{
 	Use:                   "forklift <something>",
@@ -28,7 +28,7 @@ var rootCmd = &cobra.Command{
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		log.Errorln(err)
+		log.Errorf(err.Error())
 		os.Exit(1)
 	}
 }
@@ -56,7 +56,9 @@ func rootRun(cmd *cobra.Command, args []string) {
 	if Config.AppConfig.General.Quiet {
 		logLevel = log.FatalLevel
 	}
+
 	log.SetLevel(logLevel)
+	log.SetFormatter(&log.TextFormatter{Indentation: 4})
 
 	if len(args) == 0 {
 		cmd.Help()

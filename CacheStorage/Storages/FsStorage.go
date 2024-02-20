@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"forklift/Helpers"
 	"forklift/Lib/Diagnostic/Time"
-	log "github.com/sirupsen/logrus"
+	log "forklift/Lib/Logging/ConsoleLogger"
 	"io"
 	"os"
 	"path/filepath"
@@ -30,7 +30,7 @@ func (storage *FsStorage) Upload(key string, reader *io.Reader, _ map[string]*st
 
 	var file, err = os.Create(filepath.Join(storage.dir, key))
 	if err != nil {
-		log.Fatalln("Unable to create file", err)
+		log.Fatalf("Unable to create file , %s", err)
 	}
 	defer file.Close()
 

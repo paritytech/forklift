@@ -22,7 +22,7 @@ func PushMetrics(
 	}
 
 	if Config.AppConfig.Metrics.PushEndpoint == "" {
-		logger.Error("Metrics push endpoint is not set")
+		logger.Errorf("Metrics push endpoint is not set")
 		return
 	}
 

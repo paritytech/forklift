@@ -16,7 +16,7 @@ import (
 
 func Run(args []string) {
 
-	var logger = Logging.CreateLogger("Server", 3, nil)
+	var logger = Logging.CreateLogger("Server", 4, nil)
 	var timer = Time.NewForkliftTimer()
 
 	timer.Start("Total time")

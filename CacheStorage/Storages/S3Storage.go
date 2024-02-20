@@ -5,13 +5,13 @@ import (
 	"errors"
 	"forklift/Helpers"
 	"forklift/Lib/Diagnostic/Time"
+	log "forklift/Lib/Logging/ConsoleLogger"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"strings"
 )
@@ -48,6 +48,33 @@ func NewS3Storage(params *map[string]interface{}) *S3Storage {
 	s3s.client = s3.New(s3s.session, &aws.Config{})
 
 	return &s3s
+}
+
+func (storage *S3Storage) getHead(key string) (*s3.HeadObjectOutput, bool) {
+	var head, err = storage.client.HeadObject(&s3.HeadObjectInput{
+		Key:    &key,
+		Bucket: &storage.bucket,
+	})
+
+	if err != nil {
+		var awsErr awserr.Error
+		if errors.As(err, &awsErr) {
+			switch awsErr.Code() {
+			//case "NotFound":
+			//	return nil, false
+			case s3.ErrCodeNoSuchBucket:
+				log.Tracef("bucket %s does not exist", storage.bucket)
+			case "NotFound":
+			case s3.ErrCodeNoSuchKey:
+				log.Tracef("object with key %s does not exist in bucket %s", key, storage.bucket)
+			}
+		} else {
+			log.Warningf("failed to get head for file %s, %s", key, err)
+		}
+		return nil, false
+	}
+
+	return head, true
 }
 
 func (storage *S3Storage) GetMetadata(key string) (map[string]*string, bool) {
@@ -123,7 +150,13 @@ func (storage *S3Storage) Download(key string) (*DownloadResult, error) {
 	var timer = Time.NewForkliftTimer()
 
 	downloader := s3manager.NewDownloader(storage.session)
-	buf := aws.NewWriteAtBuffer([]byte{})
+
+	var head, ok = storage.getHead(key)
+	if !ok {
+		return nil, nil
+	}
+	var size = *head.ContentLength
+	buf := aws.NewWriteAtBuffer(make([]byte, size))
 
 	downloader.Concurrency = storage.concurrency
 

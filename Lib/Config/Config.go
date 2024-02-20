@@ -2,11 +2,11 @@ package Config
 
 import (
 	"errors"
+	log "forklift/Lib/Logging/ConsoleLogger"
 	"github.com/knadh/koanf/parsers/toml"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 	"strings"

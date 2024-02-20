@@ -15,7 +15,7 @@ func hasCargoToml(path string) bool {
 	return len(cargoTomls) > 0
 }
 
-func calcChecksum2(wrapperTool *Rustc.WrapperTool) bool {
+func calcChecksum(wrapperTool *Rustc.WrapperTool) bool {
 
 	var path = wrapperTool.SourceFile
 

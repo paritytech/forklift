@@ -2,8 +2,8 @@ package Rpc
 
 import (
 	"forklift/FileManager/Models"
-	CacheUsage "forklift/Rpc/Models/CacheUsage"
-	log "github.com/sirupsen/logrus"
+	log "forklift/Lib/Logging/ConsoleLogger"
+	"forklift/Rpc/Models/CacheUsage"
 	"sync"
 )
 

@@ -8,7 +8,7 @@ import (
 	"errors"
 	"forklift/Helpers"
 	"forklift/Lib/Diagnostic/Time"
-	log "github.com/sirupsen/logrus"
+	log "forklift/Lib/Logging/ConsoleLogger"
 	"google.golang.org/api/option"
 	"io"
 	"os"
@@ -43,7 +43,7 @@ func NewGcsStorage(params *map[string]interface{}) *GcsStorage {
 	if credentialsJsonBase64 != "" {
 		var credentialsBytes, err = base64.StdEncoding.DecodeString(credentialsJsonBase64)
 		if err != nil {
-			log.Fatalln("unable to decode GCP_CREDENTIALS_JSON_BASE64")
+			log.Fatalf("unable to decode GCP_CREDENTIALS_JSON_BASE64")
 			os.Exit(1)
 		}
 		credsOption = option.WithCredentialsJSON(credentialsBytes)
@@ -85,7 +85,7 @@ func (driver *GcsStorage) GetMetadata(key string) (map[string]*string, bool) {
 		case errors.Is(err, storage.ErrObjectNotExist):
 			return nil, false
 		case errors.Is(err, storage.ErrBucketNotExist):
-			log.Printf("bucket %s does not exist\n", driver.bucket)
+			log.Errorf("bucket %s does not exist", driver.bucket)
 		default:
 			log.Fatalf("failed to get head for file %s\n%s", key, err)
 		}

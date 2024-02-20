@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"errors"
-	log "github.com/sirupsen/logrus"
+	log "forklift/Lib/Logging/ConsoleLogger"
 	"hash"
 	"io"
 	"io/fs"
@@ -59,7 +59,7 @@ func PackDirectory(tarWriter *tar.Writer, dirPath string, hash hash.Hash) {
 		return nil
 	})
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalf(err.Error())
 	}
 }
 
@@ -80,23 +80,23 @@ func PackFile(tarWriter *tar.Writer, path string, hash hash.Hash) {
 
 	err := tarWriter.WriteHeader(hdr)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalf(err.Error())
 	}
 
 	f, err := os.Open(path)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalf(err.Error())
 	}
 
 	var mw = io.MultiWriter(tarWriter, hash)
 	_, err = io.Copy(mw, f)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalf(err.Error())
 	}
 
 	err = f.Close()
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalf(err.Error())
 	}
 }
 

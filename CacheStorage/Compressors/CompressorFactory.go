@@ -5,7 +5,7 @@ package Compressors
 import (
 	"errors"
 	"forklift/Lib/Config"
-	log "github.com/sirupsen/logrus"
+	log "forklift/Lib/Logging/ConsoleLogger"
 	"strings"
 )
 

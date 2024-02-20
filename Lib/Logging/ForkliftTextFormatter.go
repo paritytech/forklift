@@ -1,8 +1,9 @@
 package Logging
 
+/*
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
+	log "forklift/Lib/Logging/ConsoleLogger"
 	"strings"
 )
 
@@ -11,7 +12,7 @@ type ForkliftTextFormatter struct {
 	TaskPrefix  string
 }
 
-func (f *ForkliftTextFormatter) Format(entry *log.Entry) ([]byte, error) {
+func (f *ForkliftTextFormatter) Format(entry *log.Logger) ([]byte, error) {
 
 	var sb = strings.Builder{}
 
@@ -44,3 +45,4 @@ func (f *ForkliftTextFormatter) Format(entry *log.Entry) ([]byte, error) {
 
 	return []byte(logString), nil
 }
+*/

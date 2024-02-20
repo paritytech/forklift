@@ -10,10 +10,10 @@ import (
 	"forklift/Lib/Config"
 	"forklift/Lib/Diagnostic/Time"
 	"forklift/Lib/Logging"
+	log "forklift/Lib/Logging/ConsoleLogger"
 	"forklift/Lib/Rustc"
 	"forklift/Rpc"
 	"forklift/Rpc/Models/CacheUsage"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"os"
 	"os/exec"
@@ -31,7 +31,7 @@ func Run(args []string) {
 	wd, ok := os.LookupEnv("FORKLIFT_WORK_DIR")
 
 	if !ok || wd == "" {
-		log.Fatalln("No `FORKLIFT_WORK_DIR` specified!")
+		log.Fatalf("No `FORKLIFT_WORK_DIR` specified!")
 		return
 	}
 
@@ -39,7 +39,7 @@ func Run(args []string) {
 
 	var wrapperTool = Rustc.NewWrapperToolFromArgs(WorkDir, &rustcArgsOnly)
 
-	logger := Logging.CreateLogger("Wrapper", 1, log.Fields{
+	logger := Logging.CreateLogger("Wrapper", 4, log.Fields{
 		"crate": wrapperTool.CrateName,
 		"hash":  wrapperTool.CrateHash,
 	})
@@ -88,10 +88,7 @@ func Run(args []string) {
 		logger.Debugf("No rebuilt deps")
 	}
 
-	// calc sources checksum
-	//if wrapperTool.IsNeedProcessFromCache() {
-	calcChecksum2(wrapperTool)
-	//}
+	calcChecksum(wrapperTool)
 
 	var cacheHit = false
 	// try get from cache
@@ -130,7 +127,7 @@ func Run(args []string) {
 }
 
 // TryUseCache - try to use cache, return false if failed
-func TryUseCache(wrapperTool *Rustc.WrapperTool, logger *log.Entry, cacheUsageReport *CacheUsage.StatusReport) bool {
+func TryUseCache(wrapperTool *Rustc.WrapperTool, logger *log.Logger, cacheUsageReport *CacheUsage.StatusReport) bool {
 
 	var timer = Time.NewForkliftTimer()
 

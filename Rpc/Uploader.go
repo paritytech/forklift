@@ -11,10 +11,9 @@ import (
 	"forklift/FileManager/Tar"
 	"forklift/Lib/Diagnostic/Time"
 	"forklift/Lib/Logging"
+	log "forklift/Lib/Logging/ConsoleLogger"
 	"forklift/Lib/Rustc"
 	"forklift/Rpc/Models/CacheUpload"
-	log "github.com/sirupsen/logrus"
-	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -51,11 +50,7 @@ func (uploader *Uploader) Start(queue chan Models.CacheItem, threads int) {
 }
 
 func (uploader *Uploader) upload() {
-	var l = log.Logger{
-		Out:       os.Stderr,
-		Formatter: &Logging.ForkliftTextFormatter{Indentation: 1, TaskPrefix: "Uploader"},
-		Level:     log.GetLevel(),
-	}
+	var l = Logging.CreateLogger("Uploader", 4, nil)
 
 	for {
 		item, more := <-uploader.uploads
@@ -111,7 +106,7 @@ func (uploader *Uploader) upload() {
 func (uploader *Uploader) TryUpload(
 	wrapperTool *Rustc.WrapperTool,
 	crateArtifactsFiles []string,
-	logger *log.Entry) CacheUpload.StatusReport {
+	logger *log.Logger) CacheUpload.StatusReport {
 
 	var timer = Time.NewForkliftTimer()
 

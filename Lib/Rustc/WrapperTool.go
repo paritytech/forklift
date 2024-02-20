@@ -10,7 +10,7 @@ import (
 	"forklift/FileManager"
 	"forklift/FileManager/Models"
 	"forklift/Lib/Config"
-	log "github.com/sirupsen/logrus"
+	log "forklift/Lib/Logging/ConsoleLogger"
 	"io"
 	"os"
 	"path"
@@ -23,7 +23,7 @@ const CachePackageVersion = "1"
 
 type WrapperTool struct {
 	rustcArgs               *[]string
-	Logger                  *log.Entry
+	Logger                  *log.Logger
 	CrateName               string
 	CrateHash               string
 	OutDir                  string
@@ -168,7 +168,7 @@ func (wrapperTool *WrapperTool) WriteToItemCacheFile() {
 	var itemsCachePath = path.Join(wrapperTool.workDir, ".forklift", "items-cache")
 	err := os.MkdirAll(itemsCachePath, 0755)
 	if err != nil {
-		wrapperTool.Logger.Errorln(err)
+		wrapperTool.Logger.Errorf(err.Error())
 	}
 
 	itemFile, err := os.OpenFile(
@@ -177,7 +177,7 @@ func (wrapperTool *WrapperTool) WriteToItemCacheFile() {
 		0755,
 	)
 	if err != nil {
-		wrapperTool.Logger.Errorln(err)
+		wrapperTool.Logger.Errorf(err.Error())
 	}
 
 	_, err = itemFile.WriteString(fmt.Sprintf(
@@ -191,12 +191,12 @@ func (wrapperTool *WrapperTool) WriteToItemCacheFile() {
 		//wrapperTool.CrateExternDepsChecksum,
 	))
 	if err != nil {
-		wrapperTool.Logger.Errorln(err)
+		wrapperTool.Logger.Errorf(err.Error())
 	}
 
 	err = itemFile.Close()
 	if err != nil {
-		wrapperTool.Logger.Errorln(err)
+		wrapperTool.Logger.Errorf(err.Error())
 	}
 }
 
@@ -239,7 +239,7 @@ func (wrapperTool *WrapperTool) WriteStderrFile(reader io.Reader) *[]CacheStorag
 		0755,
 	)
 	if err != nil {
-		wrapperTool.Logger.Errorln(err)
+		wrapperTool.Logger.Errorf(err.Error())
 	}
 
 	var result []CacheStorage.RustcArtifact
@@ -269,7 +269,7 @@ func (wrapperTool *WrapperTool) WriteIOStreamFile(reader io.Reader, suffix strin
 	var itemsCachePath = path.Join(wrapperTool.workDir, "target", "forklift")
 	err := os.MkdirAll(itemsCachePath, 0755)
 	if err != nil {
-		wrapperTool.Logger.Errorln(err)
+		wrapperTool.Logger.Errorf(err.Error())
 	}
 
 	itemFile, err := os.OpenFile(
@@ -278,17 +278,17 @@ func (wrapperTool *WrapperTool) WriteIOStreamFile(reader io.Reader, suffix strin
 		0755,
 	)
 	if err != nil {
-		wrapperTool.Logger.Errorln(err)
+		wrapperTool.Logger.Errorf(err.Error())
 	}
 
 	_, err = io.Copy(itemFile, reader)
 	if err != nil {
-		wrapperTool.Logger.Errorln(err)
+		wrapperTool.Logger.Errorf(err.Error())
 	}
 
 	err = itemFile.Close()
 	if err != nil {
-		wrapperTool.Logger.Errorln(err)
+		wrapperTool.Logger.Errorf(err.Error())
 	}
 }
 
@@ -300,7 +300,7 @@ func (wrapperTool *WrapperTool) ReadIOStreamFile(suffix string) io.Reader {
 		path.Join(itemsCachePath, fmt.Sprintf("%s-%s", wrapperTool.GetCachePackageName(), suffix)),
 	)
 	if err != nil {
-		wrapperTool.Logger.Errorln(err)
+		wrapperTool.Logger.Errorf(err.Error())
 	}
 
 	var result = bytes.Buffer{}

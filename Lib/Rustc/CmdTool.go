@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"forklift/CacheStorage"
-	log "github.com/sirupsen/logrus"
+	log "forklift/Lib/Logging/ConsoleLogger"
 	"io"
 	"os"
 	"path/filepath"
@@ -102,7 +102,7 @@ func GetDepArtifact(reader io.Reader) (CacheStorage.RustcArtifact, error) {
 func GetSourceFiles(filename string) []string {
 	file, err := os.Open(filename)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf(err.Error())
 	}
 	defer file.Close()
 

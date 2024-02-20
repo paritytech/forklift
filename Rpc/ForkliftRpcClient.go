@@ -3,8 +3,8 @@ package Rpc
 import (
 	"errors"
 	"forklift/FileManager/Models"
+	log "forklift/Lib/Logging/ConsoleLogger"
 	CacheUsage "forklift/Rpc/Models/CacheUsage"
-	log "github.com/sirupsen/logrus"
 	"net/rpc"
 	"os"
 )
@@ -22,7 +22,7 @@ func (client *ForkliftRpcClient) Connect() error {
 	socketAddress, ok := os.LookupEnv("FORKLIFT_SOCKET")
 
 	if !ok || socketAddress == "" {
-		log.Warnf("FORKLIFT_SOCKET is not set, trying to use default socket 'forklift.sock'")
+		log.Warningf("FORKLIFT_SOCKET is not set, trying to use default socket 'forklift.sock'")
 		socketAddress = "forklift.sock"
 	}
 
@@ -65,7 +65,7 @@ func (client *ForkliftRpcClient) CheckExternDeps(deps *[]string) string {
 	var result string
 	err := client.rpcClient.Call("ForkliftRpc.CheckExternDeps", deps, &result)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf(err.Error())
 	}
 	return result
 }
@@ -75,7 +75,7 @@ func (client *ForkliftRpcClient) AddUpload(cacheItem Models.CacheItem) {
 	var result bool
 	err := client.rpcClient.Call("ForkliftRpc.AddUpload", cacheItem, &result)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf(err.Error())
 	}
 }
 
@@ -89,7 +89,7 @@ func (client *ForkliftRpcClient) ReportStatus(crateName string, status CacheUsag
 
 	err := client.rpcClient.Call("ForkliftRpc.ReportStatus", &cacheStatusReport, &result)
 	if err != nil {
-		log.Error(err)
+		log.Errorf(err.Error())
 	}
 }
 
@@ -98,6 +98,6 @@ func (client *ForkliftRpcClient) ReportStatusObject(report CacheUsage.StatusRepo
 
 	err := client.rpcClient.Call("ForkliftRpc.ReportStatus", &report, &result)
 	if err != nil {
-		log.Error(err)
+		log.Errorf(err.Error())
 	}
 }

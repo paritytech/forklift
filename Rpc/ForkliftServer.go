@@ -2,7 +2,7 @@ package Rpc
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
+	log "forklift/Lib/Logging/ConsoleLogger"
 	"net"
 	"net/rpc"
 	"os"
@@ -35,7 +35,7 @@ func (server *ForkliftRpcServer) Stop() {
 	server.isStopRequested = true
 	err := server.socket.Close()
 	if err != nil {
-		log.Error(err)
+		log.Errorf("%s", err)
 	}
 }
 
@@ -46,12 +46,12 @@ func (server *ForkliftRpcServer) Start(forkliftRpc *ForkliftRpc) {
 
 	err := server.goRpcServer.Register(forkliftRpc)
 	if err != nil {
-		log.Error("Format of service ForkliftRpc is not correct. %s", err)
+		log.Errorf("Format of service ForkliftRpc is not correct. %s", err)
 	}
 
 	server.socket, err = net.Listen("unix", server.SocketAddress)
 	if err != nil {
-		log.Error("Listen error: %s", err)
+		log.Errorf("Listen error: %s", err)
 	}
 
 	for !server.isStopRequested {

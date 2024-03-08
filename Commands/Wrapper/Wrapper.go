@@ -1,20 +1,13 @@
 package Wrapper
 
 import (
-	"bytes"
 	"errors"
-	"forklift/CacheStorage"
-	"forklift/CacheStorage/Compressors"
-	"forklift/CacheStorage/Storages"
-	"forklift/FileManager/Tar"
-	"forklift/Lib/Config"
 	"forklift/Lib/Diagnostic/Time"
 	"forklift/Lib/Logging"
 	log "forklift/Lib/Logging/ConsoleLogger"
 	"forklift/Lib/Rustc"
 	"forklift/Rpc"
 	"forklift/Rpc/Models/CacheUsage"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -41,7 +34,7 @@ func Run(args []string) {
 
 	logger := Logging.CreateLogger("Wrapper", 4, log.Fields{
 		"crate": wrapperTool.CrateName,
-		"hash":  wrapperTool.CrateHash,
+		"hash":  wrapperTool.CargoCrateHash,
 	})
 	wrapperTool.Logger = logger
 
@@ -93,14 +86,14 @@ func Run(args []string) {
 	var cacheHit = false
 	// try get from cache
 	if !gotRebuildDeps {
-		cacheHit = TryUseCache(wrapperTool, logger, &cacheUsageReport)
+		cacheHit = wrapperTool.TryUseCache(&cacheUsageReport)
 	}
 
 	if !cacheHit {
 		// execute rustc
 		timer.Start("rustc")
 		logger.Infof("Executing rustc")
-		var artifacts, rustcError = ExecuteRustc(wrapperTool)
+		var artifacts, rustcError = wrapperTool.ExecuteRustc()
 		cacheUsageReport.RustcTime += timer.Stop("rustc")
 
 		if rustcError != nil {
@@ -116,82 +109,13 @@ func Run(args []string) {
 		// register rebuilt artifacts
 		RegisterRebuiltArtifacts(artifacts, flClient)
 
-		//if wrapperTool.IsNeedProcessFromCache() {
 		flClient.AddUpload(wrapperTool.ToCacheItem())
-		//}
 	}
 
-	//if wrapperTool.IsNeedProcessFromCache() {
 	flClient.ReportStatusObject(cacheUsageReport)
-	//}
 }
 
-// TryUseCache - try to use cache, return false if failed
-func TryUseCache(wrapperTool *Rustc.WrapperTool, logger *log.Logger, cacheUsageReport *CacheUsage.StatusReport) bool {
-
-	var timer = Time.NewForkliftTimer()
-
-	store, _ := Storages.GetStorageDriver(Config.AppConfig)
-	compressor, _ := Compressors.GetCompressor(Config.AppConfig)
-
-	var retries = 3
-	for retries > 0 {
-		// try download
-		timer.Start("download")
-		downloadResult, err := store.Download(wrapperTool.GetCachePackageName() + "_" + compressor.GetKey())
-		cacheUsageReport.DownloadTime += timer.Stop("download")
-		if downloadResult == nil && err == nil {
-			logger.Debugf("%s does not exist in storage", wrapperTool.GetCachePackageName())
-			cacheUsageReport.Status = CacheUsage.CacheMiss
-			return false
-		}
-		if err != nil {
-			logger.Warningf("download error: %s", err)
-			retries--
-			continue
-		}
-		cacheUsageReport.DownloadSize += downloadResult.BytesCount
-		cacheUsageReport.DownloadSpeedBps += downloadResult.SpeedBps
-
-		// try decompress
-		timer.Start("decompress")
-		decompressed, err := compressor.Decompress(downloadResult.Data)
-		cacheUsageReport.DecompressTime += timer.Stop("decompress")
-		if err != nil {
-			logger.Warningf("decompression error: %s", err)
-			retries--
-			continue
-		}
-
-		// try unpack
-		timer.Start("unpack")
-		err = Tar.UnPack(WorkDir, decompressed)
-		cacheUsageReport.UnpackTime += timer.Stop("unpack")
-		if err != nil {
-			logger.Warningf("unpack error: %s", err)
-			retries--
-			continue
-		} else {
-
-			io.Copy(os.Stderr, wrapperTool.ReadStderrFile())
-			logger.Infof("Downloaded and unpacked artifacts for %s", wrapperTool.GetCachePackageName())
-
-			if retries == 3 {
-				cacheUsageReport.Status = CacheUsage.CacheHit
-			} else {
-				cacheUsageReport.Status = CacheUsage.CacheHitWithRetry
-			}
-
-			return true
-		}
-	}
-	if retries <= 0 {
-		logger.Errorf("Failed to pull artifacts for %s", wrapperTool.GetCachePackageName())
-		cacheUsageReport.Status = CacheUsage.CacheFetchFailed
-	}
-	return false
-}
-
+// BypassRustc - execute rustc as is without any caching
 func BypassRustc() error {
 	var rustcArgsOnly = os.Args[2:]
 	var cmd = exec.Command(os.Args[1], rustcArgsOnly...)
@@ -203,39 +127,8 @@ func BypassRustc() error {
 	return rustcError
 }
 
-// ExecuteRustc - execute rustc and process output
-func ExecuteRustc(wrapperTool *Rustc.WrapperTool) (*[]CacheStorage.RustcArtifact, error) {
-
-	cmd := exec.Command(os.Args[1], os.Args[2:]...)
-
-	var (
-		rustcStdout = bytes.Buffer{}
-		rustcStderr = bytes.Buffer{}
-		rustcStdin  = bytes.Buffer{}
-	)
-
-	cmd.Stdout = io.MultiWriter(os.Stdout, &rustcStdout)
-	cmd.Stderr = io.MultiWriter(os.Stderr, &rustcStderr)
-
-	rustcStdin2 := bytes.Buffer{}
-	stdinWriter := io.MultiWriter(&rustcStdin2, &rustcStdin)
-	cmd.Stdin = &rustcStdin
-	io.Copy(stdinWriter, os.Stdin)
-
-	var runErr = cmd.Run()
-	if runErr != nil {
-		return nil, runErr
-	}
-
-	wrapperTool.WriteIOStreamFile(&rustcStdout, "stdout")
-	artifacts := wrapperTool.WriteStderrFile(&rustcStderr)
-	wrapperTool.WriteIOStreamFile(&rustcStdin2, "stdin")
-
-	return artifacts, nil
-}
-
 // RegisterRebuiltArtifacts - register rebuilt artifacts
-func RegisterRebuiltArtifacts(artifacts *[]CacheStorage.RustcArtifact, flClient *Rpc.ForkliftRpcClient) {
+func RegisterRebuiltArtifacts(artifacts *[]Rustc.Artifact, flClient *Rpc.ForkliftRpcClient) {
 	var artifactsPaths = make([]string, 0)
 	for _, artifact := range *artifacts {
 		var abs = filepath.Base(artifact.Artifact)

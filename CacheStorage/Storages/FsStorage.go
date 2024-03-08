@@ -57,31 +57,34 @@ func (storage *FsStorage) Download(key string) (*DownloadResult, error) {
 	var timer = Time.NewForkliftTimer()
 
 	var path = filepath.Join(storage.dir, key)
-	var _, errStat = os.Stat(path)
+	var fileInfo, errStat = os.Stat(path)
 	if errStat != nil {
 		return nil, nil
 	}
 
 	var file, err = os.Open(path)
 	if err != nil {
-		log.Errorf("Unable to open file", err)
+		log.Errorf("Unable to open file: %s", err)
 		return nil, err
 	}
 	defer file.Close()
 
-	var buf bytes.Buffer
+	if err != nil {
+		return nil, err
+	}
+	var buf = bytes.NewBuffer(make([]byte, 0, fileInfo.Size()))
 
 	timer.Start("read")
-	bytesWritten, err2 := io.Copy(&buf, file)
+	bytesWritten, err2 := io.Copy(buf, file)
 	var duration = timer.Stop("read")
 
 	if err2 != nil {
-		log.Errorf("Unable to read file", err)
+		log.Errorf("Unable to read file: %s", err)
 		return nil, err2
 	}
 
 	var result = DownloadResult{
-		Data: &buf,
+		Data: buf,
 	}
 
 	result.BytesCount = bytesWritten

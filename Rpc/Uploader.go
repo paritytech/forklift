@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"forklift/CacheStorage"
 	"forklift/CacheStorage/Compressors"
 	"forklift/CacheStorage/Storages"
 	"forklift/FileManager/Models"
@@ -62,24 +61,22 @@ func (uploader *Uploader) upload() {
 		var wrapperTool = Rustc.NewWrapperToolFromCacheItem(uploader.workDir, item)
 		var logger = l.WithFields(log.Fields{
 			"crate": wrapperTool.CrateName,
-			"hash":  wrapperTool.CrateHash,
+			"hash":  wrapperTool.CargoCrateHash,
 		})
 
 		wrapperTool.Logger = logger
 
-		logger.Debugf("Processing %s %s %s", wrapperTool.CrateName, wrapperTool.CrateHash, wrapperTool.OutDir)
+		logger.Debugf("Processing %s %s %s", wrapperTool.CrateName, wrapperTool.CargoCrateHash, wrapperTool.OutDir)
 
 		var crateArtifactsFiles = []string{
 			path.Join("target", "forklift", fmt.Sprintf("%s-%s", wrapperTool.GetCachePackageName(), "stderr")),
-			//path.Join("target", "forklift", fmt.Sprintf("%s-%s", wrapperTool.GetCachePackageName(), "stdout")),
-			//path.Join("target", "forklift", fmt.Sprintf("%s-%s", wrapperTool.GetCachePackageName(), "stdin")),
 		}
 
 		var stderrFile = wrapperTool.ReadStderrFile()
 		fileScanner := bufio.NewScanner(stderrFile)
 		fileScanner.Split(bufio.ScanLines)
 		for fileScanner.Scan() {
-			var artifact CacheStorage.RustcArtifact
+			var artifact Rustc.Artifact
 			json.Unmarshal([]byte(fileScanner.Text()), &artifact)
 			if artifact.Artifact != "" {
 				if strings.Contains(artifact.Artifact, "tmp/") ||
@@ -96,7 +93,7 @@ func (uploader *Uploader) upload() {
 			var report = uploader.TryUpload(wrapperTool, crateArtifactsFiles, logger)
 			uploader.CollectReport(&report)
 		} else {
-			logger.Tracef("No entries for '%s-%s'\n", wrapperTool.GetCachePackageName(), wrapperTool.CrateHash)
+			logger.Tracef("No entries for '%s-%s'\n", wrapperTool.GetCachePackageName(), wrapperTool.CargoCrateHash)
 		}
 	}
 
@@ -160,7 +157,7 @@ func (uploader *Uploader) TryUpload(
 		return statusReport
 	}
 
-	logger.Errorf("Failed to upload artifact for '%s, %s'", wrapperTool.GetCachePackageName(), wrapperTool.CrateHash)
+	logger.Errorf("Failed to upload artifact for '%s, %s'", wrapperTool.GetCachePackageName(), wrapperTool.CargoCrateHash)
 	statusReport.Status = CacheUpload.Failed
 	statusReport.WorkTime += timer.Stop("uploader work time")
 

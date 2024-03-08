@@ -4,7 +4,7 @@ import (
 	"errors"
 	"forklift/FileManager/Models"
 	log "forklift/Lib/Logging/ConsoleLogger"
-	CacheUsage "forklift/Rpc/Models/CacheUsage"
+	"forklift/Rpc/Models/CacheUsage"
 	"net/rpc"
 	"os"
 )

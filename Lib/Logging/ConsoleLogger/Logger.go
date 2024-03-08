@@ -2,6 +2,7 @@ package ConsoleLogger
 
 import (
 	"fmt"
+	"os"
 )
 
 type Logger struct {
@@ -11,6 +12,7 @@ type Logger struct {
 	Fields    Fields       // Fields
 }
 
+// NewLogger creates a new logger with the default formatter
 func NewLogger(name string) *Logger {
 	var l = &Logger{
 		Name:      name,
@@ -20,6 +22,7 @@ func NewLogger(name string) *Logger {
 	return l
 }
 
+// NewLoggerWithFormatter creates a new logger with a custom formatter
 func NewLoggerWithFormatter(name string, formatter IFormatter) *Logger {
 	var l = &Logger{
 		Name:      name,
@@ -47,7 +50,7 @@ func (l *Logger) Log(vLevel VerboseLevel, err error, format string, v ...interfa
 		message = l.Formatter.Format(message)
 	}
 
-	fmt.Printf("%s\n", message)
+	fmt.Fprintf(os.Stderr, "%s\n", message)
 }
 
 func (l *Logger) SetLevel(level VerboseLevel) {

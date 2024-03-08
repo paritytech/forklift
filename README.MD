@@ -127,8 +127,8 @@ See `forklift config --help` for more info
 ### compression
 `[compression]`
 
-| key  | type   | description                                                 |
-|------|--------|-------------------------------------------------------------|
+| key  | type   | description                                               |
+|------|--------|-----------------------------------------------------------|
 | type | string | compression type, `none`, `lzma2`, `zstd`, default `none` |
 
 - **none** - do not use compression

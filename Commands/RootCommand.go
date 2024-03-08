@@ -61,7 +61,7 @@ func rootRun(cmd *cobra.Command, args []string) {
 	log.SetFormatter(&log.TextFormatter{Indentation: 4})
 
 	if len(args) == 0 {
-		cmd.Help()
+		_ = cmd.Help()
 	} else if strings.Contains(os.Args[1], "rustc") || strings.Contains(os.Args[1], "clippy-driver") {
 		Wrapper.Run(args)
 	} else if strings.Contains(os.Args[1], "cargo") {

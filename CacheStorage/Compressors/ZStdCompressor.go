@@ -27,7 +27,7 @@ func (compressor *ZStdCompressor) Compress(input io.Reader) (io.Reader, error) {
 		return nil, NewForkliftCompressorError("NewWriter error", err)
 	}
 
-	_, err = io.Copy(writer, input)
+	_, err = writer.ReadFrom(input)
 	if err != nil {
 		return nil, NewForkliftCompressorError("io.copy error", err)
 	}
@@ -44,13 +44,14 @@ func (compressor *ZStdCompressor) Decompress(input io.Reader) (io.Reader, error)
 	var buf bytes.Buffer
 
 	var reader, err = zstd.NewReader(input)
+
 	if err != nil {
 		return nil, NewForkliftCompressorError("NewReader error", err)
 	}
 
-	_, err = io.Copy(&buf, reader)
+	_, err = reader.WriteTo(&buf)
 	if err != nil {
-		return nil, NewForkliftCompressorError("io.copy error", err)
+		return nil, NewForkliftCompressorError("reader.WriteTo error", err)
 	}
 
 	return &buf, nil

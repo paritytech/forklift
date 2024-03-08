@@ -6,7 +6,7 @@ import (
 	"forklift/Lib/Logging"
 	"forklift/Rpc/Models/CacheUpload"
 	"forklift/Rpc/Models/CacheUsage"
-	promwrite "github.com/castai/promwrite"
+	"github.com/castai/promwrite"
 	"time"
 )
 

@@ -74,7 +74,7 @@ var configSetCommand = &cobra.Command{
 
 		if len(args) < 2 || len(args) > 3 {
 			fmt.Printf("Args count must be 2 or 3\n")
-			cmd.Help()
+			_ = cmd.Help()
 			return
 		}
 

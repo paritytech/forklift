@@ -6,13 +6,18 @@ import (
 	"crypto/sha1"
 	"encoding/json"
 	"fmt"
-	"forklift/CacheStorage"
+	"forklift/CacheStorage/Compressors"
+	"forklift/CacheStorage/Storages"
 	"forklift/FileManager"
 	"forklift/FileManager/Models"
+	"forklift/FileManager/Tar"
 	"forklift/Lib/Config"
+	"forklift/Lib/Diagnostic/Time"
 	log "forklift/Lib/Logging/ConsoleLogger"
+	"forklift/Rpc/Models/CacheUsage"
 	"io"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -21,11 +26,13 @@ import (
 
 const CachePackageVersion = "1"
 
+var cargoHashRegex = regexp.MustCompile("^metadata=([0-9a-f]{16})$")
+
 type WrapperTool struct {
 	rustcArgs               *[]string
 	Logger                  *log.Logger
 	CrateName               string
-	CrateHash               string
+	CargoCrateHash          string
 	OutDir                  string
 	SourceFile              string
 	RustCArgsHash           string
@@ -40,13 +47,14 @@ type WrapperTool struct {
 
 func NewWrapperToolFromArgs(workDir string, rustArgs *[]string) *WrapperTool {
 	var wrapper = WrapperTool{}
-	wrapper.CrateName, wrapper.CrateHash, wrapper.OutDir = wrapper.extractNameMetaHashDir(rustArgs)
-	wrapper.workDir = workDir
-	wrapper.OutDir = FileManager.GetTrueRelFilePath(wrapper.workDir, wrapper.OutDir) // filepath.Rel(wrapper.workDir, wrapper.OutDir)
-	wrapper.RustCArgsHash = GetArgsHash(rustArgs)
 	wrapper.rustcArgs = rustArgs
 
-	wrapper.GetExternDepsChecksum()
+	wrapper.CrateName, wrapper.CargoCrateHash, wrapper.OutDir = wrapper.extractNameMetaHashDir(rustArgs)
+	wrapper.workDir = workDir
+	wrapper.OutDir = FileManager.GetTrueRelFilePath(wrapper.workDir, wrapper.OutDir)
+	wrapper.RustCArgsHash = GetArgsHash(rustArgs)
+
+	wrapper.CalculateExternDepsChecksum()
 
 	var osWorkDir, _ = os.Getwd()
 	wrapper.osWorkDir = osWorkDir
@@ -57,7 +65,7 @@ func NewWrapperToolFromArgs(workDir string, rustArgs *[]string) *WrapperTool {
 func NewWrapperToolFromCacheItem(workDir string, item Models.CacheItem) *WrapperTool {
 	var wrapper = WrapperTool{}
 	wrapper.CrateName = item.Name
-	wrapper.CrateHash = item.Hash
+	wrapper.CargoCrateHash = item.Hash
 	wrapper.OutDir = item.OutDir
 	wrapper.workDir = workDir
 	wrapper.CrateSourceChecksum = item.CrateSourceChecksum
@@ -81,24 +89,110 @@ func GetArgsHash(args *[]string) string {
 func (wrapperTool *WrapperTool) IsNeedProcessFromCache() bool {
 	return wrapperTool.CrateName != "" &&
 		wrapperTool.CrateName != "___" &&
-		wrapperTool.CrateHash != "" &&
+		wrapperTool.CargoCrateHash != "" &&
 		!strings.Contains(wrapperTool.OutDir, "/var/folders/") &&
 		!strings.Contains(wrapperTool.OutDir, "/tmp")
-	//&& wrapperTool.IsCratesIoCrate()
 }
 
-func (wrapperTool *WrapperTool) IsCratesIoCrate() bool {
+// ExecuteRustc - execute rustc and process output
+func (wrapperTool *WrapperTool) ExecuteRustc() (*[]Artifact, error) {
 
-	for _, arg := range *wrapperTool.rustcArgs {
-		if strings.Contains(arg, "index.crates.io") {
+	cmd := exec.Command(os.Args[1], os.Args[2:]...)
+
+	var (
+		rustcStdout = bytes.Buffer{}
+		rustcStderr = bytes.Buffer{}
+		rustcStdin  = bytes.Buffer{}
+	)
+
+	cmd.Stdout = io.MultiWriter(os.Stdout, &rustcStdout)
+	cmd.Stderr = io.MultiWriter(os.Stderr, &rustcStderr)
+
+	rustcStdin2 := bytes.Buffer{}
+	stdinWriter := io.MultiWriter(&rustcStdin2, &rustcStdin)
+	cmd.Stdin = &rustcStdin
+	io.Copy(stdinWriter, os.Stdin)
+
+	var runErr = cmd.Run()
+	if runErr != nil {
+		return nil, runErr
+	}
+
+	wrapperTool.WriteIOStreamFile(&rustcStdout, "stdout")
+	artifacts := wrapperTool.WriteStderrFile(&rustcStderr)
+	wrapperTool.WriteIOStreamFile(&rustcStdin2, "stdin")
+
+	return artifacts, nil
+}
+
+// TryUseCache - try to use cache, return false if failed
+func (wrapperTool *WrapperTool) TryUseCache(cacheUsageReport *CacheUsage.StatusReport) bool {
+
+	var timer = Time.NewForkliftTimer()
+
+	store, _ := Storages.GetStorageDriver(Config.AppConfig)
+	compressor, _ := Compressors.GetCompressor(Config.AppConfig)
+
+	var retries = 3
+	for retries > 0 {
+		// try download
+		timer.Start("download")
+		downloadResult, err := store.Download(wrapperTool.GetCachePackageName() + "_" + compressor.GetKey())
+		cacheUsageReport.DownloadTime += timer.Stop("download")
+		if downloadResult == nil && err == nil {
+			wrapperTool.Logger.Debugf("%s does not exist in storage", wrapperTool.GetCachePackageName())
+			cacheUsageReport.Status = CacheUsage.CacheMiss
+			return false
+		}
+		if err != nil {
+			wrapperTool.Logger.Warningf("download error: %s", err)
+			retries--
+			continue
+		}
+		cacheUsageReport.DownloadSize += downloadResult.BytesCount
+		cacheUsageReport.DownloadSpeedBps += downloadResult.SpeedBps
+
+		// try decompress
+		timer.Start("decompress")
+		decompressed, err := compressor.Decompress(downloadResult.Data)
+		cacheUsageReport.DecompressTime += timer.Stop("decompress")
+		if err != nil {
+			wrapperTool.Logger.Warningf("decompression error: %s", err)
+			retries--
+			continue
+		}
+
+		// try unpack
+		timer.Start("unpack")
+		err = Tar.UnPack(wrapperTool.workDir, decompressed)
+		cacheUsageReport.UnpackTime += timer.Stop("unpack")
+		if err != nil {
+			wrapperTool.Logger.Warningf("unpack error: %s", err)
+			retries--
+			continue
+		} else {
+
+			io.Copy(os.Stderr, wrapperTool.ReadStderrFile())
+			wrapperTool.Logger.Infof("Downloaded and unpacked artifacts for %s", wrapperTool.GetCachePackageName())
+
+			if retries == 3 {
+				cacheUsageReport.Status = CacheUsage.CacheHit
+			} else {
+				cacheUsageReport.Status = CacheUsage.CacheHitWithRetry
+			}
+
 			return true
 		}
 	}
-
+	if retries <= 0 {
+		wrapperTool.Logger.Errorf("Failed to pull artifacts for %s", wrapperTool.GetCachePackageName())
+		cacheUsageReport.Status = CacheUsage.CacheFetchFailed
+	}
 	return false
 }
 
-func (wrapperTool *WrapperTool) GetExternDepsChecksum() string {
+// CalculateExternDepsChecksum Calculates checksum of extern deps artifacts (sha1 of all files data)
+func (wrapperTool *WrapperTool) CalculateExternDepsChecksum() string {
 
 	if wrapperTool.CrateExternDepsChecksum != "" {
 		return wrapperTool.CrateExternDepsChecksum
@@ -119,6 +213,8 @@ func (wrapperTool *WrapperTool) GetExternDepsChecksum() string {
 	return wrapperTool.CrateExternDepsChecksum
 }
 
+// GetCachePackageName Calculates unique name (cache key) for cache package like `base64_abcdef012345...`.
+// Suffix is sha1 of crate name, crate source checksum, crate hash, out dir, rustc args hash, extern deps checksum.
 func (wrapperTool *WrapperTool) GetCachePackageName() string {
 
 	if wrapperTool.cachePackageName != "" {
@@ -128,11 +224,11 @@ func (wrapperTool *WrapperTool) GetCachePackageName() string {
 	var sha = sha1.New()
 
 	sha.Write([]byte(CachePackageVersion))
-	sha.Write([]byte(wrapperTool.CrateHash))
+	sha.Write([]byte(wrapperTool.CargoCrateHash))
 	sha.Write([]byte(wrapperTool.CrateSourceChecksum))
 	sha.Write([]byte(wrapperTool.OutDir))
 	sha.Write([]byte(wrapperTool.RustCArgsHash))
-	sha.Write([]byte(wrapperTool.GetExternDepsChecksum()))
+	sha.Write([]byte(wrapperTool.CalculateExternDepsChecksum()))
 
 	var result = fmt.Sprintf(
 		"%s_%x",
@@ -150,7 +246,7 @@ func (wrapperTool *WrapperTool) GetCachePackageName() string {
 func (wrapperTool *WrapperTool) ToCacheItem() Models.CacheItem {
 	var item = Models.CacheItem{
 		Name:                wrapperTool.CrateName,
-		Hash:                wrapperTool.CrateHash,
+		Hash:                wrapperTool.CargoCrateHash,
 		CachePackageName:    wrapperTool.GetCachePackageName(),
 		OutDir:              wrapperTool.OutDir,
 		CrateSourceChecksum: wrapperTool.CrateSourceChecksum,
@@ -183,7 +279,7 @@ func (wrapperTool *WrapperTool) WriteToItemCacheFile() {
 	_, err = itemFile.WriteString(fmt.Sprintf(
 		"%s | | | %s | %s | %s | %s | %s \n",
 		wrapperTool.CrateName,
-		wrapperTool.CrateHash,
+		wrapperTool.CargoCrateHash,
 		wrapperTool.GetCachePackageName(),
 		wrapperTool.OutDir,
 		wrapperTool.CrateSourceChecksum,
@@ -209,7 +305,7 @@ func (wrapperTool *WrapperTool) ReadStderrFile() io.Reader {
 	fileScanner := bufio.NewScanner(file)
 	fileScanner.Split(bufio.ScanLines)
 	for fileScanner.Scan() {
-		var artifact CacheStorage.RustcArtifact
+		var artifact Artifact
 		var str = fileScanner.Text()
 		json.Unmarshal([]byte(str), &artifact)
 		if artifact.Artifact != "" {
@@ -227,7 +323,7 @@ func (wrapperTool *WrapperTool) ReadStderrFile() io.Reader {
 	return &resultBuf
 }
 
-func (wrapperTool *WrapperTool) WriteStderrFile(reader io.Reader) *[]CacheStorage.RustcArtifact {
+func (wrapperTool *WrapperTool) WriteStderrFile(reader io.Reader) *[]Artifact {
 	fileScanner := bufio.NewScanner(reader)
 	fileScanner.Split(bufio.ScanLines)
 
@@ -242,10 +338,10 @@ func (wrapperTool *WrapperTool) WriteStderrFile(reader io.Reader) *[]CacheStorag
 		wrapperTool.Logger.Errorf(err.Error())
 	}
 
-	var result []CacheStorage.RustcArtifact
+	var result []Artifact
 
 	for fileScanner.Scan() {
-		var artifact CacheStorage.RustcArtifact
+		var artifact Artifact
 		var str = fileScanner.Text()
 		json.Unmarshal([]byte(str), &artifact)
 		if artifact.Artifact != "" {
@@ -312,7 +408,7 @@ func (wrapperTool *WrapperTool) ReadIOStreamFile(suffix string) io.Reader {
 
 func (wrapperTool *WrapperTool) CreateMetadata() map[string]*string {
 	var metaMap = map[string]*string{
-		"cargo-hash":        &wrapperTool.CrateHash,
+		"cargo-hash":        &wrapperTool.CargoCrateHash,
 		"sha1-source-files": &wrapperTool.CrateSourceChecksum,
 		"sha1-rustc-args":   &wrapperTool.RustCArgsHash,
 		"sha1-extern-deps":  &wrapperTool.CrateExternDepsChecksum,
@@ -321,11 +417,7 @@ func (wrapperTool *WrapperTool) CreateMetadata() map[string]*string {
 	return metaMap
 }
 
-// /
-// /
-// /
-var regex = regexp.MustCompile("^metadata=([0-9a-f]{16})$")
-
+// extractNameMetaHashDir - extract crate name, cargo hash and output dir from rustc args
 func (wrapperTool *WrapperTool) extractNameMetaHashDir(args *[]string) (string, string, string) {
 
 	var name, hash, outDir string
@@ -345,7 +437,7 @@ func (wrapperTool *WrapperTool) extractNameMetaHashDir(args *[]string) (string, 
 		}
 
 		if hash == "" {
-			var match = regex.FindAllStringSubmatch(arg, 1)
+			var match = cargoHashRegex.FindAllStringSubmatch(arg, 1)
 			if len(match) > 0 {
 				hash = match[0][1]
 				count += 1

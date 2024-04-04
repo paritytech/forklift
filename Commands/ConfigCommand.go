@@ -23,7 +23,7 @@ var configCommand = &cobra.Command{
 		_ = cmd.Help()
 	},
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		var err = Config.Init()
+		var err = Config.Init(nil)
 		if err != nil {
 			logger.Errorf("Config error, bypassing: %s", err)
 			return
@@ -56,7 +56,7 @@ var configDeleteCommand = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		Config.AppConfig.Delete(args[0])
 
-		err := Config.AppConfig.Save()
+		err := Config.AppConfig.Save(nil)
 		if err != nil {
 			fmt.Printf("Error writing config: %v\n", err)
 			return
@@ -116,7 +116,7 @@ var configSetCommand = &cobra.Command{
 
 		Config.AppConfig.Set(args[0], value)
 
-		err := Config.AppConfig.Save()
+		err := Config.AppConfig.Save(nil)
 		if err != nil {
 			fmt.Printf("Error writing config: %v\n", err)
 			return

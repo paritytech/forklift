@@ -24,7 +24,7 @@ import (
 	"strings"
 )
 
-const CachePackageVersion = "1"
+const CachePackageVersion = "2"
 
 var cargoHashRegex = regexp.MustCompile("^metadata=([0-9a-f]{16})$")
 
@@ -224,7 +224,7 @@ func (wrapperTool *WrapperTool) GetCachePackageName() string {
 	var sha = sha1.New()
 
 	sha.Write([]byte(CachePackageVersion))
-	sha.Write([]byte(wrapperTool.CargoCrateHash))
+	//sha.Write([]byte(wrapperTool.CargoCrateHash))
 	sha.Write([]byte(wrapperTool.CrateSourceChecksum))
 	sha.Write([]byte(wrapperTool.OutDir))
 	sha.Write([]byte(wrapperTool.RustCArgsHash))
@@ -259,43 +259,6 @@ func (wrapperTool *WrapperTool) ToCacheItem() Models.CacheItem {
 	return item
 }
 
-func (wrapperTool *WrapperTool) WriteToItemCacheFile() {
-
-	var itemsCachePath = path.Join(wrapperTool.workDir, ".forklift", "items-cache")
-	err := os.MkdirAll(itemsCachePath, 0755)
-	if err != nil {
-		wrapperTool.Logger.Errorf(err.Error())
-	}
-
-	itemFile, err := os.OpenFile(
-		path.Join(itemsCachePath, fmt.Sprintf("item-%s", wrapperTool.GetCachePackageName())),
-		os.O_APPEND|os.O_WRONLY|os.O_CREATE,
-		0755,
-	)
-	if err != nil {
-		wrapperTool.Logger.Errorf(err.Error())
-	}
-
-	_, err = itemFile.WriteString(fmt.Sprintf(
-		"%s | | | %s | %s | %s | %s | %s \n",
-		wrapperTool.CrateName,
-		wrapperTool.CargoCrateHash,
-		wrapperTool.GetCachePackageName(),
-		wrapperTool.OutDir,
-		wrapperTool.CrateSourceChecksum,
-		wrapperTool.RustCArgsHash,
-		//wrapperTool.CrateExternDepsChecksum,
-	))
-	if err != nil {
-		wrapperTool.Logger.Errorf(err.Error())
-	}
-
-	err = itemFile.Close()
-	if err != nil {
-		wrapperTool.Logger.Errorf(err.Error())
-	}
-}
-
 func (wrapperTool *WrapperTool) ReadStderrFile() io.Reader {
 	var itemsCachePath = path.Join(wrapperTool.workDir, "target", "forklift")
 	var file, _ = os.Open(path.Join(itemsCachePath, fmt.Sprintf("%s-stderr", wrapperTool.GetCachePackageName())))
@@ -312,7 +275,6 @@ func (wrapperTool *WrapperTool) ReadStderrFile() io.Reader {
 			var absPath = filepath.Join(wrapperTool.workDir, wrapperTool.OutDir, artifact.Artifact)
 			artifact.Artifact = absPath
 			var newArtifactByte, _ = json.Marshal(artifact)
-			wrapperTool.Logger.Tracef("read artifact as %s", absPath)
 			resultBuf.Write(newArtifactByte)
 		} else {
 			resultBuf.WriteString(str)
@@ -328,6 +290,7 @@ func (wrapperTool *WrapperTool) WriteStderrFile(reader io.Reader) *[]Artifact {
 	fileScanner.Split(bufio.ScanLines)
 
 	var itemsCachePath = path.Join(wrapperTool.workDir, "target", "forklift")
+	err := os.MkdirAll(itemsCachePath, 0755)
 
 	itemFile, err := os.OpenFile(
 		path.Join(itemsCachePath, fmt.Sprintf("%s-stderr", wrapperTool.GetCachePackageName())),

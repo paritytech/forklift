@@ -18,6 +18,7 @@ type = "fs"
 directory = "/forklift_fs_storage/cargo"
 
 [storage.s3]
+useSsl = true
 accessKeyId = "ABCDEF1234567890"
 bucketName = "forklift"
 endpointUrl = "https://storage.googleapis.com"

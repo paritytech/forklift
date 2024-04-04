@@ -70,25 +70,35 @@ func (c *ForkliftConfig) GetAll() ([]byte, error) {
 	return marshalled, nil
 }
 
-func (c *ForkliftConfig) Set(key string, value any) {
+func (c *ForkliftConfig) Set(key string, value any) error {
 	err := localConfig.Set(key, value)
 	if err != nil {
-		return
+		return errors.Join(errors.New("unable to set config"), err)
 	}
+	globalConfig.Merge(localConfig)
+	return nil
 }
 
 func (c *ForkliftConfig) Delete(key string) {
 	localConfig.Delete(key)
 }
 
-func (c *ForkliftConfig) Save() error {
+func (c *ForkliftConfig) Save(configPath *string) error {
 	marshalled, err := localConfig.Marshal(toml.Parser())
 	if err != nil {
 		return errors.Join(errors.New("unable to marshal config"), err)
 	}
 
-	_ = os.Mkdir(".forklift", 0755)
-	f, err := os.Create(".forklift/config.toml")
+	var localPath string
+
+	if configPath == nil {
+		_ = os.Mkdir(".forklift", 0755)
+		localPath = ".forklift/config.toml"
+	} else {
+		localPath = *configPath
+	}
+
+	f, err := os.Create(localPath)
 	if err != nil {
 		return errors.Join(errors.New("unable to create config file"), err)
 	}
@@ -111,7 +121,7 @@ var (
 	localConfig  = koanf.New(".")
 )
 
-func Init() error {
+func Init(configPath *string) error {
 
 	var homeDir, _ = os.UserHomeDir()
 	var path = filepath.Join(homeDir, ".forklift/config.toml")
@@ -123,19 +133,28 @@ func Init() error {
 	}
 
 	// current folder config
-	if workloadDir, ok := os.LookupEnv("FORKLIFT_WORK_DIR"); ok {
-		// FORKLIFT_WORK_DIR config
-		path = filepath.Join(workloadDir, ".forklift/config.toml")
-		_ = localConfig.Load(file.Provider(path), toml.Parser())
-	} else {
-		var pathLocal, _ = filepath.Abs(".forklift/config.toml")
-		errLocal := localConfig.Load(file.Provider(pathLocal), toml.Parser())
-		if errLocal != nil {
-			log.Tracef("unable to load local config: %v\n", errLocal)
-		}
+	if configPath == nil {
 
-		if errGlobal != nil && errLocal != nil {
-			return errors.Join(errors.New("unable to load config"), errGlobal, errLocal)
+		if workloadDir, ok := os.LookupEnv("FORKLIFT_WORK_DIR"); ok {
+			// FORKLIFT_WORK_DIR config
+			path = filepath.Join(workloadDir, ".forklift/config.toml")
+			_ = localConfig.Load(file.Provider(path), toml.Parser())
+		} else {
+			var pathLocal, _ = filepath.Abs(".forklift/config.toml")
+			errLocal := localConfig.Load(file.Provider(pathLocal), toml.Parser())
+			if errLocal != nil {
+				log.Tracef("unable to load local config: %v\n", errLocal)
+			}
+
+			if errGlobal != nil && errLocal != nil {
+				return errors.Join(errors.New("unable to load config"), errGlobal, errLocal)
+			}
+		}
+	} else {
+		// custom config
+		errCustom := localConfig.Load(file.Provider(*configPath), toml.Parser())
+		if errCustom != nil {
+			return errors.Join(errors.New("unable to load custom config"), errCustom)
 		}
 	}
 

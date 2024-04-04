@@ -5,9 +5,6 @@ import (
 	"strings"
 )
 
-type CmdTool struct {
-}
-
 // GetExternDeps returns a list of external dependencies from argument list (--extern ...)
 func GetExternDeps(args *[]string, basePathOnly bool) *[]string {
 	var result []string

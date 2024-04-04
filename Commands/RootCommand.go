@@ -41,7 +41,7 @@ func rootRun(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var err = Config.Init()
+	var err = Config.Init(nil)
 	if err != nil {
 		logger.Errorf("Config error, bypassing: %s", err)
 		Server.BypassForklift()

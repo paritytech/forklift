@@ -1,5 +1,5 @@
 [general]
-loglevel = "info"
+logLevel = "info"
 packagesuffix = "some_suffix"
 threadscount = 10
 

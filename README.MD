@@ -115,7 +115,6 @@ See `forklift config --help` for more info
 | endpointUrl     | string | s3 endpoint url                         |
 | secretAccessKey | string | s3 secret access key                    |
 | useSSL          | bool   | use ssl, default `true`                 |
-| concurrency     | int    | number of uploader threads, default `1` |
 
 
 `[storage.fs]`

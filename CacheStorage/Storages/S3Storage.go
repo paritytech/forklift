@@ -38,7 +38,7 @@ func NewS3Storage(params *map[string]interface{}) *S3Storage {
 	)
 
 	s3s.session = session.Must(session.NewSession(&aws.Config{
-		DisableSSL:       aws.Bool(Helpers.MapGet(params, "useSsl", true)),
+		DisableSSL:       aws.Bool(!Helpers.MapGet(params, "useSsl", true)),
 		Credentials:      staticCredentials,
 		Endpoint:         aws.String(Helpers.MapGet(params, "endpointUrl", "")),
 		Region:           aws.String("auto"),
@@ -149,52 +149,26 @@ func (storage *S3Storage) Upload(key string, reader *io.Reader, metadata map[str
 func (storage *S3Storage) Download(key string) (*DownloadResult, error) {
 	var timer = Time.NewForkliftTimer()
 
-	downloader := s3manager.NewDownloader(storage.session)
-
-	var head, ok = storage.getHead(key)
-	if !ok {
-		return nil, nil
-	}
-	var size = *head.ContentLength
-	buf := aws.NewWriteAtBuffer(make([]byte, size))
-
-	downloader.Concurrency = storage.concurrency
-
 	timer.Start("download")
-	n, err := downloader.Download(buf, &s3.GetObjectInput{
+	storage.client.GetObjectRequest(&s3.GetObjectInput{
+		Bucket: aws.String(storage.bucket),
+		Key:    aws.String(key),
+	})
+	object, err := storage.client.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String(storage.bucket),
 		Key:    aws.String(key),
 	})
 	var duration = timer.Stop("download")
-
 	if err != nil {
-		var awsErr awserr.Error
-		if errors.As(err, &awsErr) {
-			switch awsErr.Code() {
-			case "NotFound":
-			case s3.ErrCodeNoSuchBucket:
-				log.Tracef("bucket '%s' does not exist, error:%s", storage.bucket, err)
-				return nil, nil
-			case s3.ErrCodeNoSuchKey:
-				log.Tracef("object with key '%s' does not exist in bucket '%s', error: %s", key, storage.bucket, err)
-				return nil, nil
-			}
-		} else {
-			return nil, err
-		}
-	}
-
-	if n == 0 {
-		log.Errorf("received 0 bytes for '%s', but no error", key)
-		return nil, nil
+		return nil, err
 	}
 
 	var result = DownloadResult{
-		Data: bytes.NewBuffer(buf.Bytes()),
+		Data: object.Body,
 	}
-	result.BytesCount = n
+	result.BytesCount = *object.ContentLength
 	result.Duration = duration
-	result.SpeedBps = int64(float64(n) / duration.Seconds())
+	result.SpeedBps = int64(float64(*object.ContentLength) / duration.Seconds())
 
 	return &result, nil
 }

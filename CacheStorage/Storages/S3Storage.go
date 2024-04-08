@@ -65,6 +65,7 @@ func (storage *S3Storage) getHead(key string) (*s3.HeadObjectOutput, bool) {
 			case s3.ErrCodeNoSuchBucket:
 				log.Tracef("bucket %s does not exist", storage.bucket)
 			case "NotFound":
+				fallthrough
 			case s3.ErrCodeNoSuchKey:
 				log.Tracef("object with key %s does not exist in bucket %s", key, storage.bucket)
 			}

@@ -21,6 +21,7 @@ func ParseLevel(level string) (VerboseLevel, error) {
 	case "error":
 		return ErrorLevel, nil
 	case "warn":
+		fallthrough
 	case "warning":
 		return WarningLevel, nil
 	case "info":

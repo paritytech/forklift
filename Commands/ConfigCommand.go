@@ -101,6 +101,7 @@ var configSetCommand = &cobra.Command{
 					value = v
 				}
 			default:
+				fallthrough
 			case "string":
 				value = value.(string)
 			}

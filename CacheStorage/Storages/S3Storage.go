@@ -161,7 +161,20 @@ func (storage *S3Storage) Download(key string) (*DownloadResult, error) {
 	})
 	var duration = timer.Stop("download")
 	if err != nil {
-		return nil, err
+		var awsErr awserr.Error
+		if errors.As(err, &awsErr) {
+			switch awsErr.Code() {
+			case s3.ErrCodeNoSuchBucket:
+				log.Tracef("bucket %s does not exist", storage.bucket)
+			case "NotFound":
+				fallthrough
+			case s3.ErrCodeNoSuchKey:
+				log.Tracef("object with key %s does not exist in bucket %s", key, storage.bucket)
+			}
+		} else {
+			log.Debugf("failed to download for file %s, %s", key, err)
+		}
+		return nil, nil
 	}
 
 	var result = DownloadResult{

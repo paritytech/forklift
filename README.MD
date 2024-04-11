@@ -193,19 +193,19 @@ Forklift provides the set of Prometheus-compatible metrics to monitor caching ef
 
 Available metrics include:
 
-| Name                                        | Labels                                                        |
-|----------------------------------------------------|--------------------------------------------------------|
-| `forklift_uploader_uploading_network_avg_speed`   | `crate`, `hash`                                        |
-| `forklift_uploader_uploading_network_uploaded_bytes` | `crate`, `hash`                                     |
-| `forklift_uploader_uploading_status`              | `crate`, `hash`, `status` (values: `fail`, `warning`, `success`)  |
-| `forklift_uploader_uploading_time_task`           | `crate`, `hash`, `task` (values: `pack`, `compress`, `upload`) |
-| `forklift_uploader_uploading_time_total`          | `crate`, `hash`                                        |
-| `forklift_wrapper_caching_cache_hit`              | `crate`, `hash`, `status` (values: `hit`, `warning`)   |
-| `forklift_wrapper_caching_cache_miss`             | `crate`, `hash`, `status` (values: `miss`, `fail`, `dep_rebuilt`) |
-| `forklift_wrapper_caching_network_avg_speed`      | `crate`, `hash`                                        |
-| `forklift_wrapper_caching_network_downloaded_bytes` | `crate`, `hash`                                      |
-| `forklift_wrapper_caching_time_task`              | `crate`, `hash`, `task` (values: `download`, `decompress`, `unpack`, `rustc`) |
-| `forklift_wrapper_caching_time_total`             | `crate`, `hash`                                        |
+| Name                                                 | Description                                                                | Labels                                                                                                                                                                                          |
+|------------------------------------------------------|----------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `forklift_uploader_uploading_network_avg_speed`      | Average cache upload speed in bytes per second across all uploader threads |                                                                                                                                                                                                 |
+| `forklift_uploader_uploading_network_uploaded_bytes` | Total bytes downloaded during cache upload                                 |                                                                                                                                                                                                 |
+| `forklift_uploader_uploading_status`                 | Number of cache packages uploads (with status label)                       | `status`:<br/> -`success`: cache package uploaded successfully<br/> -`warning`: uploaded, but with retries <br/> -`fail`: failed to upload in 3 tries)                                          |
+| `forklift_uploader_uploading_time_task`              | Time spent on specific tasks during cache upload process                   | `task`:<br/> -`pack`<br/> -`compress`<br/> -`upload`)                                                                                                                                           |
+| `forklift_uploader_uploading_time_total`             | Total time spent by Forklift (includes Cargo execution)                    |                                                                                                                                                                                                 |
+| `forklift_wrapper_caching_cache_hit`                 | Number of cache hits (with status label)                                   | `status`:<br/> -`hit`: cache was used  <br/> -`warning`: cache was used, but with retries                                                                                                       |
+| `forklift_wrapper_caching_cache_miss`                | Number of cache misses (with status label)                                 | `status`:<br/> -`miss`: no cache artifacts were found in storage  <br/> -`fail`: failed to retrieve artifact in 3 tries<br/> -`dep_rebuilt`: crate had a rebuilt dependency, no cache were used |
+| `forklift_wrapper_caching_network_avg_speed`         | Average cache download speed in bytes per second across all rustc_wrappers |                                                                                                                                                                                                 |
+| `forklift_wrapper_caching_network_downloaded_bytes`  | Total bytes downloaded during cache restore                                |                                                                                                                                                                                                 |
+| `forklift_wrapper_caching_time_task`                 | Time spent on specific tasks during cache restore process                  | `task`:<br/> -`download`,<br/> -`decompress`,<br/> -`unpack`,<br/> -`rustc`                                                                                                                     |
+| `forklift_wrapper_caching_time_total`                | Total time spent by rustc_wrappers                                         |                                                                                                                                                                                                 |
 
 These metrics provide insights into the caching process, helping to identify bottlenecks and optimize build times.
 

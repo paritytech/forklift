@@ -93,7 +93,7 @@ See `forklift config --help` for more info.
 
 | Key  | Type   | Description                                      |
 |------|--------|--------------------------------------------------|
-| Type | `string` | Storage type: `s3`, `fs`, `null`. Default: `null`. |
+| type | `string` | Storage type: `s3`, `fs`, `null`. Default: `null`. |
 
 - **s3** - Amazon S3 via github.com/aws/aws-sdk-go.
 - **fs** - Stores cache on the local file system.
@@ -114,14 +114,14 @@ See `forklift config --help` for more info.
 
 | Key       | Type   | Description         |
 |-----------|--------|---------------------|
-| Directory | `string` | Absolute directory path |
+| directory | `string` | Absolute directory path |
 
 ### compression
 `[compression]`
 
 | Key  | Type   | Description                                               |
 |------|--------|-----------------------------------------------------------|
-| Type | `string` | Compression type: `none`, `lzma2`, `zstd`. Default: `none`. |
+| type | `string` | Compression type: `none`, `lzma2`, `zstd`. Default: `none`. |
 
 - **none** - Do not use compression.
 - **lzma2** - Use the [jamespfennell/xz](https://github.com/jamespfennell/xz).
@@ -131,22 +131,22 @@ See `forklift config --help` for more info.
 
 | Key              | Type | Description                                |
 |------------------|------|--------------------------------------------|
-| CompressionLevel | `int`  | Compression level: `1` or `3`, default `3`. |
+| compressionLevel | `int`  | Compression level: `1` or `3`, default `3`. |
 
 `[compression.lzma2]`
 
 | Key              | Type | Description                           |
 |------------------|------|---------------------------------------|
-| CompressionLevel | `int`  | Compression level, `0-9`, default `6` |
+| compressionLevel | `int`  | Compression level, `0-9`, default `6` |
 
 ### metrics
 `[metrics]`
 
 | Key          | Type                | Description                              |
 |--------------|---------------------|------------------------------------------|
-| Enabled      | `bool`              | Enable metrics, default `false`.        |
-| PushEndpoint | `string`            | Prometheus remote write endpoint.       |
-| ExtraLabels  | `map[string]string` | Extra labels for metrics, default `{}`. |
+| enabled      | `bool`              | Enable metrics, default `false`.        |
+| pushEndpoint | `string`            | Prometheus remote write endpoint.       |
+| extraLabels  | `map[string]string` | Extra labels for metrics, default `{}`. |
 
 ## Example
 

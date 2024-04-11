@@ -207,8 +207,6 @@ Available metrics include:
 | `forklift_wrapper_caching_time_task`                 | Time spent on specific tasks during cache restore process                  | `task`:<br/> -`download`,<br/> -`decompress`,<br/> -`unpack`,<br/> -`rustc`                                                                                                                     |
 | `forklift_wrapper_caching_time_total`                | Total time spent by rustc_wrappers                                         |                                                                                                                                                                                                 |
 
-These metrics provide insights into the caching process, helping to identify bottlenecks and optimize build times.
-
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

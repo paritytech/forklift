@@ -195,14 +195,28 @@ Available metrics include:
 
 | Name                                                   | Description                                                                 |
 |--------------------------------------------------------|-----------------------------------------------------------------------------|
+| `forklift_uploader_uploading_network_avg_speed`        | Average upload speed in bytes per second                                   |
+| `forklift_uploader_uploading_network_uploaded_bytes`   | Total bytes uploaded                                                       |
+| `forklift_uploader_uploading_status_fail`              | Number of failed uploads                                                   |
+| `forklift_uploader_uploading_status_uploaded`          | Number of successful uploads                                               |
+| `forklift_uploader_uploading_status_warning`           | Number of uploads with warnings                                            |
+| `forklift_uploader_uploading_time_task`                | Time spent on specific uploading tasks (e.g., pack, compress, upload)      |
+| `forklift_uploader_uploading_time_total`               | Total time spent in uploading                                              |
+| `forklift_wrapper_caching_cache_hit_with_retry`        | Number of cache hits after initial failure and retry                       |
 | `forklift_wrapper_caching_cache_hit`                   | Number of cache hits                                                       |
-| `forklift_wrapper_caching_cache_miss`                  | Number of cache misses                                                     |
 | `forklift_wrapper_caching_cache_miss_due_to_failure`   | Number of cache misses due to failures in fetching cache                   |
+| `forklift_wrapper_caching_cache_miss`                  | Number of cache misses                                                     |
 | `forklift_wrapper_caching_dependency_rebuilt`          | Number of dependencies rebuilt                                             |
-| `forklift_wrapper_caching_time_total`                  | Total time spent by Forklift in caching operations                         |
-| `forklift_wrapper_caching_time_task`                   | Time spent on specific tasks (e.g., download, decompress, unpack, `rustc` execution) |
-| `forklift_wrapper_caching_network_downloaded_bytes`    | Total bytes downloaded                                                     |
+| `forklift_wrapper_caching_network_average_upload_speed`| Average speed of uploads in bytes per second                               |
 | `forklift_wrapper_caching_network_avg_speed`           | Average download speed in bytes per second                                 |
+| `forklift_wrapper_caching_network_downloaded_bytes`    | Total bytes downloaded                                                     |
+| `forklift_wrapper_caching_network_total_upload_size`   | Total size of uploads                                                      |
+| `forklift_wrapper_caching_time_decompress`             | Time spent on decompressing dependencies                                   |
+| `forklift_wrapper_caching_time_download`               | Time spent on downloading dependencies                                     |
+| `forklift_wrapper_caching_time_rustc`                  | Time spent on `rustc` execution                                            |
+| `forklift_wrapper_caching_time_task`                   | Time spent on specific tasks (e.g., download, decompress, unpack, `rustc` execution) |
+| `forklift_wrapper_caching_time_total`                  | Total time spent by Forklift in caching operations                         |
+| `forklift_wrapper_caching_time_unpack`                 | Time spent on unpacking dependencies                                       |
 
 These metrics provide insights into the caching process, helping to identify bottlenecks and optimize build times.
 

@@ -193,26 +193,19 @@ Forklift provides the set of Prometheus-compatible metrics to monitor caching ef
 
 Available metrics include:
 
-- `forklift_uploader_uploading_network_avg_speed`
-- `forklift_uploader_uploading_network_uploaded_bytes`
-- `forklift_uploader_uploading_status_fail`
-- `forklift_uploader_uploading_status_uploaded`
-- `forklift_uploader_uploading_status_warning`
-- `forklift_uploader_uploading_time_task`
-- `forklift_uploader_uploading_time_total`
-- `forklift_wrapper_caching_cache_hit`
-- `forklift_wrapper_caching_cache_hit_with_retry`
-- `forklift_wrapper_caching_cache_miss`
-- `forklift_wrapper_caching_cache_miss_due_to_failure`
-- `forklift_wrapper_caching_dependency_rebuilt`
-- `forklift_wrapper_caching_network_avg_speed`
-- `forklift_wrapper_caching_network_downloaded_bytes`
-- `forklift_wrapper_caching_time_decompress`
-- `forklift_wrapper_caching_time_download`
-- `forklift_wrapper_caching_time_rustc`
-- `forklift_wrapper_caching_time_task`
-- `forklift_wrapper_caching_time_total`
-- `forklift_wrapper_caching_time_unpack`
+| Name                                        | Labels                                                        |
+|----------------------------------------------------|--------------------------------------------------------|
+| `forklift_uploader_uploading_network_avg_speed`   | `crate`, `hash`                                        |
+| `forklift_uploader_uploading_network_uploaded_bytes` | `crate`, `hash`                                     |
+| `forklift_uploader_uploading_status`              | `crate`, `hash`, `status` (values: `fail`, `warning`, `success`)  |
+| `forklift_uploader_uploading_time_task`           | `crate`, `hash`, `task` (values: `pack`, `compress`, `upload`) |
+| `forklift_uploader_uploading_time_total`          | `crate`, `hash`                                        |
+| `forklift_wrapper_caching_cache_hit`              | `crate`, `hash`, `status` (values: `hit`, `warning`)   |
+| `forklift_wrapper_caching_cache_miss`             | `crate`, `hash`, `status` (values: `miss`, `fail`, `dep_rebuilt`) |
+| `forklift_wrapper_caching_network_avg_speed`      | `crate`, `hash`                                        |
+| `forklift_wrapper_caching_network_downloaded_bytes` | `crate`, `hash`                                      |
+| `forklift_wrapper_caching_time_task`              | `crate`, `hash`, `task` (values: `download`, `decompress`, `unpack`, `rustc`) |
+| `forklift_wrapper_caching_time_total`             | `crate`, `hash`                                        |
 
 These metrics provide insights into the caching process, helping to identify bottlenecks and optimize build times.
 

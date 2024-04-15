@@ -29,10 +29,9 @@ jobs:
 
       - name: mkdir
         run: |
-          mkdir -p .forklift/repo && \
-          mkdir -p .forklift/storage && \
-          mkdir -p .forklift/bin && \
-          chmod -R 777 .forklift/storage
+          mkdir -p ${{ github.workspace }}/.forklift/repo && \
+          mkdir -p ${{ github.workspace }}/.forklift/storage && \
+          mkdir -p ${{ github.workspace }}/.forklift/bin
 
       - name: Checkout cargo
         uses: actions/checkout@v4

@@ -66,7 +66,7 @@ func Run(args []string) {
 	cmd := exec.Command(os.Args[1], os.Args[2:]...)
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env,
-		"RUSTC_WRAPPER="+currentPath, //todo use current executable
+		"RUSTC_WRAPPER="+currentPath,
 		"FORKLIFT_WORK_DIR="+flWorkDir,
 		"FORKLIFT_SOCKET="+rpcServer.SocketAddress,
 	)

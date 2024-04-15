@@ -1,8 +1,10 @@
 name: Tests
+run-name: Tests `${{ github.ref_name }}`
 on: push
 jobs:
   #
   Test:
+    name: Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -16,7 +18,7 @@ jobs:
       - run: go tool cover -func=cover.out
   #
   Cargo-test:
-    name: build cargo
+    name: Build cargo
     runs-on: ubuntu-latest
     steps:
       - name: Set up Go

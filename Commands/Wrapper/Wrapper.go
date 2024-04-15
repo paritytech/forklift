@@ -115,7 +115,7 @@ func Run(args []string) {
 	flClient.ReportStatusObject(cacheUsageReport)
 }
 
-// BypassRustc - execute rustc as is without any caching
+// BypassRustc - execute rustc as is, without any caching
 func BypassRustc() error {
 	var rustcArgsOnly = os.Args[2:]
 	var cmd = exec.Command(os.Args[1], rustcArgsOnly...)

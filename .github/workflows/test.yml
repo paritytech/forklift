@@ -31,7 +31,8 @@ jobs:
         run: |
           mkdir -p .forklift/repo && \
           mkdir -p .forklift/storage && \
-          mkdir -p .forklift/bin
+          mkdir -p .forklift/bin && \
+          chmod -R 777 .forklift/storage
 
       - name: Checkout cargo
         uses: actions/checkout@v4

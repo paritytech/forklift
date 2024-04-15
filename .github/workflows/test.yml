@@ -27,12 +27,6 @@ jobs:
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: mkdir
-        run: |
-          mkdir -p ${{ github.workspace }}/.forklift/repo && \
-          mkdir -p ${{ github.workspace }}/.forklift/storage && \
-          mkdir -p ${{ github.workspace }}/.forklift/bin
-
       - name: Checkout cargo
         uses: actions/checkout@v4
         with:
@@ -47,6 +41,7 @@ jobs:
       - run: go build -C .forklift/repo/ -o ../bin/forklift
       - run: chmod +x .forklift/bin/forklift
       - run: cp .forklift/bin/forklift /usr/local/bin/
+      - run: mkdir -p .forklift/storage
       - run: |
           tee .forklift/config.toml <<< '
           [general]

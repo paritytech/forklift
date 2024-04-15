@@ -11,6 +11,7 @@ import (
 	"forklift/Rpc"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 )
 
@@ -55,11 +56,17 @@ func Run(args []string) {
 
 	go rpcServer.Start(forkliftRpc)
 
+	var currentPath, err = GetCurrentExecPath()
+	if err != nil {
+		logger.Fatalf("Failed to get current executable path: %s", err)
+		os.Exit(1)
+	}
+
 	// execute cargo
 	cmd := exec.Command(os.Args[1], os.Args[2:]...)
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env,
-		"RUSTC_WRAPPER=forklift",
+		"RUSTC_WRAPPER="+currentPath, //todo use current executable
 		"FORKLIFT_WORK_DIR="+flWorkDir,
 		"FORKLIFT_SOCKET="+rpcServer.SocketAddress,
 	)
@@ -67,7 +74,7 @@ func Run(args []string) {
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 
-	var err = cmd.Run()
+	var cargoErr = cmd.Run()
 
 	close(forkliftRpc.Uploads)
 	uploader.Wait()
@@ -95,18 +102,31 @@ func Run(args []string) {
 
 	rpcServer.Stop()
 
-	if err != nil {
+	if cargoErr != nil {
 		extraLabels["job_result"] = "fail"
 		if (&forkliftRpc.StatusReport).TotalCrates > 0 {
 			Metrics.PushMetrics(&forkliftRpc.StatusReport, &uploader.StatusReport, extraLabels)
 		}
-		logger.Errorf("Cargo finished with error: %s", err)
+		logger.Errorf("Cargo finished with error: %s", cargoErr)
 		os.Exit(1)
 	} else {
 		extraLabels["job_result"] = "success"
 		Metrics.PushMetrics(&forkliftRpc.StatusReport, &uploader.StatusReport, extraLabels)
 		logger.Infof("Cargo finished successfully")
 	}
+}
+
+func GetCurrentExecPath() (string, error) {
+	currentExecPath, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+	currentExecPath, err = filepath.EvalSymlinks(currentExecPath)
+	if err != nil {
+		return "", err
+	}
+
+	return currentExecPath, nil
 }
 
 func getCurrentJobName() string {

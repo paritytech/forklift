@@ -52,7 +52,7 @@ func NewWrapperToolFromArgs(workDir string, rustArgs *[]string) *WrapperTool {
 	wrapper.CrateName, wrapper.CargoCrateHash, wrapper.OutDir = wrapper.extractNameMetaHashDir(rustArgs)
 	wrapper.workDir = workDir
 	wrapper.OutDir = FileManager.GetTrueRelFilePath(wrapper.workDir, wrapper.OutDir)
-	wrapper.RustCArgsHash = GetArgsHash(rustArgs)
+	wrapper.RustCArgsHash = GetArgsHash(rustArgs, wrapper.workDir)
 
 	wrapper.CalculateExternDepsChecksum()
 
@@ -77,10 +77,11 @@ func NewWrapperToolFromCacheItem(workDir string, item Models.CacheItem) *Wrapper
 	return &wrapper
 }
 
-func GetArgsHash(args *[]string) string {
+func GetArgsHash(args *[]string, toRemove string) string {
 	var sha = sha1.New()
 	for _, arg := range *args {
-		sha.Write([]byte(arg))
+		var stripped = strings.Replace(arg, toRemove, "", -1)
+		sha.Write([]byte(stripped))
 	}
 
 	return fmt.Sprintf("%x", sha.Sum(nil))

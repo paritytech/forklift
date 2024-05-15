@@ -26,7 +26,7 @@ func (storage *FsStorage) GetMetadata(key string) (map[string]*string, bool) {
 	return nil, err == nil
 }
 
-func (storage *FsStorage) Upload(key string, reader *io.Reader, _ map[string]*string) (*UploadResult, error) {
+func (storage *FsStorage) Upload(key string, reader io.Reader, _ map[string]*string) (*UploadResult, error) {
 
 	var file, err = os.Create(filepath.Join(storage.dir, key))
 	if err != nil {
@@ -38,7 +38,7 @@ func (storage *FsStorage) Upload(key string, reader *io.Reader, _ map[string]*st
 	var timer = Time.NewForkliftTimer()
 
 	timer.Start("write")
-	n, err2 := io.Copy(file, *reader)
+	n, err2 := io.Copy(file, reader)
 	if err2 != nil {
 		return nil, err
 	}

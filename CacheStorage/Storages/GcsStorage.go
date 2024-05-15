@@ -101,7 +101,7 @@ func (driver *GcsStorage) GetMetadata(key string) (map[string]*string, bool) {
 	return metadata, true
 }
 
-func (driver *GcsStorage) Upload(key string, reader *io.Reader, metadata map[string]*string) (*UploadResult, error) {
+func (driver *GcsStorage) Upload(key string, reader io.Reader, metadata map[string]*string) (*UploadResult, error) {
 	var gcpMetadata = make(map[string]string, len(metadata))
 
 	for key, value := range metadata {
@@ -114,7 +114,7 @@ func (driver *GcsStorage) Upload(key string, reader *io.Reader, metadata map[str
 
 	var timer = Time.NewForkliftTimer()
 	timer.Start("upload")
-	n, err := io.Copy(gcsWriter, *reader)
+	n, err := io.Copy(gcsWriter, reader)
 	if err != nil {
 		log.Errorf("Unable to write data to bucket %q, file %q: %v", driver.bucket, key, err)
 		return nil, err

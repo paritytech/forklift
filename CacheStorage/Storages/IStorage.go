@@ -6,7 +6,7 @@ import (
 )
 
 type IStorage interface {
-	Upload(key string, reader *io.Reader, metadata map[string]*string) (*UploadResult, error)
+	Upload(key string, reader io.Reader, metadata map[string]*string) (*UploadResult, error)
 	Download(key string) (*DownloadResult, error)
 	GetMetadata(key string) (map[string]*string, bool)
 }

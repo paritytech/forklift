@@ -1,8 +1,10 @@
 [general]
 logLevel = "info"
-packagesuffix = "some_suffix"
+packageSuffix = "some_suffix"
 threadscount = 10
 
+[cache]
+extraEnv = ["SOME_VAR"]
 
 [compression]
 type = "zstd"

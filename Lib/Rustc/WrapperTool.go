@@ -24,7 +24,7 @@ import (
 	"strings"
 )
 
-const CachePackageVersion = "2"
+const CachePackageVersion = "3"
 
 var cargoHashRegex = regexp.MustCompile("^metadata=([0-9a-f]{16})$")
 
@@ -54,7 +54,7 @@ func NewWrapperToolFromArgs(workDir string, rustArgs *[]string) *WrapperTool {
 	wrapper.OutDir = FileManager.GetTrueRelFilePath(wrapper.workDir, wrapper.OutDir)
 	wrapper.RustCArgsHash = GetArgsHash(rustArgs)
 
-	wrapper.CalculateExternDepsChecksum()
+	wrapper.ExternDepsChecksum()
 
 	var osWorkDir, _ = os.Getwd()
 	wrapper.osWorkDir = osWorkDir
@@ -191,8 +191,8 @@ func (wrapperTool *WrapperTool) TryUseCache(cacheUsageReport *CacheUsage.StatusR
 	return false
 }
 
-// CalculateExternDepsChecksum Calculates checksum of extern deps artifacts (sha1 of all files data)
-func (wrapperTool *WrapperTool) CalculateExternDepsChecksum() string {
+// ExternDepsChecksum Calculates checksum of extern deps artifacts (sha1 of all files data)
+func (wrapperTool *WrapperTool) ExternDepsChecksum() string {
 
 	if wrapperTool.CrateExternDepsChecksum != "" {
 		return wrapperTool.CrateExternDepsChecksum
@@ -213,6 +213,17 @@ func (wrapperTool *WrapperTool) CalculateExternDepsChecksum() string {
 	return wrapperTool.CrateExternDepsChecksum
 }
 
+// ExtraEnvVarsChecksum - calculates checksum of environment variables
+func (wrapperTool *WrapperTool) ExtraEnvVarsChecksum() []byte {
+	var sha = sha1.New()
+	for i, varName := range Config.AppConfig.Cache.ExtraEnv {
+		if varValue, ok := os.LookupEnv(varName); ok {
+			sha.Write([]byte(fmt.Sprintf("%d:%s:%s", i, varName, varValue)))
+		}
+	}
+	return sha.Sum(nil)
+}
+
 // GetCachePackageName Calculates unique name (cache key) for cache package like `base64_abcdef012345...`.
 // Suffix is sha1 of crate name, crate source checksum, crate hash, out dir, rustc args hash, extern deps checksum.
 func (wrapperTool *WrapperTool) GetCachePackageName() string {
@@ -224,11 +235,12 @@ func (wrapperTool *WrapperTool) GetCachePackageName() string {
 	var sha = sha1.New()
 
 	sha.Write([]byte(CachePackageVersion))
-	//sha.Write([]byte(wrapperTool.CargoCrateHash))
 	sha.Write([]byte(wrapperTool.CrateSourceChecksum))
 	sha.Write([]byte(wrapperTool.OutDir))
 	sha.Write([]byte(wrapperTool.RustCArgsHash))
-	sha.Write([]byte(wrapperTool.CalculateExternDepsChecksum()))
+	sha.Write([]byte(wrapperTool.ExternDepsChecksum()))
+
+	sha.Write(wrapperTool.ExtraEnvVarsChecksum())
 
 	var result = fmt.Sprintf(
 		"%s_%x",

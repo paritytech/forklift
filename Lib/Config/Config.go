@@ -29,6 +29,9 @@ var AppConfig = ForkliftConfig{
 		Enabled:     false,
 		ExtraLabels: map[string]string{},
 	},
+	Cache: ForkliftCache{
+		ExtraEnv: []string{},
+	},
 }
 
 func (c *ForkliftConfig) Get(key string) interface{} {

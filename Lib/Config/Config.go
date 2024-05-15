@@ -26,7 +26,8 @@ var AppConfig = ForkliftConfig{
 		Quiet: false,
 	},
 	Metrics: ForkliftMetrics{
-		Enabled: false,
+		Enabled:     false,
+		ExtraLabels: map[string]string{},
 	},
 	Cache: ForkliftCache{
 		ExtraEnv: []string{},

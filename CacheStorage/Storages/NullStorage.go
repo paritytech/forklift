@@ -19,7 +19,13 @@ func (storage *NullStorage) GetMetadata(_ string) (map[string]*string, bool) {
 }
 
 func (storage *NullStorage) Upload(_ string, _ *io.Reader, _ map[string]*string) (*UploadResult, error) {
-	return nil, nil
+	return &UploadResult{
+		StorageResult{
+			BytesCount: 0,
+			Duration:   0,
+			SpeedBps:   0,
+		},
+	}, nil
 }
 
 func (storage *NullStorage) Download(string) (*DownloadResult, error) {

@@ -28,6 +28,9 @@ var AppConfig = ForkliftConfig{
 	Metrics: ForkliftMetrics{
 		Enabled: false,
 	},
+	Cache: ForkliftCache{
+		ExtraEnv: []string{},
+	},
 }
 
 func (c *ForkliftConfig) Get(key string) interface{} {

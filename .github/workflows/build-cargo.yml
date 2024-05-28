@@ -23,6 +23,8 @@ jobs:
           - 9000:9000
 
     steps:
+      - uses: actions/checkout@v4
+
       - id: prepare-composite
         uses: .github/workflows/common/composite-prepare-cargo.yml
         with:
@@ -49,6 +51,8 @@ jobs:
       matrix:
         path: [cargo1, cargo2]
     steps:
+      - uses: actions/checkout@v4
+      
       - id: prepare-composite
         uses: .github/workflows/composite-prepare-cargo.yml
         with:

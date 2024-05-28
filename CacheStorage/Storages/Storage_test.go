@@ -1,3 +1,5 @@
+//go:build !disable_storage_tests
+
 package Storages
 
 import (
@@ -25,7 +27,7 @@ func createStorage() *S3Storage {
 	return NewS3Storage(&map[string]interface{}{
 		"bucketName":  "forklift",
 		"useSsl":      false,
-		"endpointUrl": "http://192.168.10.12:9000",
+		"endpointUrl": "http://minio:9000",
 		"concurrency": int64(1),
 	})
 }

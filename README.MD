@@ -88,6 +88,13 @@ See `forklift config --help` for more info.
 | threadsCount  | `int`    | Sets the number of threads for parallel uploads. Default: `2`.              |
 | quiet         | `bool`   | Suppresses all output. Setting this to `true` sets `logLevel` to `fatal`. Default: `false`. |
 
+#### cache
+`[cache]`
+
+| key      | type     | description                                                      |
+|----------|----------|------------------------------------------------------------------|
+| extraEnv | []string | Additional environment variable names for cache key calculations |
+
 #### storage
 `[storage]`
 

@@ -25,7 +25,7 @@ var configCommand = &cobra.Command{
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		var err = Config.Init(nil)
 		if err != nil {
-			logger.Errorf("Config error, bypassing: %s", err)
+			logger.Errorf("Config error: %s", err)
 			return
 		}
 	},

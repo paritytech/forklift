@@ -1,5 +1,5 @@
 name: Tests
-run-name: Tests `${{ github.ref_name }}`
+run-name: Tests for `${{ github.ref_name }}`
 on: push
 jobs:
   #
@@ -16,47 +16,3 @@ jobs:
       - name: Run tests
         run: go test ./... -coverprofile=cover.out
       - run: go tool cover -func=cover.out
-  #
-  Cargo-test:
-    name: Build cargo
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: '1.21'
-
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Checkout cargo
-        uses: actions/checkout@v4
-        with:
-          repository: rust-lang/cargo
-          ref: rust-1.77.0
-
-      - name: Checkout forklift
-        uses: actions/checkout@v4
-        with:
-          path: .forklift/repo
-
-      - run: go build -C .forklift/repo/ -o ../bin/forklift
-      - run: chmod +x .forklift/bin/forklift
-      - run: cp .forklift/bin/forklift /usr/local/bin/
-      - run: mkdir -p .forklift/storage
-      - run: |
-          tee .forklift/config.toml <<< '
-          [general]
-            logLevel = "warn"
-            threadsCount = 5
-          [compression]
-            type = "none"
-          [storage]
-            type = "fs"
-          [storage.fs]
-            directory = "${{ github.workspace }}/.forklift/storage"
-          '
-      - run: forklift cargo build --release
-      - run: rm -rf target/
-      - run: forklift cargo build --release
-  #

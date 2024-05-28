@@ -1,0 +1,53 @@
+name: Check changes files
+
+inputs:
+  path:
+    type: string
+    required: true
+    default: .
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Checkout cargo
+      uses: actions/checkout@v4
+      with:
+        repository: rust-lang/cargo
+        ref: rust-1.77.0
+        path: ${{ inputs.path }}
+
+    - name: Checkout forklift
+      uses: actions/checkout@v4
+      with:
+        path: ${{ inputs.path }}/.forklift/repo
+
+    - run: |
+        go build -C .forklift/repo/ -o ../bin/forklift
+        chmod +x .forklift/bin/forklift
+        cp .forklift/bin/forklift /usr/local/bin/
+        mkdir -p .forklift/storage
+      working-directory: ${{ inputs.path }}
+
+    - run: |
+        tee .forklift/config.toml <<< '
+        [general]
+          logLevel = "warn"
+          threadsCount = 3
+        [compression]
+          type = "none"
+        [storage]
+          type = "s3"
+        [storage.s3]
+          endpointUrl = "http://localhost:9000"
+          bucketName = "forklift"
+          useSSL = false
+        '
+      working-directory: ${{ inputs.path }}

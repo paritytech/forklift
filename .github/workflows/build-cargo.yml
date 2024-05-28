@@ -24,7 +24,7 @@ jobs:
 
     steps:
       - id: prepare-composite
-        uses: .github/workflows/composite-prepare-cargo.yml
+        uses: .github/workflows/composite/composite-prepare-cargo.yml
         with:
           path: .
 

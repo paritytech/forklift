@@ -6,6 +6,15 @@ jobs:
   Test:
     name: Tests
     runs-on: ubuntu-latest
+    services:
+      minio:
+        image: bitnami/minio:2024.5.7
+        env:
+          MINIO_ROOT_USER: root,
+          MINIO_ROOT_PASSWORD: rootroot,
+          MINIO_DEFAULT_BUCKETS: forklift:public,
+        ports:
+          - 9000:9000
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

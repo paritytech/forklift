@@ -35,6 +35,7 @@ runs:
         cp .forklift/bin/forklift /usr/local/bin/
         mkdir -p .forklift/storage
       working-directory: ${{ inputs.path }}
+      shell: bash
 
     - run: |
         tee .forklift/config.toml <<< '
@@ -51,3 +52,4 @@ runs:
           useSSL = false
         '
       working-directory: ${{ inputs.path }}
+      shell: bash

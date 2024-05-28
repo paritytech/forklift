@@ -15,12 +15,6 @@ jobs:
           MINIO_DEFAULT_BUCKETS: forklift:public,
         ports:
           - 9000:9000
-        options: >-
-          --health-cmd "curl -I http://localhost:9000/minio/health/live"
-          --health-start-period 10s
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
 
     steps:
       - name: Checkout repository
@@ -29,7 +23,6 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: '1.21'
-      - run: curl -I http://minio:9000/minio/health/live
       - name: Run tests
         run: go test ./... -coverprofile=cover.out
       - run: go tool cover -func=cover.out      

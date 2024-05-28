@@ -27,7 +27,7 @@ func createStorage() *S3Storage {
 	return NewS3Storage(&map[string]interface{}{
 		"bucketName":  "forklift",
 		"useSsl":      false,
-		"endpointUrl": "http://minio:9000",
+		"endpointUrl": "http://localhost:9000",
 		"concurrency": int64(1),
 	})
 }

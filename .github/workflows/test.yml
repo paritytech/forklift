@@ -10,17 +10,11 @@ jobs:
       minio:
         image: bitnami/minio:2024.5.7
         env:
-          MINIO_ROOT_USER: root,
-          MINIO_ROOT_PASSWORD: rootroot,
-          MINIO_DEFAULT_BUCKETS: forklift:public,
+          MINIO_ROOT_USER: root
+          MINIO_ROOT_PASSWORD: rootroot
+          MINIO_DEFAULT_BUCKETS: forklift:public
         ports:
           - 9000:9000
-        options: >-
-          --health-cmd "curl -I http://localhost:9000/minio/health/live"
-          --health-start-period 10s
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
 
     steps:
       - name: Checkout repository

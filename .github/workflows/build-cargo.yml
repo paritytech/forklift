@@ -16,12 +16,12 @@ jobs:
       minio:
         image: bitnami/minio:2024.5.7
         env:
-          MINIO_ROOT_USER: root,
-          MINIO_ROOT_PASSWORD: rootroot,
-          MINIO_DEFAULT_BUCKETS: forklift:public,
+          MINIO_ROOT_USER: root
+          MINIO_ROOT_PASSWORD: rootroot
+          MINIO_DEFAULT_BUCKETS: forklift:public
         ports:
           - 9000:9000
-          
+
     steps:
       - name: Set up Go
         uses: actions/setup-go@v4

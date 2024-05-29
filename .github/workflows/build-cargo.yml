@@ -38,6 +38,7 @@ jobs:
           cp ./bin/forklift /usr/local/bin/
   
       - run: |
+          mkdir .forklift
           tee .forklift/config.toml <<< '
           [general]
             logLevel = "warn"

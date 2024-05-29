@@ -140,7 +140,7 @@ func (uploader *Uploader) TryUpload(
 		}
 
 		timer.Start("Upload time")
-		uploadResult, err := uploader.storage.Upload(name+"_"+uploader.compressor.GetKey(), &compressed, metaMap)
+		uploadResult, err := uploader.storage.Upload(name+"_"+uploader.compressor.GetKey(), compressed, metaMap)
 		statusReport.UploadTime += timer.Stop("Upload time")
 		if err != nil {
 			logger.Warningf("upload error: %s", err)

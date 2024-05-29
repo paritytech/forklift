@@ -18,7 +18,7 @@ func (storage *NullStorage) GetMetadata(_ string) (map[string]*string, bool) {
 	return nil, false
 }
 
-func (storage *NullStorage) Upload(_ string, _ *io.Reader, _ map[string]*string) (*UploadResult, error) {
+func (storage *NullStorage) Upload(_ string, _ io.Reader, _ map[string]*string) (*UploadResult, error) {
 	return &UploadResult{
 		StorageResult{
 			BytesCount: 0,

@@ -31,15 +31,24 @@ func NewS3Storage(params *map[string]interface{}) *S3Storage {
 	var bucketName = Helpers.MapGet(params, "bucketName", "forklift")
 	s3s.bucket = bucketName
 
-	var staticCredentials = credentials.NewStaticCredentials(
-		Helpers.MapGet(params, "accessKeyId", ""),
-		Helpers.MapGet(params, "secretAccessKey", ""),
-		"",
-	)
+	var accessKeyId = Helpers.MapGet(params, "accessKeyId", "")
+	var secretAccessKey = Helpers.MapGet(params, "secretAccess", "")
+
+	var s3Credentials *credentials.Credentials
+
+	if accessKeyId == "" || secretAccessKey == "" {
+		s3Credentials = credentials.AnonymousCredentials
+	} else {
+		s3Credentials = credentials.NewStaticCredentials(
+			Helpers.MapGet(params, "accessKeyId", ""),
+			Helpers.MapGet(params, "secretAccessKey", ""),
+			"",
+		)
+	}
 
 	s3s.session = session.Must(session.NewSession(&aws.Config{
 		DisableSSL:       aws.Bool(!Helpers.MapGet(params, "useSsl", true)),
-		Credentials:      staticCredentials,
+		Credentials:      s3Credentials,
 		Endpoint:         aws.String(Helpers.MapGet(params, "endpointUrl", "")),
 		Region:           aws.String("auto"),
 		S3ForcePathStyle: aws.Bool(true),
@@ -48,34 +57,6 @@ func NewS3Storage(params *map[string]interface{}) *S3Storage {
 	s3s.client = s3.New(s3s.session, &aws.Config{})
 
 	return &s3s
-}
-
-func (storage *S3Storage) getHead(key string) (*s3.HeadObjectOutput, bool) {
-	var head, err = storage.client.HeadObject(&s3.HeadObjectInput{
-		Key:    &key,
-		Bucket: &storage.bucket,
-	})
-
-	if err != nil {
-		var awsErr awserr.Error
-		if errors.As(err, &awsErr) {
-			switch awsErr.Code() {
-			//case "NotFound":
-			//	return nil, false
-			case s3.ErrCodeNoSuchBucket:
-				log.Tracef("bucket %s does not exist", storage.bucket)
-			case "NotFound":
-				fallthrough
-			case s3.ErrCodeNoSuchKey:
-				log.Tracef("object with key %s does not exist in bucket %s", key, storage.bucket)
-			}
-		} else {
-			log.Warningf("failed to get head for file %s, %s", key, err)
-		}
-		return nil, false
-	}
-
-	return head, true
 }
 
 func (storage *S3Storage) GetMetadata(key string) (map[string]*string, bool) {
@@ -110,11 +91,11 @@ func (storage *S3Storage) GetMetadata(key string) (map[string]*string, bool) {
 	return metadata, true
 }
 
-func (storage *S3Storage) Upload(key string, reader *io.Reader, metadata map[string]*string) (*UploadResult, error) {
+func (storage *S3Storage) Upload(key string, reader io.Reader, metadata map[string]*string) (*UploadResult, error) {
 	uploader := s3manager.NewUploader(storage.session)
 
 	var buf = bytes.Buffer{}
-	var n, _ = io.Copy(&buf, *reader)
+	var n, _ = io.Copy(&buf, reader)
 
 	var normalizedMetadata = make(map[string]*string, len(metadata))
 	for key, value := range metadata {

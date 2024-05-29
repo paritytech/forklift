@@ -93,6 +93,7 @@ func Run(args []string) {
 		// execute rustc
 		timer.Start("rustc")
 		logger.Infof("Executing rustc")
+		logger.Tracef("Rustc args: %s", rustcArgsOnly)
 		var artifacts, rustcError = wrapperTool.ExecuteRustc()
 		cacheUsageReport.RustcTime += timer.Stop("rustc")
 

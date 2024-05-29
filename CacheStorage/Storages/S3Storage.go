@@ -32,7 +32,7 @@ func NewS3Storage(params *map[string]interface{}) *S3Storage {
 	s3s.bucket = bucketName
 
 	var accessKeyId = Helpers.MapGet(params, "accessKeyId", "")
-	var secretAccessKey = Helpers.MapGet(params, "secretAccess", "")
+	var secretAccessKey = Helpers.MapGet(params, "secretAccessKey", "")
 
 	var s3Credentials *credentials.Credentials
 
@@ -40,8 +40,8 @@ func NewS3Storage(params *map[string]interface{}) *S3Storage {
 		s3Credentials = credentials.AnonymousCredentials
 	} else {
 		s3Credentials = credentials.NewStaticCredentials(
-			Helpers.MapGet(params, "accessKeyId", ""),
-			Helpers.MapGet(params, "secretAccessKey", ""),
+			accessKeyId,
+			secretAccessKey,
 			"",
 		)
 	}

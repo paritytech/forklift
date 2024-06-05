@@ -20,6 +20,9 @@ func GetStorageDriver(config Config.ForkliftConfig) (IStorage, error) {
 	case "fs":
 		var s = NewFsStorage(config.GetMap("storage.fs"))
 		return s, nil
+	case "flatcar":
+		var s = NewFlatcarStorage(config.GetMap("storage.flatcar"))
+		return s, nil
 	case "null":
 		var s = NewNullStorage()
 		return s, nil

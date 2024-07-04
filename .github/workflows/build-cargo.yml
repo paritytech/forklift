@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - es/tests
   pull_request:
     types: [opened, synchronize, reopened]
 
@@ -41,7 +42,7 @@ jobs:
           mkdir .forklift
           tee .forklift/config.toml <<< '
           [general]
-            logLevel = "warn"
+            logLevel = "trace"
             threadsCount = 3
           [compression]
             type = "none"

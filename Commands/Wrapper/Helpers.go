@@ -3,6 +3,7 @@ package Wrapper
 import (
 	"crypto/sha1"
 	"fmt"
+	log "forklift/Lib/Logging/ConsoleLogger"
 	"forklift/Lib/Rustc"
 	"hash"
 	"io"
@@ -54,6 +55,9 @@ func checksum(path string, hash hash.Hash, root bool) {
 			checksum(filepath.Join(path, entry.Name()), hash, false)
 		} else {
 			var file, _ = os.Open(filepath.Join(path, entry.Name()))
+			if log.GetLevel() > log.DebugLevel {
+				log.Tracef("calculating checksum of %s, result %s", filepath.Join(path, entry.Name()), fmt.Sprintf("%x", hash.Sum(nil)))
+			}
 			io.Copy(hash, file)
 			file.Close()
 		}

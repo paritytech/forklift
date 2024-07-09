@@ -9,6 +9,7 @@ import (
 	"forklift/Helpers"
 	"forklift/Lib/Diagnostic/Time"
 	log "forklift/Lib/Logging/ConsoleLogger"
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
 	"io"
 	"os"
@@ -140,7 +141,21 @@ func (driver *GcsStorage) Download(key string) (*DownloadResult, error) {
 	var gcsReader, err = driver.client.Bucket(driver.bucket).Object(key).NewReader(driver.context)
 
 	if err != nil {
-		log.Errorf("Unable to open file from bucket %q, file %q: %v", driver.bucket, key, err)
+		var gcsErr *googleapi.Error
+		if errors.As(err, &gcsErr) {
+			switch gcsErr.Code {
+			case 404:
+				log.Tracef("object with key %s does not exist in bucket %s", key, driver.bucket)
+				return nil, nil
+			case 403:
+				fallthrough
+			case 412:
+				log.Tracef("`unauthorized` for key %s, bucket %s", key, driver.bucket)
+				return nil, nil
+			}
+		} else {
+			log.Debugf("failed to download for file %s, %s", key, err)
+		}
 		return nil, err
 	}
 	defer gcsReader.Close()

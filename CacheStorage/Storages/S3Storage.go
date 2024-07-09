@@ -147,15 +147,17 @@ func (storage *S3Storage) Download(key string) (*DownloadResult, error) {
 			switch awsErr.Code() {
 			case s3.ErrCodeNoSuchBucket:
 				log.Tracef("bucket %s does not exist", storage.bucket)
+				return nil, nil
 			case "NotFound":
 				fallthrough
 			case s3.ErrCodeNoSuchKey:
 				log.Tracef("object with key %s does not exist in bucket %s", key, storage.bucket)
+				return nil, nil
 			}
 		} else {
 			log.Debugf("failed to download for file %s, %s", key, err)
 		}
-		return nil, nil
+		return nil, err
 	}
 
 	var result = DownloadResult{

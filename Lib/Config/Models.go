@@ -9,7 +9,8 @@ type ForkliftConfig struct {
 }
 
 type ForkliftStorage struct {
-	Type string
+	Type     string
+	ReadOnly bool
 }
 
 type ForkliftCache struct {

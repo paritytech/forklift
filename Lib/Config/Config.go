@@ -14,7 +14,8 @@ import (
 
 var AppConfig = ForkliftConfig{
 	Storage: ForkliftStorage{
-		Type: "null",
+		Type:     "null",
+		ReadOnly: false,
 	},
 	Compression: ForkliftCompression{
 		Type: "none",

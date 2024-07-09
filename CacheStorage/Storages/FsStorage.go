@@ -70,9 +70,6 @@ func (storage *FsStorage) Download(key string) (*DownloadResult, error) {
 	}
 	defer file.Close()
 
-	if err != nil {
-		return nil, err
-	}
 	var buf = bytes.NewBuffer(make([]byte, 0, fileInfo.Size()))
 
 	timer.Start("read")

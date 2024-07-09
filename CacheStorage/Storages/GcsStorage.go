@@ -123,6 +123,18 @@ func (driver *GcsStorage) Upload(key string, reader io.Reader, metadata map[stri
 	var duration = timer.Stop("upload")
 
 	if err := gcsWriter.Close(); err != nil {
+
+		var gcsErr *googleapi.Error
+		if errors.As(err, &gcsErr) {
+			switch gcsErr.Code {
+			case 403:
+				fallthrough
+			case 412:
+				log.Tracef("`unauthorized` for key %s, bucket %s", key, driver.bucket)
+				return nil, nil
+			}
+		}
+
 		log.Errorf("Unable to close bucket %q, file %q: %v", driver.bucket, key, err)
 		return nil, err
 	}

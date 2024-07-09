@@ -113,6 +113,17 @@ func (storage *S3Storage) Upload(key string, reader io.Reader, metadata map[stri
 		Metadata: normalizedMetadata,
 	})
 	if err != nil {
+
+		var awsErr awserr.Error
+		if errors.As(err, &awsErr) {
+			switch awsErr.Code() {
+			case "Forbidden":
+				log.Tracef("`unauthorized` for key %s, bucket %s", key, storage.bucket)
+				return nil, nil
+			}
+		}
+
+		log.Errorf("Unable to upload to bucket %q, file %q: %v", storage.bucket, key, err)
 		return nil, err
 	}
 	var duration = timer.Stop("upload")

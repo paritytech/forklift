@@ -91,7 +91,9 @@ func (uploader *Uploader) upload() {
 
 		if len(crateArtifactsFiles) > 0 {
 			var report = uploader.TryUpload(wrapperTool, crateArtifactsFiles, logger)
-			uploader.CollectReport(&report)
+			if report.Status != CacheUpload.Undefined {
+				uploader.CollectReport(&report)
+			}
 		} else {
 			logger.Tracef("No entries for '%s-%s'\n", wrapperTool.GetCachePackageName(), wrapperTool.CargoCrateHash)
 		}
@@ -146,6 +148,10 @@ func (uploader *Uploader) TryUpload(
 			logger.Warningf("upload error: %s", err)
 			retries--
 			continue
+		}
+		if uploadResult == nil {
+			statusReport.Status = CacheUpload.Undefined
+			return statusReport
 		}
 		statusReport.UploadSize += uploadResult.BytesCount
 		statusReport.UploadSpeedBps += uploadResult.SpeedBps

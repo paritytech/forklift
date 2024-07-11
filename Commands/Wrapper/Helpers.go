@@ -39,16 +39,16 @@ func calcChecksum(wrapperTool *Rustc.WrapperTool) bool {
 	return true
 }
 
-func checksum(path string, hash hash.Hash, root bool) {
+func checksum(path string, hash hash.Hash, isRoot bool) {
 	var entries, _ = os.ReadDir(path)
 
-	/*if !root && hasCargoToml(path) {
+	/*if !isRoot && hasCargoToml(path) {
 		return
 	}*/
 
 	for _, entry := range entries {
 
-		if root && needIgnore(entry.Name()) {
+		if needIgnore(isRoot, entry.Name()) {
 			continue
 		}
 
@@ -66,11 +66,11 @@ func checksum(path string, hash hash.Hash, root bool) {
 }
 
 // needIgnore returns true if entryName should be ignored
-func needIgnore(entryName string) bool {
+func needIgnore(isRoot bool, entryName string) bool {
 
 	//TODO: create normal ignore logic, .ignore file or something
 
-	var ignorePrefixes = []string{
+	var ignorePrefixes = [...]string{
 		".git",
 		".idea",
 		".vscode",
@@ -79,13 +79,15 @@ func needIgnore(entryName string) bool {
 		".forklift",
 	}
 
-	var ignoreSuffixes = []string{
+	var ignoreSuffixes = [...]string{
 		".profraw",
 	}
 
-	for _, pattern := range ignorePrefixes {
-		if pattern == entryName {
-			return true
+	if isRoot {
+		for _, pattern := range ignorePrefixes {
+			if pattern == entryName {
+				return true
+			}
 		}
 	}
 

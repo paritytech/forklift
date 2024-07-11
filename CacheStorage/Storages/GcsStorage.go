@@ -152,6 +152,8 @@ func (driver *GcsStorage) Download(key string) (*DownloadResult, error) {
 	var timer = Time.NewForkliftTimer()
 	var gcsReader, err = driver.client.Bucket(driver.bucket).Object(key).NewReader(driver.context)
 
+	//TODO clarify log severity
+
 	if err != nil {
 		var gcsErr *googleapi.Error
 		if errors.As(err, &gcsErr) {
@@ -166,8 +168,18 @@ func (driver *GcsStorage) Download(key string) (*DownloadResult, error) {
 				return nil, nil
 			}
 		} else {
-			log.Debugf("failed to download for file %s, %s", key, err)
+			switch {
+			case errors.Is(err, storage.ErrObjectNotExist):
+				log.Tracef("object with key %s does not exist in bucket %s", key, driver.bucket)
+				return nil, nil
+			case errors.Is(err, storage.ErrBucketNotExist):
+				log.Errorf("bucket %s does not exist", driver.bucket)
+				return nil, nil
+			default:
+				log.Tracef("failed to download for file %s, %s", key, err)
+			}
 		}
+
 		return nil, err
 	}
 	defer gcsReader.Close()

@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 func hasCargoToml(path string) bool {
@@ -66,7 +67,10 @@ func checksum(path string, hash hash.Hash, root bool) {
 
 // needIgnore returns true if entryName should be ignored
 func needIgnore(entryName string) bool {
-	var ignorePatterns = []string{
+
+	//TODO: create normal ignore logic, .ignore file or something
+
+	var ignorePrefixes = []string{
 		".git",
 		".idea",
 		".vscode",
@@ -75,8 +79,18 @@ func needIgnore(entryName string) bool {
 		".forklift",
 	}
 
-	for _, pattern := range ignorePatterns {
+	var ignoreSuffixes = []string{
+		".profraw",
+	}
+
+	for _, pattern := range ignorePrefixes {
 		if pattern == entryName {
+			return true
+		}
+	}
+
+	for _, pattern := range ignoreSuffixes {
+		if strings.HasSuffix(entryName, pattern) {
 			return true
 		}
 	}

@@ -313,6 +313,7 @@ func (wrapperTool *WrapperTool) WriteStderrFile(reader io.Reader) *[]Artifact {
 	if err != nil {
 		wrapperTool.Logger.Errorf(err.Error())
 	}
+	defer itemFile.Close()
 
 	var result []Artifact
 

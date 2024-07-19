@@ -1,0 +1,27 @@
+name: Release
+run-name: Release ${{ github.ref_name }}
+on:
+  push:
+    branches:
+      - main
+jobs:
+
+  Release:
+    strategy:
+      matrix:
+        goos: [linux, darwin, windows]
+        goarch: [amd64, arm64]
+    permissions:
+      contents: write
+    runs-on: ubuntu-20.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+      - run: GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-X forklift/Commands.Version=${{ github.sha }} -extldflags '-static'" -o bin/forklift_${{ github.ref_name }}_${{ matrix.goos }}_${{ matrix.goarch }} -tags no_lzma2
+      - run: gh release upload master bin/forklift* --clobber

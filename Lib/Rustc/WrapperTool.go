@@ -310,17 +310,26 @@ func (wrapperTool *WrapperTool) WriteStderrFile(reader io.Reader) *[]Artifact {
 		os.O_TRUNC|os.O_WRONLY|os.O_CREATE,
 		0755,
 	)
+	wrapperTool.Logger.Tracef("Writing to %s-stderr", itemsCachePath)
 	if err != nil {
 		wrapperTool.Logger.Errorf(err.Error())
 	}
-	defer itemFile.Close()
+	defer func(itemFile *os.File) {
+		err := itemFile.Close()
+		if err != nil {
+			wrapperTool.Logger.Errorf(err.Error())
+		}
+	}(itemFile)
 
 	var result []Artifact
 
 	for fileScanner.Scan() {
 		var artifact Artifact
 		var str = fileScanner.Text()
-		json.Unmarshal([]byte(str), &artifact)
+		err := json.Unmarshal([]byte(str), &artifact)
+		if err != nil {
+			wrapperTool.Logger.Errorf(err.Error())
+		}
 		if artifact.Artifact != "" {
 			var relpath = filepath.Base(artifact.Artifact)
 			artifact.Artifact = relpath

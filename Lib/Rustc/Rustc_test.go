@@ -2,10 +2,13 @@ package Rustc_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
+	"forklift/Lib/Logging"
 	"forklift/Lib/Rustc"
 	"os"
 	"path"
+	"path/filepath"
 	"reflect"
 	"testing"
 )
@@ -34,6 +37,7 @@ func TestWrapperTool_WriteStderrFile(t *testing.T) {
 
 	var reader = bytes.NewReader([]byte(data))
 
+	wrapper.Logger = Logging.CreateLogger("wrapper", 2, nil)
 	var artifacts = wrapper.WriteStderrFile(reader)
 
 	if len(*artifacts) != 1 {
@@ -57,13 +61,19 @@ func TestWrapperTool_ReadStderrFile(t *testing.T) {
 	var wd, _ = os.Getwd()
 	var wrapper = Rustc.NewWrapperToolFromArgs(wd, &[]string{"-a", "b"})
 
-	var data = "{\"artifact\":\"target/deps/base64-a62ed92405ecbfa1.d\",\"emit\":\"dep-info\"}"
+	var dataBytes, _ = json.Marshal(Rustc.Artifact{
+		Artifact: filepath.Join("target", "deps", "base64-a62ed92405ecbfa1.d"),
+	})
+	var data = string(dataBytes)
 
 	var itemsCachePath = path.Join(wd, "target", "forklift")
 	os.MkdirAll(itemsCachePath, 0755)
 	os.WriteFile("target/forklift/"+wrapper.GetCachePackageName()+"-stderr", []byte(data), 0755)
 
-	var expectedData = "{\"artifact\":\"" + wd + "/target/deps/base64-a62ed92405ecbfa1.d\",\"emit\":\"dep-info\"}\n"
+	var expectedBytes, _ = json.Marshal(Rustc.Artifact{
+		Artifact: filepath.Join(wd, "target", "deps", "base64-a62ed92405ecbfa1.d"),
+	})
+	var expectedData = string(expectedBytes) + "\n"
 
 	var reader = wrapper.ReadStderrFile()
 	var buf = bytes.Buffer{}

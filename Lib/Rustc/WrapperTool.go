@@ -18,7 +18,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -273,8 +272,8 @@ func (wrapperTool *WrapperTool) ToCacheItem() Models.CacheItem {
 }
 
 func (wrapperTool *WrapperTool) ReadStderrFile() io.Reader {
-	var itemsCachePath = path.Join(wrapperTool.workDir, "target", "forklift")
-	var file, _ = os.Open(path.Join(itemsCachePath, fmt.Sprintf("%s-stderr", wrapperTool.GetCachePackageName())))
+	var itemsCachePath = filepath.Join(wrapperTool.workDir, "target", "forklift")
+	var file, _ = os.Open(filepath.Join(itemsCachePath, fmt.Sprintf("%s-stderr", wrapperTool.GetCachePackageName())))
 
 	var resultBuf = bytes.Buffer{}
 
@@ -302,11 +301,11 @@ func (wrapperTool *WrapperTool) WriteStderrFile(reader io.Reader) *[]Artifact {
 	fileScanner := bufio.NewScanner(reader)
 	fileScanner.Split(bufio.ScanLines)
 
-	var itemsCachePath = path.Join(wrapperTool.workDir, "target", "forklift")
+	var itemsCachePath = filepath.Join(wrapperTool.workDir, "target", "forklift")
 	err := os.MkdirAll(itemsCachePath, 0755)
 
 	itemFile, err := os.OpenFile(
-		path.Join(itemsCachePath, fmt.Sprintf("%s-stderr", wrapperTool.GetCachePackageName())),
+		filepath.Join(itemsCachePath, fmt.Sprintf("%s-stderr", wrapperTool.GetCachePackageName())),
 		os.O_TRUNC|os.O_WRONLY|os.O_CREATE,
 		0755,
 	)
@@ -348,14 +347,14 @@ func (wrapperTool *WrapperTool) WriteStderrFile(reader io.Reader) *[]Artifact {
 
 func (wrapperTool *WrapperTool) WriteIOStreamFile(reader io.Reader, suffix string) {
 
-	var itemsCachePath = path.Join(wrapperTool.workDir, "target", "forklift")
+	var itemsCachePath = filepath.Join(wrapperTool.workDir, "target", "forklift")
 	err := os.MkdirAll(itemsCachePath, 0755)
 	if err != nil {
 		wrapperTool.Logger.Errorf(err.Error())
 	}
 
 	itemFile, err := os.OpenFile(
-		path.Join(itemsCachePath, fmt.Sprintf("%s-%s", wrapperTool.GetCachePackageName(), suffix)),
+		filepath.Join(itemsCachePath, fmt.Sprintf("%s-%s", wrapperTool.GetCachePackageName(), suffix)),
 		os.O_TRUNC|os.O_WRONLY|os.O_CREATE,
 		0755,
 	)
@@ -376,10 +375,10 @@ func (wrapperTool *WrapperTool) WriteIOStreamFile(reader io.Reader, suffix strin
 
 func (wrapperTool *WrapperTool) ReadIOStreamFile(suffix string) io.Reader {
 
-	var itemsCachePath = path.Join(wrapperTool.workDir, "target", "forklift")
+	var itemsCachePath = filepath.Join(wrapperTool.workDir, "target", "forklift")
 
 	itemFile, err := os.Open(
-		path.Join(itemsCachePath, fmt.Sprintf("%s-%s", wrapperTool.GetCachePackageName(), suffix)),
+		filepath.Join(itemsCachePath, fmt.Sprintf("%s-%s", wrapperTool.GetCachePackageName(), suffix)),
 	)
 	if err != nil {
 		wrapperTool.Logger.Errorf(err.Error())

@@ -51,6 +51,9 @@ jobs:
             endpointUrl = "http://localhost:9000"
             bucketName = "forklift"
             useSSL = false
+          [cache.extraMetadata]
+            github_run_id="$GITHUB_RUN_ID"
+            github_job="$GITHUB_JOB"
           '
 
       - name: Checkout cargo 1

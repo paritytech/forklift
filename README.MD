@@ -26,7 +26,7 @@ Forklift acts as a `rustc` wrapper and decides whether to use the cache based on
 
 3. The wrapper gathers dependencies (`--extern name=path`) and forwards them to the server to verify if any of these dependencies have been rebuilt during this "session".
 
-4. The wrapper computes the cache key from the `rustc` arguments (which already include the cargo hash), the output path, the hash of the source files, and the hash of the dependencies' artifacts.
+4. The wrapper computes the cache key from the `rustc` arguments (which already include the cargo hash), the output path, the hash of the source files, hash of the rustc binary, and the hash of the 'dependencies' artifacts.
 
 5. **If there are any rebuilt dependencies** or the cache package is not present in the storage, Forklift will execute the specified `rustc` command, collect its output, and upload it to the server.
 
@@ -91,9 +91,10 @@ See `forklift config --help` for more info.
 #### cache
 `[cache]`
 
-| key      | type     | description                                                      |
-|----------|----------|------------------------------------------------------------------|
-| extraEnv | []string | Additional environment variable names for cache key calculations |
+| key           | type              | description                                                      |
+|---------------|-------------------|------------------------------------------------------------------|
+| extraEnv      | []string          | Additional environment variable names for cache key calculations |
+| extraMetadata | map[string]string | Additional fields to include in artifact metadata. If the value starts with a dollar sign ($), Forklift will attempt to resolve the environment variable during upload. |
 
 #### storage
 `[storage]`

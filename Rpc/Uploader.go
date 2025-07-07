@@ -8,11 +8,13 @@ import (
 	"forklift/CacheStorage/Storages"
 	"forklift/FileManager/Models"
 	"forklift/FileManager/Tar"
+	"forklift/Lib/Config"
 	"forklift/Lib/Diagnostic/Time"
 	"forklift/Lib/Logging"
 	log "forklift/Lib/Logging/ConsoleLogger"
 	"forklift/Lib/Rustc"
 	"forklift/Rpc/Models/CacheUpload"
+	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -131,6 +133,16 @@ func (uploader *Uploader) TryUpload(
 
 		var shaLocal = fmt.Sprintf("%x", sha.Sum(nil))
 		metaMap["sha1-artifact"] = &shaLocal
+
+		for key, value := range Config.AppConfig.Cache.ExtraMetadata {
+			if value[0] == '$' {
+				if data, ok := os.LookupEnv(value[1:]); ok {
+					metaMap[key] = &data
+				}
+			} else {
+				metaMap[key] = &value
+			}
+		}
 
 		timer.Start("Compress time")
 		compressed, err := uploader.compressor.Compress(reader)

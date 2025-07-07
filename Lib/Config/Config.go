@@ -31,7 +31,8 @@ var AppConfig = ForkliftConfig{
 		ExtraLabels: map[string]string{},
 	},
 	Cache: ForkliftCache{
-		ExtraEnv: []string{},
+		ExtraEnv:      []string{},
+		ExtraMetadata: map[string]string{},
 	},
 }
 

@@ -19,4 +19,5 @@ type CacheItem struct {
 	RustCArgsHash           string
 	CrateExternDepsChecksum string
 	CrateNativeDepsChecksum string
+	RustCBinHash            string
 }

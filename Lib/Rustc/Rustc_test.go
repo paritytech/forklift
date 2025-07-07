@@ -30,7 +30,7 @@ func TestCmdTool_GetExternDeps(t *testing.T) {
 
 func TestWrapperTool_WriteStderrFile(t *testing.T) {
 	var wd, _ = os.Getwd()
-	var wrapper = Rustc.NewWrapperToolFromArgs(wd, []string{})
+	var wrapper = Rustc.NewWrapperToolFromArgs(wd, []string{"aaaa", "bbbb"})
 
 	var data = "{\"artifact\":\"deps/base64-a62ed92405ecbfa1.d\",\"emit\":\"dep-info\"}"
 	var expectedData = "{\"artifact\":\"base64-a62ed92405ecbfa1.d\",\"emit\":\"dep-info\"}\n"

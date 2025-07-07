@@ -25,4 +25,4 @@ jobs:
           go-version: '1.21'
       - name: Run tests
         run: go test ./... -coverprofile=cover.out
-      - run: go tool cover -func=cover.out      
+      - run: go tool cover -func=cover.out

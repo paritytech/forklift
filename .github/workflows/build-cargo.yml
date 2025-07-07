@@ -29,19 +29,19 @@ jobs:
         with:
           go-version: '1.21'
       - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable          
+        uses: dtolnay/rust-toolchain@stable
 
       - uses: actions/checkout@v4
       - run: |
           go build -o ./bin/forklift
           chmod +x ./bin/forklift
           cp ./bin/forklift /usr/local/bin/
-  
+
       - run: |
           mkdir .forklift
           tee .forklift/config.toml <<< '
           [general]
-            logLevel = "warn"
+            logLevel = "debug"
             threadsCount = 3
           [compression]
             type = "none"
@@ -51,7 +51,7 @@ jobs:
             endpointUrl = "http://localhost:9000"
             bucketName = "forklift"
             useSSL = false
-          '          
+          '
 
       - name: Checkout cargo 1
         uses: actions/checkout@v4

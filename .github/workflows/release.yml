@@ -10,7 +10,7 @@ jobs:
   CreateRelease:
     permissions:
       contents: write
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - name: Release
         uses: softprops/action-gh-release@v2
@@ -27,7 +27,7 @@ jobs:
         goarch: [amd64, arm64]
     permissions:
       contents: write
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
     steps:

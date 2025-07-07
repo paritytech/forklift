@@ -37,5 +37,5 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.21'
-      - run: GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-X forklift/Commands.Version=${{ github.ref_name }} -extldflags '-static'" -o bin/forklift_${{ github.ref_name }}_${{ matrix.goos }}_${{ matrix.goarch }} -tags no_lzma2
+      - run: GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} CGO_ENABLED=0 go build -ldflags="-X forklift/Commands.Version=${{ github.ref_name }} -extldflags '-static'" -o bin/forklift_${{ github.ref_name }}_${{ matrix.goos }}_${{ matrix.goarch }} -tags no_lzma2
       - run: gh release upload ${{ github.ref_name }} bin/forklift* --clobber

@@ -14,7 +14,8 @@ type ForkliftStorage struct {
 }
 
 type ForkliftCache struct {
-	ExtraEnv []string
+	ExtraEnv      []string
+	ExtraMetadata map[string]string
 }
 
 type ForkliftCompression struct {

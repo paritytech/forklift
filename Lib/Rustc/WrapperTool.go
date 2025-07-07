@@ -23,7 +23,7 @@ import (
 	"strings"
 )
 
-const CachePackageVersion = "3"
+const CachePackageVersion = "4"
 
 var cargoHashRegex = regexp.MustCompile("^metadata=([0-9a-f]{16})$")
 
@@ -40,18 +40,22 @@ type WrapperTool struct {
 	osWorkDir               string
 	CrateExternDepsChecksum string
 	CrateNativeDepsChecksum string
+	RustCBinHash            string
 
 	cachePackageName string
 }
 
-func NewWrapperToolFromArgs(workDir string, rustArgs *[]string) *WrapperTool {
+func NewWrapperToolFromArgs(workDir string, rustcCommand []string) *WrapperTool {
 	var wrapper = WrapperTool{}
-	wrapper.rustcArgs = rustArgs
+	var rustcArgs = rustcCommand[1:]
 
-	wrapper.CrateName, wrapper.CargoCrateHash, wrapper.OutDir = wrapper.extractNameMetaHashDir(rustArgs)
+	wrapper.rustcArgs = &rustcArgs
+
+	wrapper.CrateName, wrapper.CargoCrateHash, wrapper.OutDir = wrapper.extractNameMetaHashDir(wrapper.rustcArgs)
 	wrapper.workDir = workDir
 	wrapper.OutDir = FileManager.GetTrueRelFilePath(wrapper.workDir, wrapper.OutDir)
-	wrapper.RustCArgsHash = GetArgsHash(rustArgs, wrapper.workDir)
+	wrapper.RustCArgsHash = GetArgsHash(wrapper.rustcArgs, wrapper.workDir)
+	wrapper.RustCBinHash = GetRustcBinHash(rustcCommand[0])
 
 	wrapper.ExternDepsChecksum()
 
@@ -69,11 +73,28 @@ func NewWrapperToolFromCacheItem(workDir string, item Models.CacheItem) *Wrapper
 	wrapper.workDir = workDir
 	wrapper.CrateSourceChecksum = item.CrateSourceChecksum
 	wrapper.RustCArgsHash = item.RustCArgsHash
+	wrapper.RustCBinHash = item.RustCBinHash
 
 	wrapper.CrateExternDepsChecksum = item.CrateExternDepsChecksum
 	wrapper.CrateNativeDepsChecksum = item.CrateNativeDepsChecksum
 
 	return &wrapper
+}
+
+func GetRustcBinHash(path string) string {
+	f, err := os.Open(path)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+
+	var sha = sha1.New()
+	_, _ = io.Copy(sha, f)
+
+	err = f.Close()
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+	return fmt.Sprintf("%x", sha.Sum(nil))
 }
 
 func GetArgsHash(args *[]string, toRemove string) string {
@@ -238,6 +259,7 @@ func (wrapperTool *WrapperTool) GetCachePackageName() string {
 	sha.Write([]byte(wrapperTool.CrateSourceChecksum))
 	sha.Write([]byte(wrapperTool.OutDir))
 	sha.Write([]byte(wrapperTool.RustCArgsHash))
+	sha.Write([]byte(wrapperTool.RustCBinHash))
 	sha.Write([]byte(wrapperTool.ExternDepsChecksum()))
 
 	sha.Write(wrapperTool.ExtraEnvVarsChecksum())
@@ -263,6 +285,7 @@ func (wrapperTool *WrapperTool) ToCacheItem() Models.CacheItem {
 		OutDir:              wrapperTool.OutDir,
 		CrateSourceChecksum: wrapperTool.CrateSourceChecksum,
 		RustCArgsHash:       wrapperTool.RustCArgsHash,
+		RustCBinHash:        wrapperTool.RustCBinHash,
 
 		CrateExternDepsChecksum: wrapperTool.CrateExternDepsChecksum,
 		CrateNativeDepsChecksum: wrapperTool.CrateNativeDepsChecksum,
@@ -396,6 +419,7 @@ func (wrapperTool *WrapperTool) CreateMetadata() map[string]*string {
 		"cargo-hash":        &wrapperTool.CargoCrateHash,
 		"sha1-source-files": &wrapperTool.CrateSourceChecksum,
 		"sha1-rustc-args":   &wrapperTool.RustCArgsHash,
+		"sha1-rustc-bin":    &wrapperTool.RustCBinHash,
 		"sha1-extern-deps":  &wrapperTool.CrateExternDepsChecksum,
 		"sha1-native-deps":  &wrapperTool.CrateNativeDepsChecksum,
 	}

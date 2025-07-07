@@ -30,7 +30,7 @@ func Run(args []string) {
 
 	WorkDir = wd
 
-	var wrapperTool = Rustc.NewWrapperToolFromArgs(WorkDir, &rustcArgsOnly)
+	var wrapperTool = Rustc.NewWrapperToolFromArgs(WorkDir, args)
 
 	logger := Logging.CreateLogger("Wrapper", 4, log.Fields{
 		"crate": wrapperTool.CrateName,

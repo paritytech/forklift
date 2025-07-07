@@ -6,6 +6,10 @@ threadscount = 10
 [cache]
 extraEnv = ["SOME_VAR"]
 
+[cache.extraMetadata]
+  github_run_id="$GITHUB_RUN_ID"
+  github_job="$GITHUB_JOB"
+
 [compression]
 type = "zstd"
 

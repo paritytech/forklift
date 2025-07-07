@@ -94,7 +94,7 @@ See `forklift config --help` for more info.
 | key           | type              | description                                                      |
 |---------------|-------------------|------------------------------------------------------------------|
 | extraEnv      | []string          | Additional environment variable names for cache key calculations |
-| extraMetadata | map[string]string | Additional fields to include in artifact metadata                |
+| extraMetadata | map[string]string | Additional fields to include in artifact metadata. If the value starts with a dollar sign ($), Forklift will attempt to resolve the environment variable during upload. |
 
 #### storage
 `[storage]`

@@ -34,7 +34,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: '1.21'
       - run: GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-X forklift/Commands.Version=${{ github.ref_name }} -extldflags '-static'" -o bin/forklift_${{ github.ref_name }}_${{ matrix.goos }}_${{ matrix.goarch }} -tags no_lzma2

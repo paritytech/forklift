@@ -2,7 +2,6 @@ package Tar
 
 import (
 	"archive/tar"
-	"bytes"
 	"crypto/sha1"
 	"errors"
 	log "forklift/Lib/Logging/ConsoleLogger"
@@ -15,31 +14,46 @@ import (
 
 // Pack - Pack forklift tar archive
 func Pack(fsEntries []string) (io.Reader, hash.Hash, error) {
+	pr, pw := io.Pipe()
 
-	var buf bytes.Buffer
-	tw := tar.NewWriter(&buf)
-
+	tw := tar.NewWriter(pw)
 	var sha = sha1.New()
 
-	for _, fsEntry := range fsEntries {
+	// Start a goroutine to create the tar archive
+	go func() {
+		defer tw.Close()
+		defer pw.Close()
 
-		log.Tracef("packing %s", fsEntry)
-		var info, e = os.Stat(fsEntry)
-		if e != nil {
-			return nil, nil, e
+		written := false
+
+		for _, fsEntry := range fsEntries {
+			log.Tracef("packing %s", fsEntry)
+			var info, e = os.Stat(fsEntry)
+			if e != nil {
+				pw.CloseWithError(e)
+				return
+			}
+
+			if info.IsDir() {
+				PackDirectory(tw, fsEntry, sha)
+			} else {
+				PackFile(tw, fsEntry, sha)
+			}
+			written = true
 		}
-		if info.IsDir() {
-			PackDirectory(tw, fsEntry, sha)
-		} else {
-			PackFile(tw, fsEntry, sha)
+
+		if !written {
+			pw.CloseWithError(errors.New("empty archive"))
+			return
 		}
-	}
 
-	if buf.Len() <= 0 {
-		return nil, nil, errors.New("empty archive")
-	}
+		// Ensure the tar writer is properly closed
+		if err := tw.Close(); err != nil {
+			pw.CloseWithError(err)
+		}
+	}()
 
-	return &buf, sha, nil
+	return pr, sha, nil
 }
 
 func PackDirectory(tarWriter *tar.Writer, dirPath string, hash hash.Hash) {

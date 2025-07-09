@@ -1,7 +1,6 @@
 package Compressors
 
 import (
-	"bytes"
 	"fmt"
 	"forklift/Helpers"
 	"github.com/klauspost/compress/zstd"
@@ -21,40 +20,51 @@ func NewZStdCompressor(params *map[string]interface{}) *ZStdCompressor {
 }
 
 func (compressor *ZStdCompressor) Compress(input io.Reader) (io.Reader, error) {
-	var buf bytes.Buffer
-	var writer, err = zstd.NewWriter(&buf, zstd.WithEncoderLevel(zstd.EncoderLevelFromZstd(compressor.level)))
+	var pr, pw = io.Pipe()
+	var writer, err = zstd.NewWriter(pw, zstd.WithEncoderLevel(zstd.EncoderLevelFromZstd(compressor.level)))
 	if err != nil {
 		return nil, NewForkliftCompressorError("NewWriter error", err)
 	}
 
-	_, err = writer.ReadFrom(input)
-	if err != nil {
-		return nil, NewForkliftCompressorError("io.copy error", err)
-	}
+	// Start a goroutine to compress data
+	go func() {
+		defer writer.Close()
+		defer pw.Close()
 
-	if err = writer.Close(); err != nil {
-		return nil, err
-		//log.Fatalf("w.Close error %s\n", err)
-	}
+		_, err := io.Copy(writer, input)
+		if err != nil {
+			pw.CloseWithError(NewForkliftCompressorError("io.copy error", err))
+			return
+		}
 
-	return &buf, nil
+		// Ensure writer is properly closed
+		if err = writer.Close(); err != nil {
+			pw.CloseWithError(err)
+		}
+	}()
+
+	return pr, nil
 }
 
 func (compressor *ZStdCompressor) Decompress(input io.Reader) (io.Reader, error) {
-	var buf bytes.Buffer
-
+	var pr, pw = io.Pipe()
 	var reader, err = zstd.NewReader(input)
-
 	if err != nil {
 		return nil, NewForkliftCompressorError("NewReader error", err)
 	}
 
-	_, err = reader.WriteTo(&buf)
-	if err != nil {
-		return nil, NewForkliftCompressorError("reader.WriteTo error", err)
-	}
+	go func() {
+		defer reader.Close()
+		defer pw.Close()
 
-	return &buf, nil
+		_, err := io.Copy(pw, reader)
+		if err != nil {
+			pw.CloseWithError(NewForkliftCompressorError("io.Copy error", err))
+			return
+		}
+	}()
+
+	return pr, nil
 }
 
 func (compressor *ZStdCompressor) GetKey() string {

@@ -30,7 +30,7 @@ func (storage *FsStorage) Upload(key string, reader io.Reader, _ map[string]*str
 
 	var file, err = os.Create(filepath.Join(storage.dir, key))
 	if err != nil {
-		log.Fatalf("Unable to create file , %s", err)
+		log.Fatalf("Unable to create file, %s", err)
 		return nil, err
 	}
 	defer file.Close()

@@ -1,7 +1,6 @@
 package Storages
 
 import (
-	"bytes"
 	"errors"
 	"forklift/Helpers"
 	"forklift/Lib/Diagnostic/Time"
@@ -94,8 +93,11 @@ func (storage *S3Storage) GetMetadata(key string) (map[string]*string, bool) {
 func (storage *S3Storage) Upload(key string, reader io.Reader, metadata map[string]*string) (*UploadResult, error) {
 	uploader := s3manager.NewUploader(storage.session)
 
-	var buf = bytes.Buffer{}
-	var n, _ = io.Copy(&buf, reader)
+	var pr, pw = io.Pipe()
+
+	counter := &bytesCounter{0}
+
+	writer := io.MultiWriter(pw, counter)
 
 	var normalizedMetadata = make(map[string]*string, len(metadata))
 	for key, value := range metadata {
@@ -104,16 +106,24 @@ func (storage *S3Storage) Upload(key string, reader io.Reader, metadata map[stri
 
 	var timer = Time.NewForkliftTimer()
 
+	go func() {
+		_, err := io.Copy(writer, reader)
+		if err != nil {
+			pw.CloseWithError(err)
+			return
+		}
+		pw.Close()
+	}()
+
 	uploader.Concurrency = storage.concurrency
 	timer.Start("upload")
 	_, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket:   aws.String(storage.bucket),
 		Key:      aws.String(key),
-		Body:     &buf,
+		Body:     pr,
 		Metadata: normalizedMetadata,
 	})
 	if err != nil {
-
 		var awsErr awserr.Error
 		if errors.As(err, &awsErr) {
 			switch awsErr.Code() {
@@ -130,13 +140,24 @@ func (storage *S3Storage) Upload(key string, reader io.Reader, metadata map[stri
 
 	var uploadResult = UploadResult{
 		StorageResult: StorageResult{
-			BytesCount: n,
+			BytesCount: counter.count,
 			Duration:   duration,
-			SpeedBps:   int64(float64(n) / duration.Seconds()),
+			SpeedBps:   int64(float64(counter.count) / duration.Seconds()),
 		},
 	}
 
 	return &uploadResult, nil
+}
+
+// bytesCounter is a helper type to count bytes written
+type bytesCounter struct {
+	count int64
+}
+
+func (c *bytesCounter) Write(p []byte) (n int, err error) {
+	n = len(p)
+	c.count += int64(n)
+	return n, nil
 }
 
 func (storage *S3Storage) Download(key string) (*DownloadResult, error) {

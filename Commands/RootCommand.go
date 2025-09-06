@@ -6,9 +6,10 @@ import (
 	"forklift/Lib/Config"
 	"forklift/Lib/Logging"
 	log "forklift/Lib/Logging/ConsoleLogger"
-	"github.com/spf13/cobra"
 	"os"
 	"strings"
+
+	"github.com/spf13/cobra"
 )
 
 var Version = "0.10.0"
@@ -28,7 +29,7 @@ var rootCmd = &cobra.Command{
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		log.Errorf(err.Error())
+		log.Errorf("Error executing command: %v", err)
 		os.Exit(1)
 	}
 }

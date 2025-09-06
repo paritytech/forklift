@@ -84,7 +84,7 @@ func NewWrapperToolFromCacheItem(workDir string, item Models.CacheItem) *Wrapper
 func GetRustcBinHash(path string) string {
 	f, err := os.Open(path)
 	if err != nil {
-		log.Fatalf(err.Error())
+		log.Fatalf("Error opening file: %v", err)
 	}
 
 	var sha = sha1.New()
@@ -92,7 +92,7 @@ func GetRustcBinHash(path string) string {
 
 	err = f.Close()
 	if err != nil {
-		log.Fatalf(err.Error())
+		log.Fatalf("Error closing file: %v", err)
 	}
 	return fmt.Sprintf("%x", sha.Sum(nil))
 }
@@ -334,12 +334,12 @@ func (wrapperTool *WrapperTool) WriteStderrFile(reader io.Reader) *[]Artifact {
 	)
 	wrapperTool.Logger.Tracef("Writing to %s-stderr", itemsCachePath)
 	if err != nil {
-		wrapperTool.Logger.Errorf(err.Error())
+		wrapperTool.Logger.Errorf("Error writing to %s-stderr: %v", itemsCachePath, err)
 	}
 	defer func(itemFile *os.File) {
 		err := itemFile.Close()
 		if err != nil {
-			wrapperTool.Logger.Errorf(err.Error())
+			wrapperTool.Logger.Errorf("Error closing file: %v", err)
 		}
 	}(itemFile)
 
@@ -350,7 +350,7 @@ func (wrapperTool *WrapperTool) WriteStderrFile(reader io.Reader) *[]Artifact {
 		var str = fileScanner.Text()
 		err := json.Unmarshal([]byte(str), &artifact)
 		if err != nil {
-			wrapperTool.Logger.Errorf(err.Error())
+			wrapperTool.Logger.Errorf("Error unmarshalling artifact: %v", err)
 		}
 		if artifact.Artifact != "" {
 			var relpath = filepath.Base(artifact.Artifact)
@@ -373,7 +373,7 @@ func (wrapperTool *WrapperTool) WriteIOStreamFile(reader io.Reader, suffix strin
 	var itemsCachePath = filepath.Join(wrapperTool.workDir, "target", "forklift")
 	err := os.MkdirAll(itemsCachePath, 0755)
 	if err != nil {
-		wrapperTool.Logger.Errorf(err.Error())
+		wrapperTool.Logger.Errorf("Error writing to %s-stderr: %v", itemsCachePath, err)
 	}
 
 	itemFile, err := os.OpenFile(
@@ -382,17 +382,17 @@ func (wrapperTool *WrapperTool) WriteIOStreamFile(reader io.Reader, suffix strin
 		0755,
 	)
 	if err != nil {
-		wrapperTool.Logger.Errorf(err.Error())
+		wrapperTool.Logger.Errorf("Error opening %s-stderr: %v", itemsCachePath, err)
 	}
 
 	_, err = io.Copy(itemFile, reader)
 	if err != nil {
-		wrapperTool.Logger.Errorf(err.Error())
+		wrapperTool.Logger.Errorf("Error writing to %s-stderr: %v", itemsCachePath, err)
 	}
 
 	err = itemFile.Close()
 	if err != nil {
-		wrapperTool.Logger.Errorf(err.Error())
+		wrapperTool.Logger.Errorf("Error closing %s-stderr: %v", itemsCachePath, err)
 	}
 }
 
@@ -404,7 +404,7 @@ func (wrapperTool *WrapperTool) ReadIOStreamFile(suffix string) io.Reader {
 		filepath.Join(itemsCachePath, fmt.Sprintf("%s-%s", wrapperTool.GetCachePackageName(), suffix)),
 	)
 	if err != nil {
-		wrapperTool.Logger.Errorf(err.Error())
+		wrapperTool.Logger.Errorf("Error opening %s-stderr: %v", itemsCachePath, err)
 	}
 
 	var result = bytes.Buffer{}

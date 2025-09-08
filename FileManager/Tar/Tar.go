@@ -73,7 +73,7 @@ func PackDirectory(tarWriter *tar.Writer, dirPath string, hash hash.Hash) {
 		return nil
 	})
 	if err != nil {
-		log.Fatalf(err.Error())
+		log.Fatalf("Error walking directory %s: %v", dirPath, err)
 	}
 }
 
@@ -94,23 +94,23 @@ func PackFile(tarWriter *tar.Writer, path string, hash hash.Hash) {
 
 	err := tarWriter.WriteHeader(hdr)
 	if err != nil {
-		log.Fatalf(err.Error())
+		log.Fatalf("Error writing tar header: %v", err)
 	}
 
 	f, err := os.Open(path)
 	if err != nil {
-		log.Fatalf(err.Error())
+		log.Fatalf("Error opening file: %v", err)
 	}
 
 	var mw = io.MultiWriter(tarWriter, hash)
 	_, err = io.Copy(mw, f)
 	if err != nil {
-		log.Fatalf(err.Error())
+		log.Fatalf("Error writing file: %v", err)
 	}
 
 	err = f.Close()
 	if err != nil {
-		log.Fatalf(err.Error())
+		log.Fatalf("Error closing file: %v", err)
 	}
 }
 

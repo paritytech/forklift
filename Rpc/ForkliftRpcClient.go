@@ -65,7 +65,7 @@ func (client *ForkliftRpcClient) CheckExternDeps(deps *[]string) string {
 	var result string
 	err := client.rpcClient.Call("ForkliftRpc.CheckExternDeps", deps, &result)
 	if err != nil {
-		log.Fatalf(err.Error())
+		log.Fatalf("Error calling ForkliftRpc.CheckExternDeps: %v", err)
 	}
 	return result
 }
@@ -75,7 +75,7 @@ func (client *ForkliftRpcClient) AddUpload(cacheItem Models.CacheItem) {
 	var result bool
 	err := client.rpcClient.Call("ForkliftRpc.AddUpload", cacheItem, &result)
 	if err != nil {
-		log.Fatalf(err.Error())
+		log.Fatalf("Error calling ForkliftRpc.AddUpload: %v", err)
 	}
 }
 
@@ -89,7 +89,7 @@ func (client *ForkliftRpcClient) ReportStatus(crateName string, status CacheUsag
 
 	err := client.rpcClient.Call("ForkliftRpc.ReportStatus", &cacheStatusReport, &result)
 	if err != nil {
-		log.Errorf(err.Error())
+		log.Errorf("Error calling ForkliftRpc.ReportStatus: %v", err)
 	}
 }
 
@@ -98,6 +98,6 @@ func (client *ForkliftRpcClient) ReportStatusObject(report CacheUsage.StatusRepo
 
 	err := client.rpcClient.Call("ForkliftRpc.ReportStatus", &report, &result)
 	if err != nil {
-		log.Errorf(err.Error())
+		log.Errorf("Error calling ForkliftRpc.ReportStatus: %v", err)
 	}
 }

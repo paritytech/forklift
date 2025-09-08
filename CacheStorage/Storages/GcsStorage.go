@@ -2,18 +2,20 @@ package Storages
 
 import (
 	"bytes"
-	"cloud.google.com/go/storage"
 	"context"
 	"encoding/base64"
 	"errors"
 	"forklift/Helpers"
 	"forklift/Lib/Diagnostic/Time"
 	log "forklift/Lib/Logging/ConsoleLogger"
-	"google.golang.org/api/googleapi"
-	"google.golang.org/api/option"
 	"io"
 	"os"
 	"strings"
+	"time"
+
+	"cloud.google.com/go/storage"
+	"google.golang.org/api/googleapi"
+	"google.golang.org/api/option"
 )
 
 type GcsStorage struct {
@@ -54,17 +56,11 @@ func NewGcsStorage(params *map[string]interface{}) *GcsStorage {
 		credsOption = nil
 	}
 
-	var client *storage.Client
-	var err error
-
-	if credsOption == nil {
-		client, err = storage.NewClient(ctx)
-	} else {
-		client, err = storage.NewClient(ctx, credsOption)
-	}
+	client, err := createGcsClient(credsOption, ctx)
 
 	if err != nil {
-		log.Fatalf("failed to create gcp client ,\n%s\n", err)
+		log.Errorf("failed to create gcp client, err: %s\n", err)
+		return nil
 	}
 
 	var gcpStorage = GcsStorage{
@@ -73,6 +69,34 @@ func NewGcsStorage(params *map[string]interface{}) *GcsStorage {
 		context: ctx,
 	}
 	return &gcpStorage
+}
+
+func createGcsClient(credsOption option.ClientOption, ctx context.Context) (*storage.Client, error) {
+	var client *storage.Client
+	var err error
+
+	var retryDuration = 1000 * time.Millisecond
+	var retryAttempt = 1
+
+	for ; retryAttempt <= 3; retryAttempt++ {
+		// TODO move UniverseDomain to config
+		if credsOption == nil {
+			client, err = storage.NewClient(ctx, option.WithUniverseDomain("googleapis.com"))
+		} else {
+			client, err = storage.NewClient(ctx, credsOption, option.WithUniverseDomain("googleapis.com"))
+		}
+
+		if err != nil {
+			log.Errorf("failed to create gcp client, err: %s\n, attempt: %d/3, retry in: %s", err, retryAttempt, retryDuration)
+		} else {
+			break
+		}
+
+		time.Sleep(retryDuration)
+		retryDuration *= 2
+	}
+
+	return client, err
 }
 
 func (driver *GcsStorage) GetMetadata(key string) (map[string]*string, bool) {

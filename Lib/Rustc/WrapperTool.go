@@ -154,6 +154,11 @@ func (wrapperTool *WrapperTool) TryUseCache(cacheUsageReport *CacheUsage.StatusR
 	store, _ := Storages.GetStorageDriver(Config.AppConfig)
 	compressor, _ := Compressors.GetCompressor(Config.AppConfig)
 
+	if store == nil || compressor == nil {
+		wrapperTool.Logger.Errorf("Store or compressor can't be nil")
+		return false
+	}
+
 	var retries = 3
 	for retries > 0 {
 		// try download
@@ -205,7 +210,8 @@ func (wrapperTool *WrapperTool) TryUseCache(cacheUsageReport *CacheUsage.StatusR
 			return true
 		}
 	}
-	if retries <= 0 {
+
+	if retries <= 1 {
 		wrapperTool.Logger.Errorf("Failed to pull artifacts for %s", wrapperTool.GetCachePackageName())
 		cacheUsageReport.Status = CacheUsage.CacheFetchFailed
 	}

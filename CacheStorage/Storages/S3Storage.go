@@ -34,20 +34,17 @@ func NewS3Storage(params *map[string]interface{}) *S3Storage {
 
 	var cfg aws.Config
 
-	// Configure credentials and endpoint
-	configOptions := []func(*config.LoadOptions) error{
+	cfg, err := config.LoadDefaultConfig(context.Background(),
 		config.WithRegion("auto"),
+	)
+	if err != nil {
+		log.Fatalf(err.Error())
+		return nil
 	}
 
 	if accessKeyId != "" && secretAccessKey != "" {
 		// Use static credentials
-		configOptions = append(configOptions,
-			config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
-				accessKeyId,
-				secretAccessKey,
-				"",
-			)),
-		)
+		cfg.Credentials = credentials.NewStaticCredentialsProvider(accessKeyId, secretAccessKey, "")
 	}
 
 	// Configure endpoint URL if provided
@@ -64,7 +61,6 @@ func NewS3Storage(params *map[string]interface{}) *S3Storage {
 		}
 	}
 
-	// Create custom endpoint resolver if endpoint URL is provided
 	if endpointUrl != "" {
 		cfg.BaseEndpoint = &endpointUrl
 	}

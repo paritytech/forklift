@@ -6,13 +6,14 @@ import (
 	"forklift/Helpers"
 	"forklift/Lib/Diagnostic/Time"
 	log "forklift/Lib/Logging/ConsoleLogger"
+	"io"
+	"strings"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/smithy-go"
-	"io"
-	"strings"
 )
 
 type S3Storage struct {
@@ -149,17 +150,20 @@ func (storage *S3Storage) Upload(key string, reader io.Reader, metadata map[stri
 		return nil, err
 	}
 
-	if result == nil {
-		log.Errorf("Unable to upload to bucket %q, file %q", storage.bucket, key)
-	}
-
 	var duration = timer.Stop("upload")
+
+	var size int64 = 0
+	var speed int64 = 0
+	if result.Size != nil {
+		size = *result.Size
+		speed = int64(float64(*result.Size) / duration.Seconds())
+	}
 
 	var uploadResult = UploadResult{
 		StorageResult: StorageResult{
-			BytesCount: *result.Size,
+			BytesCount: size,
 			Duration:   duration,
-			SpeedBps:   int64(float64(*result.Size) / duration.Seconds()),
+			SpeedBps:   speed,
 		},
 	}
 

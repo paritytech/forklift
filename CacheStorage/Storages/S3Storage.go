@@ -149,6 +149,10 @@ func (storage *S3Storage) Upload(key string, reader io.Reader, metadata map[stri
 		return nil, err
 	}
 
+	if result == nil {
+		log.Errorf("Unable to upload to bucket %q, file %q", storage.bucket, key)
+	}
+
 	var duration = timer.Stop("upload")
 
 	var uploadResult = UploadResult{

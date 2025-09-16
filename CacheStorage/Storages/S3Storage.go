@@ -36,11 +36,18 @@ func NewS3Storage(params *map[string]interface{}) *S3Storage {
 
 	cfg, err := config.LoadDefaultConfig(context.Background(),
 		config.WithRegion("auto"),
-		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKeyId, secretAccessKey, "")),
 	)
 	if err != nil {
 		log.Fatalf("Unable to load SDK config, %v", err)
 		return nil
+	}
+
+	cfg.Credentials = credentials.NewStaticCredentialsProvider(accessKeyId, secretAccessKey, "")
+
+	if accessKeyId == "" || secretAccessKey == "" {
+		cfg.Credentials = aws.AnonymousCredentials{}
+	} else {
+		cfg.Credentials = credentials.NewStaticCredentialsProvider(accessKeyId, secretAccessKey, "")
 	}
 
 	// Configure endpoint URL if provided

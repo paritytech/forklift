@@ -38,7 +38,7 @@ func NewS3Storage(params *map[string]interface{}) *S3Storage {
 		config.WithRegion("auto"),
 	)
 	if err != nil {
-		log.Fatalf(err.Error())
+		log.Fatalf("Unable to load SDK config, %v", err)
 		return nil
 	}
 
@@ -157,17 +157,6 @@ func (storage *S3Storage) Upload(key string, reader io.Reader, metadata map[stri
 	}
 
 	return &uploadResult, nil
-}
-
-// bytesCounter is a helper type to count bytes written
-type bytesCounter struct {
-	count int64
-}
-
-func (c *bytesCounter) Write(p []byte) (n int, err error) {
-	n = len(p)
-	c.count += int64(n)
-	return n, nil
 }
 
 func (storage *S3Storage) Download(key string) (*DownloadResult, error) {

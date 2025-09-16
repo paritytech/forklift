@@ -36,7 +36,7 @@ func NewS3Storage(params *map[string]interface{}) *S3Storage {
 	var cfg aws.Config
 	var err error
 
-	// Configure credentials
+	// Configure credentials and endpoint
 	configOptions := []func(*config.LoadOptions) error{
 		config.WithRegion("auto"),
 	}
@@ -50,12 +50,6 @@ func NewS3Storage(params *map[string]interface{}) *S3Storage {
 				"",
 			)),
 		)
-	}
-
-	cfg, err = config.LoadDefaultConfig(ctx, configOptions...)
-
-	if err != nil {
-		log.Fatalf("failed to load AWS SDK config: %v", err)
 	}
 
 	// Configure endpoint URL if provided
@@ -74,19 +68,7 @@ func NewS3Storage(params *map[string]interface{}) *S3Storage {
 
 	// Create custom endpoint resolver if endpoint URL is provided
 	if endpointUrl != "" {
-		customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-			if service == s3.ServiceID {
-				return aws.Endpoint{
-					URL:               endpointUrl,
-					HostnameImmutable: true,
-					SigningRegion:     "auto",
-				}, nil
-			}
-			// Fallback to default resolver
-			return aws.Endpoint{}, &aws.EndpointNotFoundError{}
-		})
-
-		cfg.EndpointResolverWithOptions = customResolver
+		cfg.BaseEndpoint = &endpointUrl
 	}
 
 	// Create S3 client with the configuration

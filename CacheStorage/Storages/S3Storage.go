@@ -32,9 +32,7 @@ func NewS3Storage(params *map[string]interface{}) *S3Storage {
 	var accessKeyId = Helpers.MapGet(params, "accessKeyId", "")
 	var secretAccessKey = Helpers.MapGet(params, "secretAccessKey", "")
 
-	ctx := context.Background()
 	var cfg aws.Config
-	var err error
 
 	// Configure credentials and endpoint
 	configOptions := []func(*config.LoadOptions) error{

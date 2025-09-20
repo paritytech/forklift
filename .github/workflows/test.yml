@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       minio:
-        image: bitnami/minio:2024.5.7
+        image: bitnamilegacy/minio:2024.5.7
         env:
           MINIO_ROOT_USER: root
           MINIO_ROOT_PASSWORD: rootroot

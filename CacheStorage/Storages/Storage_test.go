@@ -3,7 +3,6 @@
 package Storages
 
 import (
-	"bytes"
 	"io"
 	"math/rand"
 	"strings"
@@ -39,8 +38,8 @@ func TestS3Storage(t *testing.T) {
 	var key = randomString(10)
 
 	t.Run("Upload", func(t *testing.T) {
-		var buffer = bytes.NewBuffer([]byte("hello, upload"))
-		_, err := storage.Upload("key", buffer, nil)
+		var reader = strings.NewReader("hello, upload")
+		_, err := storage.Upload("key", reader, nil)
 		if err != nil {
 			t.Error("Upload failed", err)
 		}

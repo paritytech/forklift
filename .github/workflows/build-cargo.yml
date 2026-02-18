@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       minio:
-        image: bitnami/minio:2024.5.7
+        image: bitnamilegacy/minio:2024.5.7
         env:
           MINIO_ROOT_USER: root
           MINIO_ROOT_PASSWORD: rootroot
@@ -48,9 +48,10 @@ jobs:
           [storage]
             type = "s3"
           [storage.s3]
-            endpointUrl = "http://localhost:9000"
+            endpointUrl = "https://localhost:9000"
             bucketName = "forklift"
-            useSSL = false
+            useSSL = true
+            insecureSkipVerify = true
           [cache.extraMetadata]
             github_run_id="$GITHUB_RUN_ID"
             github_job="$GITHUB_JOB"

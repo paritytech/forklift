@@ -9,6 +9,9 @@ import (
 	"io"
 	"strings"
 
+	"crypto/tls"
+	"net/http"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
@@ -54,6 +57,15 @@ func NewS3Storage(params *map[string]interface{}) *S3Storage {
 	// Configure endpoint URL if provided
 	endpointUrl := Helpers.MapGet(params, "endpointUrl", "")
 	useSsl := Helpers.MapGet(params, "useSsl", true)
+	insecureSkipVerify := Helpers.MapGet(params, "insecureSkipVerify", false)
+
+	if useSsl && insecureSkipVerify {
+		cfg.HTTPClient = &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			},
+		}
+	}
 
 	// Modify endpoint URL based on SSL setting
 	if endpointUrl != "" && !useSsl {
@@ -72,6 +84,10 @@ func NewS3Storage(params *map[string]interface{}) *S3Storage {
 	// Create S3 client with the configuration
 	s3Client := s3.NewFromConfig(cfg, func(o *s3.Options) {
 		o.UsePathStyle = true // Force path style addressing
+		if !useSsl {
+			o.RequestChecksumCalculation = aws.RequestChecksumCalculationWhenRequired
+			o.ResponseChecksumValidation = aws.ResponseChecksumValidationWhenRequired
+		}
 	})
 
 	s3s.client = s3Client

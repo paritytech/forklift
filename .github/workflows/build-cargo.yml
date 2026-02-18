@@ -48,7 +48,7 @@ jobs:
           [storage]
             type = "s3"
           [storage.s3]
-            endpointUrl = "http://localhost:9000"
+            endpointUrl = "https://localhost:9000"
             bucketName = "forklift"
             useSSL = true
             insecureSkipVerify = true

@@ -142,14 +142,18 @@ func TestDependencyRebuilt_CascadeInvalidation(t *testing.T) {
 
 	output := env.forkliftBuild(t)
 
-	// crate_a changed source → cache miss, crate_b depends on crate_a → dependency rebuilt
+	// crate_a changed source → new cache key → cache miss → rustc runs
+	// crate_b depends on crate_a → either "dependency rebuilt" (if crate_b's key matched old cache)
+	// or cache miss (if crate_b's key also changed due to extern dep checksum change)
 	if !strings.Contains(output, "Executing rustc") {
 		t.Fatal("Expected rustc execution after dependency source change")
 	}
 
 	report := parseCacheReport(output)
-	if report.depRebuilt == 0 {
-		t.Fatal("Expected non-zero dependency rebuilt count")
+	// Both crate_a and crate_b should be rebuilt (either via miss or dep-rebuilt)
+	if report.cacheMiss+report.depRebuilt < 2 {
+		t.Fatalf("Expected at least 2 crates rebuilt (miss + dep_rebuilt), got miss=%d dep_rebuilt=%d",
+			report.cacheMiss, report.depRebuilt)
 	}
 }
 

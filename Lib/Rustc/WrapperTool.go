@@ -147,23 +147,34 @@ func (wrapperTool *WrapperTool) ExecuteRustc() (*[]Artifact, error) {
 }
 
 // TryUseCache - try to use cache, return false if failed
-func (wrapperTool *WrapperTool) TryUseCache(cacheUsageReport *CacheUsage.StatusReport) bool {
+func (wrapperTool *WrapperTool) TryUseCache(
+	store Storages.IStorage,
+	compressor Compressors.ICompressor,
+	cacheUsageReport *CacheUsage.StatusReport,
+) bool {
 
 	var timer = Time.NewForkliftTimer()
 
-	store, _ := Storages.GetStorageDriver(Config.AppConfig)
-	compressor, _ := Compressors.GetCompressor(Config.AppConfig)
-
-	if store == nil || compressor == nil {
-		wrapperTool.Logger.Errorf("Store or compressor can't be nil")
-		return false
+	// Validate build-script outputs before downloading the full package (issue #30).
+	// Uses GetMetadata (HEAD request) to check dep-info stored as object metadata.
+	var cacheKey = wrapperTool.GetCachePackageName() + "_" + compressor.GetKey()
+	metadata, metaExists := store.GetMetadata(cacheKey)
+	if metaExists {
+		if depInfoStr, ok := metadata["dep-info"]; ok && depInfoStr != nil {
+			record, err := DeserializeDepInfo([]byte(*depInfoStr))
+			if err == nil && !record.Verify(wrapperTool.workDir) {
+				wrapperTool.Logger.Infof("Build-script outputs changed for %s, invalidating cache", wrapperTool.GetCachePackageName())
+				cacheUsageReport.Status = CacheUsage.CacheMiss
+				return false
+			}
+		}
 	}
 
 	var retries = 3
 	for retries > 0 {
 		// try download
 		timer.Start("download")
-		downloadResult, err := store.Download(wrapperTool.GetCachePackageName() + "_" + compressor.GetKey())
+		downloadResult, err := store.Download(cacheKey)
 		cacheUsageReport.DownloadTime += timer.Stop("download")
 		if downloadResult == nil && err == nil {
 			wrapperTool.Logger.Debugf("%s does not exist in storage", wrapperTool.GetCachePackageName())

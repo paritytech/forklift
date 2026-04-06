@@ -2,6 +2,9 @@ package Wrapper
 
 import (
 	"errors"
+	"forklift/CacheStorage/Compressors"
+	"forklift/CacheStorage/Storages"
+	"forklift/Lib/Config"
 	"forklift/Lib/Diagnostic/Time"
 	"forklift/Lib/Logging"
 	log "forklift/Lib/Logging/ConsoleLogger"
@@ -86,7 +89,17 @@ func Run(args []string) {
 	var cacheHit = false
 	// try get from cache
 	if !gotRebuildDeps {
-		cacheHit = wrapperTool.TryUseCache(&cacheUsageReport)
+		store, err := Storages.GetStorageDriver(Config.AppConfig)
+		if err != nil {
+			logger.Errorf("Failed to create storage driver: %s", err)
+		}
+		compressor, err := Compressors.GetCompressor(Config.AppConfig)
+		if err != nil {
+			logger.Errorf("Failed to create compressor: %s", err)
+		}
+		if store != nil && compressor != nil {
+			cacheHit = wrapperTool.TryUseCache(store, compressor, &cacheUsageReport)
+		}
 	}
 
 	if !cacheHit {
@@ -110,7 +123,21 @@ func Run(args []string) {
 		// register rebuilt artifacts
 		RegisterRebuiltArtifacts(artifacts, flClient)
 
-		flClient.AddUpload(wrapperTool.ToCacheItem())
+		// compute dep-info for build-script output validation (issue #30)
+		var cacheItem = wrapperTool.ToCacheItem()
+		depFile := Rustc.FindDepFile(WorkDir, wrapperTool.OutDir, wrapperTool.CrateName)
+		if depFile != "" {
+			if allDeps, err := Rustc.ParseDepFile(depFile); err == nil {
+				buildOutputs := Rustc.FilterBuildScriptOutputs(WorkDir, allDeps)
+				if len(buildOutputs) > 0 {
+					record := Rustc.ComputeDepInfo(WorkDir, buildOutputs)
+					cacheItem.DepInfoData, _ = record.Serialize()
+					logger.Tracef("Computed dep-info: %d build-script output files", len(record.Files))
+				}
+			}
+		}
+
+		flClient.AddUpload(cacheItem)
 	}
 
 	flClient.ReportStatusObject(cacheUsageReport)

@@ -135,12 +135,12 @@ func (driver *GcsStorage) Upload(key string, reader io.Reader, metadata map[stri
 
 	var gcsWriter = driver.client.Bucket(driver.bucket).Object(key).NewWriter(driver.context)
 	gcsWriter.Metadata = gcpMetadata
-	defer gcsWriter.Close()
 
 	var timer = Time.NewForkliftTimer()
 	timer.Start("upload")
 	n, err := io.Copy(gcsWriter, reader)
 	if err != nil {
+		gcsWriter.Close()
 		log.Errorf("Unable to write data to bucket %q, file %q: %v", driver.bucket, key, err)
 		return nil, err
 	}

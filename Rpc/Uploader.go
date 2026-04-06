@@ -92,7 +92,7 @@ func (uploader *Uploader) upload() {
 		}
 
 		if len(crateArtifactsFiles) > 0 {
-			var report = uploader.TryUpload(wrapperTool, crateArtifactsFiles, logger)
+			var report = uploader.TryUpload(wrapperTool, crateArtifactsFiles, item.DepInfoData, logger)
 			if report.Status != CacheUpload.Undefined {
 				uploader.CollectReport(&report)
 			}
@@ -107,6 +107,7 @@ func (uploader *Uploader) upload() {
 func (uploader *Uploader) TryUpload(
 	wrapperTool *Rustc.WrapperTool,
 	crateArtifactsFiles []string,
+	depInfoData []byte,
 	logger *log.Logger) CacheUpload.StatusReport {
 
 	var timer = Time.NewForkliftTimer()
@@ -115,6 +116,12 @@ func (uploader *Uploader) TryUpload(
 
 	var name = wrapperTool.GetCachePackageName()
 	var metaMap = wrapperTool.CreateMetadata()
+
+	// Attach dep-info as metadata for build-script output validation (issue #30)
+	if len(depInfoData) > 0 {
+		var depInfoStr = string(depInfoData)
+		metaMap["dep-info"] = &depInfoStr
+	}
 
 	var statusReport = CacheUpload.StatusReport{}
 	statusReport.CrateName = wrapperTool.CrateName
@@ -170,6 +177,7 @@ func (uploader *Uploader) TryUpload(
 
 		marshal, _ := json.Marshal(metaMap)
 		logger.Infof("Uploaded %s, metadata: %s", wrapperTool.GetCachePackageName(), marshal)
+
 		statusReport.Status = CacheUpload.Uploaded
 		statusReport.WorkTime += timer.Stop("uploader work time")
 		return statusReport
@@ -207,3 +215,4 @@ func (uploader *Uploader) CollectReport(report *CacheUpload.StatusReport) {
 	//= int64(float64(uploader.StatusReport.TotalUploadSize) / uploader.StatusReport.TotalUploadTime.Seconds())
 
 }
+

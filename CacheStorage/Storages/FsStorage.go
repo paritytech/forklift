@@ -2,6 +2,7 @@ package Storages
 
 import (
 	"bytes"
+	"encoding/json"
 	"forklift/Helpers"
 	"forklift/Lib/Diagnostic/Time"
 	log "forklift/Lib/Logging/ConsoleLogger"
@@ -23,10 +24,35 @@ func NewFsStorage(params *map[string]interface{}) *FsStorage {
 
 func (storage *FsStorage) GetMetadata(key string) (map[string]*string, bool) {
 	var _, err = os.Stat(filepath.Join(storage.dir, key))
-	return nil, err == nil
+	if err != nil {
+		return nil, false
+	}
+
+	metaPath := filepath.Join(storage.dir, key+".meta")
+	metaData, err := os.ReadFile(metaPath)
+	if err != nil {
+		// File exists but no metadata sidecar
+		return nil, true
+	}
+
+	var metadata map[string]*string
+	if err := json.Unmarshal(metaData, &metadata); err != nil {
+		return nil, true
+	}
+
+	return metadata, true
 }
 
-func (storage *FsStorage) Upload(key string, reader io.Reader, _ map[string]*string) (*UploadResult, error) {
+func (storage *FsStorage) Upload(key string, reader io.Reader, metadata map[string]*string) (*UploadResult, error) {
+
+	// Write metadata sidecar file if metadata is provided
+	if len(metadata) > 0 {
+		metaData, err := json.Marshal(metadata)
+		if err == nil {
+			os.WriteFile(filepath.Join(storage.dir, key+".meta"), metaData, 0644)
+		}
+	}
+
 
 	var file, err = os.Create(filepath.Join(storage.dir, key))
 	if err != nil {

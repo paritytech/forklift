@@ -20,4 +20,5 @@ type CacheItem struct {
 	CrateExternDepsChecksum string
 	CrateNativeDepsChecksum string
 	RustCBinHash            string
+	DepInfoData             []byte // serialized dep-info for build-script output validation
 }

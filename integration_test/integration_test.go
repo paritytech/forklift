@@ -95,11 +95,9 @@ func TestBuildScriptOutputChange_CacheInvalidation(t *testing.T) {
 	env.extraEnv = replaceEnv(env.extraEnv, "GENERATED_CONTENT", "version_2")
 	output = env.forkliftBuild(t)
 
-	// crate_a should be rebuilt (cache miss due to dep-info mismatch)
-	if strings.Contains(output, "Build-script outputs changed") ||
-		strings.Contains(output, "Executing rustc") {
-		// Good — either the dep-info check caught it or rustc re-ran
-		t.Logf("Cache correctly invalidated for changed build-script output")
+	// crate_a should be invalidated by dep-info check, not just cargo's own fingerprinting
+	if !strings.Contains(output, "Build-script outputs changed") {
+		t.Fatal("Expected dep-info invalidation ('Build-script outputs changed') for changed build-script output")
 	}
 }
 

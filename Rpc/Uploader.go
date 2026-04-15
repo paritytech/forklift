@@ -74,6 +74,7 @@ func (uploader *Uploader) upload() {
 			path.Join("target", "forklift", fmt.Sprintf("%s-%s", wrapperTool.GetCachePackageName(), "stderr")),
 		}
 
+		var skip = false
 		var stderrFile = wrapperTool.ReadStderrFile()
 		fileScanner := bufio.NewScanner(stderrFile)
 		fileScanner.Split(bufio.ScanLines)
@@ -84,11 +85,16 @@ func (uploader *Uploader) upload() {
 				if strings.Contains(artifact.Artifact, "tmp/") ||
 					strings.Contains(artifact.Artifact, "/var/folders/") {
 					logger.Tracef("Temporary artifact folder `%s` detected, skip", artifact.Artifact)
-					return
+					skip = true
+					break
 				}
 				var relPath, _ = filepath.Rel(uploader.workDir, artifact.Artifact)
 				crateArtifactsFiles = append(crateArtifactsFiles, relPath)
 			}
+		}
+
+		if skip {
+			continue
 		}
 
 		if len(crateArtifactsFiles) > 0 {

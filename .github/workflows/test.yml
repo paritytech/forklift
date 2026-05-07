@@ -1,6 +1,11 @@
 name: Tests
 run-name: Tests for `${{ github.ref_name }}`
 on: push
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   #
   Test:

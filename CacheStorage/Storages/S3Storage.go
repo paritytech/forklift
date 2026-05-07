@@ -13,6 +13,7 @@ import (
 	"net/http"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -87,6 +88,9 @@ func NewS3Storage(params *map[string]interface{}) *S3Storage {
 		if !useSsl {
 			o.RequestChecksumCalculation = aws.RequestChecksumCalculationWhenRequired
 			o.ResponseChecksumValidation = aws.ResponseChecksumValidationWhenRequired
+			// Plain HTTP cannot stream a SigV4 payload SHA from an unseekable
+			// body; mark the payload UNSIGNED-PAYLOAD so the signer skips it.
+			o.APIOptions = append(o.APIOptions, v4.SwapComputePayloadSHA256ForUnsignedPayloadMiddleware)
 		}
 	})
 

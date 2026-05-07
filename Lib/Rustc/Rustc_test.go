@@ -106,7 +106,7 @@ func TestNewWrapperToolFromCacheItem_UsesStoredCachePackageName(t *testing.T) {
 		// match storedName and we get a clean assertion failure.
 		CrateExternDepsChecksum: "0",
 	}
-	wrapper := Rustc.NewWrapperToolFromCacheItem("/tmp", item)
+	wrapper := Rustc.NewWrapperToolFromCacheItem(t.TempDir(), item)
 	if got := wrapper.GetCachePackageName(); got != storedName {
 		t.Errorf("expected stored name %q, got recomputed %q", storedName, got)
 	}

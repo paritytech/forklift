@@ -59,48 +59,50 @@ func (uploader *Uploader) upload() {
 			uploader.Done()
 			return
 		}
+		uploader.processItem(item, l)
+	}
+}
 
-		var wrapperTool = Rustc.NewWrapperToolFromCacheItem(uploader.workDir, item)
-		var logger = l.WithFields(log.Fields{
-			"crate": wrapperTool.CrateName,
-			"hash":  wrapperTool.CargoCrateHash,
-		})
+func (uploader *Uploader) processItem(item Models.CacheItem, l *log.Logger) {
+	var wrapperTool = Rustc.NewWrapperToolFromCacheItem(uploader.workDir, item)
+	var logger = l.WithFields(log.Fields{
+		"crate": wrapperTool.CrateName,
+		"hash":  wrapperTool.CargoCrateHash,
+	})
 
-		wrapperTool.Logger = logger
+	wrapperTool.Logger = logger
 
-		logger.Debugf("Processing %s %s %s", wrapperTool.CrateName, wrapperTool.CargoCrateHash, wrapperTool.OutDir)
+	logger.Debugf("Processing %s %s %s", wrapperTool.CrateName, wrapperTool.CargoCrateHash, wrapperTool.OutDir)
 
-		var crateArtifactsFiles = []string{
-			path.Join("target", "forklift", fmt.Sprintf("%s-%s", wrapperTool.GetCachePackageName(), "stderr")),
-		}
+	var crateArtifactsFiles = []string{
+		path.Join("target", "forklift", fmt.Sprintf("%s-%s", wrapperTool.GetCachePackageName(), "stderr")),
+	}
 
-		var stderrFile = wrapperTool.ReadStderrFile()
-		fileScanner := bufio.NewScanner(stderrFile)
-		fileScanner.Split(bufio.ScanLines)
-		for fileScanner.Scan() {
-			var artifact Rustc.Artifact
-			json.Unmarshal([]byte(fileScanner.Text()), &artifact)
-			if artifact.Artifact != "" {
-				if strings.Contains(artifact.Artifact, "tmp/") ||
-					strings.Contains(artifact.Artifact, "/var/folders/") {
-					logger.Tracef("Temporary artifact folder `%s` detected, skip", artifact.Artifact)
-					return
-				}
-				var relPath, _ = filepath.Rel(uploader.workDir, artifact.Artifact)
-				crateArtifactsFiles = append(crateArtifactsFiles, relPath)
+	var stderrFile = wrapperTool.ReadStderrFile()
+	fileScanner := bufio.NewScanner(stderrFile)
+	fileScanner.Split(bufio.ScanLines)
+	for fileScanner.Scan() {
+		var artifact Rustc.Artifact
+		json.Unmarshal([]byte(fileScanner.Text()), &artifact)
+		if artifact.Artifact != "" {
+			if strings.Contains(artifact.Artifact, "tmp/") ||
+				strings.Contains(artifact.Artifact, "/var/folders/") {
+				logger.Tracef("Temporary artifact folder `%s` detected, skip", artifact.Artifact)
+				return
 			}
-		}
-
-		if len(crateArtifactsFiles) > 0 {
-			var report = uploader.TryUpload(wrapperTool, crateArtifactsFiles, item.DepInfoData, logger)
-			if report.Status != CacheUpload.Undefined {
-				uploader.CollectReport(&report)
-			}
-		} else {
-			logger.Tracef("No entries for '%s-%s'\n", wrapperTool.GetCachePackageName(), wrapperTool.CargoCrateHash)
+			var relPath, _ = filepath.Rel(uploader.workDir, artifact.Artifact)
+			crateArtifactsFiles = append(crateArtifactsFiles, relPath)
 		}
 	}
 
+	if len(crateArtifactsFiles) > 0 {
+		var report = uploader.TryUpload(wrapperTool, crateArtifactsFiles, item.DepInfoData, logger)
+		if report.Status != CacheUpload.Undefined {
+			uploader.CollectReport(&report)
+		}
+	} else {
+		logger.Tracef("No entries for '%s-%s'\n", wrapperTool.GetCachePackageName(), wrapperTool.CargoCrateHash)
+	}
 }
 
 // TryUpload -	Upload crate artifacts to cache

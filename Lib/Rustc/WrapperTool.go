@@ -78,6 +78,12 @@ func NewWrapperToolFromCacheItem(workDir string, item Models.CacheItem) *Wrapper
 	wrapper.CrateExternDepsChecksum = item.CrateExternDepsChecksum
 	wrapper.CrateNativeDepsChecksum = item.CrateNativeDepsChecksum
 
+	// Reuse the name computed by the wrapper subprocess. Recomputing here would
+	// re-evaluate ExtraEnvVarsChecksum against the server's environment, which
+	// is missing cargo-injected vars (CARGO_*, OUT_DIR, ...) the wrapper saw,
+	// causing the on-disk *-stderr path to diverge from the lookup path.
+	wrapper.cachePackageName = item.CachePackageName
+
 	return &wrapper
 }
 
@@ -313,7 +319,12 @@ func (wrapperTool *WrapperTool) ToCacheItem() Models.CacheItem {
 
 func (wrapperTool *WrapperTool) ReadStderrFile() io.Reader {
 	var itemsCachePath = filepath.Join(wrapperTool.workDir, "target", "forklift")
-	var file, _ = os.Open(filepath.Join(itemsCachePath, fmt.Sprintf("%s-stderr", wrapperTool.GetCachePackageName())))
+	var stderrPath = filepath.Join(itemsCachePath, fmt.Sprintf("%s-stderr", wrapperTool.GetCachePackageName()))
+	var file, err = os.Open(stderrPath)
+	if err != nil {
+		wrapperTool.Logger.Errorf("Error opening %s: %v", stderrPath, err)
+		return &bytes.Buffer{}
+	}
 
 	var resultBuf = bytes.Buffer{}
 

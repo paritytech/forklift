@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"forklift/FileManager/Models"
+	"forklift/Lib/Config"
 	"forklift/Lib/Logging"
 	"forklift/Lib/Rustc"
 	"os"
@@ -84,5 +86,110 @@ func TestWrapperTool_ReadStderrFile(t *testing.T) {
 		fmt.Printf("Expected: %s\n", expectedData)
 		fmt.Printf("Actual  : %s\n", actualData)
 		t.Error("Data mismatch")
+	}
+}
+
+// TestNewWrapperToolFromCacheItem_UsesStoredCachePackageName is the direct
+// regression test for the uploader/wrapper name-mismatch bug. The uploader
+// MUST return the name shipped in the CacheItem rather than recomputing one
+// — if it recomputes, the result is a sha of mostly-empty inputs which won't
+// match the precomputed storedName used to build the on-disk *-stderr path.
+func TestNewWrapperToolFromCacheItem_UsesStoredCachePackageName(t *testing.T) {
+	const storedName = "some_crate_deadbeef00000000000000000000000000cafe"
+	item := Models.CacheItem{
+		Name:             "some_crate",
+		CachePackageName: storedName,
+		// Fields below only exist to keep GetCachePackageName from panicking
+		// if a regression makes it recompute (ExternDepsChecksum needs a
+		// non-empty CrateExternDepsChecksum to skip dereferencing rustcArgs).
+		// If recomputation ever kicks in, the sha of these inputs will not
+		// match storedName and we get a clean assertion failure.
+		CrateExternDepsChecksum: "0",
+	}
+	wrapper := Rustc.NewWrapperToolFromCacheItem(t.TempDir(), item)
+	if got := wrapper.GetCachePackageName(); got != storedName {
+		t.Errorf("expected stored name %q, got recomputed %q", storedName, got)
+	}
+}
+
+// TestCachePackageName_SurvivesExtraEnvVarDrift reproduces the production
+// scenario: the wrapper subprocess sees a Cache.ExtraEnv var (e.g. a cargo-
+// injected CARGO_* / OUT_DIR value) that the parent server process does not.
+// The on-disk path the wrapper wrote and the path the uploader looks up must
+// still agree after the roundtrip through CacheItem.
+func TestCachePackageName_SurvivesExtraEnvVarDrift(t *testing.T) {
+	const varName = "FORKLIFT_TEST_EXTRA_VAR"
+
+	t.Setenv(varName, "wrapper-value")
+	origExtraEnv := Config.AppConfig.Cache.ExtraEnv
+	Config.AppConfig.Cache.ExtraEnv = []string{varName}
+	t.Cleanup(func() { Config.AppConfig.Cache.ExtraEnv = origExtraEnv })
+
+	wd, _ := os.Getwd()
+
+	// Wrapper side: var is set, compute and serialize.
+	wrapper := Rustc.NewWrapperToolFromArgs(wd, []string{"aaaa", "bbbb"})
+	wrapperName := wrapper.GetCachePackageName()
+	item := wrapper.ToCacheItem()
+
+	// Server side: var is absent (simulates the parent process env).
+	os.Unsetenv(varName)
+
+	uploader := Rustc.NewWrapperToolFromCacheItem(wd, item)
+	uploaderName := uploader.GetCachePackageName()
+
+	if wrapperName != uploaderName {
+		t.Errorf("cache-package name drifted across env change\n  wrapper:  %s\n  uploader: %s", wrapperName, uploaderName)
+	}
+}
+
+// TestExtraEnvVarsChecksum_EnvVarChangesWrapperName locks in the intended
+// behavior on the wrapper side: changing a value listed in Cache.ExtraEnv
+// actually changes the cache-package name. Without this check, a future
+// refactor could silently stop honoring ExtraEnv and the
+// SurvivesExtraEnvVarDrift test above would pass trivially.
+func TestExtraEnvVarsChecksum_EnvVarChangesWrapperName(t *testing.T) {
+	const varName = "FORKLIFT_TEST_SENSITIVE_VAR"
+
+	origExtraEnv := Config.AppConfig.Cache.ExtraEnv
+	Config.AppConfig.Cache.ExtraEnv = []string{varName}
+	t.Cleanup(func() { Config.AppConfig.Cache.ExtraEnv = origExtraEnv })
+
+	wd, _ := os.Getwd()
+
+	t.Setenv(varName, "value-one")
+	nameOne := Rustc.NewWrapperToolFromArgs(wd, []string{"aaaa", "bbbb"}).GetCachePackageName()
+
+	t.Setenv(varName, "value-two")
+	nameTwo := Rustc.NewWrapperToolFromArgs(wd, []string{"aaaa", "bbbb"}).GetCachePackageName()
+
+	if nameOne == nameTwo {
+		t.Errorf("expected different names for different values of %s, both were %q", varName, nameOne)
+	}
+}
+
+// TestReadStderrFile_MissingFileReturnsEmpty covers the secondary fix: when
+// the stderr file is absent, ReadStderrFile must surface the error via the
+// logger and return an empty reader — never a nil *os.File wrapped in an
+// interface, which previously caused Scanner to silently produce zero lines.
+func TestReadStderrFile_MissingFileReturnsEmpty(t *testing.T) {
+	wd := t.TempDir()
+
+	item := Models.CacheItem{
+		Name:                    "nonexistent",
+		CachePackageName:        "nonexistent_missingstderrfile",
+		CrateExternDepsChecksum: "0",
+	}
+	wrapper := Rustc.NewWrapperToolFromCacheItem(wd, item)
+	wrapper.Logger = Logging.CreateLogger("test", 2, nil)
+
+	reader := wrapper.ReadStderrFile()
+	buf := bytes.Buffer{}
+	n, err := buf.ReadFrom(reader)
+	if err != nil {
+		t.Fatalf("unexpected read error: %s", err)
+	}
+	if n != 0 {
+		t.Errorf("expected empty buffer, got %d bytes", n)
 	}
 }

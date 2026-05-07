@@ -7,6 +7,10 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   #
   Build-cargo:
@@ -48,10 +52,9 @@ jobs:
           [storage]
             type = "s3"
           [storage.s3]
-            endpointUrl = "https://localhost:9000"
+            endpointUrl = "http://localhost:9000"
             bucketName = "forklift"
-            useSSL = true
-            insecureSkipVerify = true
+            useSsl = false
           [cache.extraMetadata]
             github_run_id="$GITHUB_RUN_ID"
             github_job="$GITHUB_JOB"

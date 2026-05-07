@@ -56,7 +56,7 @@ accessKeyId = "ABCDEF1234567890"
 bucketName = "forklift"
 endpointUrl = "https://storage.googleapis.com"
 secretAccessKey = "very_secret_key"
-useSSL = true
+useSsl = true
 ```
 
 You can also set the `FORKLIFT_storage_s3_bucketName` variable here. Note that the key path is case sensitive.
@@ -115,7 +115,7 @@ See `forklift config --help` for more info.
 | bucketName      | `string` | S3 bucket name.                          |
 | endpointUrl     | `string` | S3 endpoint URL.                         |
 | secretAccessKey | `string` | S3 secret access key.                    |
-| useSSL          | `bool`   | Use SSL, default `true`.                 |
+| useSsl          | `bool`   | Use SSL, default `true`.                 |
 
 
 `[storage.fs]`

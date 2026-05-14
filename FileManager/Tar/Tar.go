@@ -4,14 +4,12 @@ import (
 	"archive/tar"
 	"crypto/sha1"
 	"errors"
-	"fmt"
 	log "forklift/Lib/Logging/ConsoleLogger"
 	"hash"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 // Pack - Pack forklift tar archive
@@ -119,11 +117,6 @@ func PackFile(tarWriter *tar.Writer, path string, hash hash.Hash) {
 // UnPack -	Unpack forklift tar archive
 func UnPack(path string, reader io.Reader) error {
 
-	cleanBase, err := filepath.Abs(path)
-	if err != nil {
-		return fmt.Errorf("failed to resolve base path: %w", err)
-	}
-
 	tr := tar.NewReader(reader)
 
 	for {
@@ -137,15 +130,6 @@ func UnPack(path string, reader io.Reader) error {
 		}
 
 		filePath := filepath.Join(path, header.Name)
-
-		// Prevent path traversal (Zip Slip): ensure the resolved path stays within the target directory
-		absPath, err := filepath.Abs(filePath)
-		if err != nil {
-			return fmt.Errorf("failed to resolve path %s: %w", filePath, err)
-		}
-		if !strings.HasPrefix(absPath, cleanBase+string(os.PathSeparator)) && absPath != cleanBase {
-			return fmt.Errorf("illegal path in archive: %s resolves outside target directory", header.Name)
-		}
 
 		err = os.MkdirAll(filepath.Dir(filePath), 0777)
 		if err != nil {
